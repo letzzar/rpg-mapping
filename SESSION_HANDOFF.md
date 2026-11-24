@@ -1,5 +1,33 @@
 # SESSION_HANDOFF — RPG Mapping
 
+## ⚠ AL RETOMAR (instrucción de Víctor, 2026-11-24): pruebas de ejecución desde Claude Code desktop
+Víctor cerró la sesión de terminal para reabrir en **Claude Code desktop** con **uso del ordenador** (skill `computer-use`). Al abrir, **hacer las pruebas del tirón, sin preguntar entre pasos**; al final, un único informe con capturas de los fallos y la lista de arreglos propuestos.
+
+**Preparación**
+1. Leer este fichero. Cargar el skill `computer-use` (y comprobar que hay herramientas de captura/clic). Si no las hay, decírselo a Víctor y usar el plan B (ver abajo).
+2. `pwsh tools/run_tests.ps1` → debe dar **139/139** (si no, parar y arreglar antes de probar la UI).
+3. Lanzar la app con ventana: `& "$env:LOCALAPPDATA\Programs\Godot\Godot_v4.7.2-stable_win64_console.exe" --path project` (en segundo plano; la consola muestra errores de script: revisarla al final).
+
+**Guion de pruebas** (anotar por cada punto: OK / fallo + captura):
+1. **Arranque**: ventana con barra superior (código, Generar, escala, Nueva aleatoria, sistema, rejilla, unidades, nivel, Añadir ficha, Deshacer, Rehacer, Ajustar, Exportar PNG) y texto de ayuda abajo. Textos en español, nada cortado ni solapado; probar a redimensionar la ventana.
+2. **Código conocido**: pegar `RPGM1-DND5-MAZ-G1-0-HWX23H6N-W` → Generar → mapa centrado; comparar con `tests/render/render_samples.gd` si hay dudas. Probar también `RPGM1-PF2E-MAZ-G1-80-PK2XDSZR-5` (hex plana) y `RPGM1-DND5-MAZ-G1-WKA0G0-W7HE7S75-0` (hex punta, 3 niveles): el selector de sistema, escala y rejilla debe ajustarse solo.
+3. **Errores de código**: un código con una letra cambiada → mensaje "código mal escrito" (SEED_ERR_CHECK traducido, no la clave); código vacío; minúsculas y espacios (deben aceptarse).
+4. **Aleatorias**: Nueva aleatoria con cada combinación de escala (Mazmorra/Estancia) × rejilla (3); el código aparece en la caja y regenerarlo da el mismo mapa.
+5. **Niveles**: con el mapa de 3 niveles, cambiar de nivel; las escaleras se ven con flecha arriba/abajo.
+6. **Zoom y desplazamiento**: rueda (zoom centrado en el puntero), botón central (desplazar), Ajustar.
+7. **Fichas**: Añadir ficha (varias) → aparecen en casillas libres; arrastrar una → línea de ruta + coste en la unidad activa; soltar → se mueve y la barra de estado dice "Ficha movida (…)". Arrastrar más allá de 30 ft (5e) → ruta en rojo y "(supera la velocidad)", pero se mueve igual. Arrastrar a roca o tras puerta cerrada → "Sin ruta" y no se mueve.
+8. **Puertas**: clic en una puerta cerrada → se abre (hoja girada); ahora la ruta pasa por ella; volver a cerrar. Puerta secreta (azul, vista DM) igual.
+9. **Deshacer/rehacer**: botones y Ctrl+Z / Ctrl+Y / Ctrl+Mayús+Z; los botones se desactivan cuando no hay nada; el tooltip dice qué se deshace.
+10. **Regla**: arrastrar con botón derecho → línea y distancia; cambiar unidades (métrico convención 5 ft = 1,5 m, métrico exacto, imperial) y comprobar valores (p. ej. 6 casillas rectas = 30 ft = 9 m conv. / 9,14 m exacto). En PF2e, diagonales alternas 5/10.
+11. **Estancias**: generar `RPGM1-DND5-EST-G1-0-H8DJRFAE-M` (taberna) y `RPGM1-DND5-EST-G1-223-QN75YR3H-Y` (templo élfico, hex): nombres de objetos legibles, luces, puerta funciona, fichas no atraviesan muebles que bloquean.
+12. **Exportar PNG**: diálogo de guardar → guardar en el scratchpad → abrir el PNG y comprobar que coincide con la vista (sin fichas de jugador ocultas, a 100 px/casilla).
+13. **Rendimiento**: mapa grande (aleatoria de mazmorra varias veces; o código con tamaño huge si se construye) → zoom/arrastre fluidos.
+14. **Consola**: revisar la salida de Godot por `SCRIPT ERROR`, `ERROR` o avisos.
+
+**Al terminar**: arreglar lo que sea claro (con tests si se puede: plan de convertir interacciones en pruebas GUT que simulan eventos de ratón sobre `ui/main.tscn`), commit + `git push` + `git push nas main`, informe a Víctor, y preguntar si se pasa a **F2**.
+
+**Plan B (sin uso del ordenador)**: exportar el preset "Web" (`--export-release "Web" ../build/web/index.html`), servir `build/web` con `python -m http.server 8766 --bind 127.0.0.1` y hacer el mismo guion en Chrome con `claude-in-chrome` (clics/arrastres sobre el canvas y capturas). El PNG en web se descarga en lugar de abrir diálogo.
+
 ## Última sesión: 2026-11-24 (3.ª)
 **Fase actual:** **F1 – Mazmorra y estancia 2D: criterios de aceptación cumplidos** (20 seeds doradas estables en escritorio y web; movimiento en 5e, PF2e y bandas en las tres rejillas). Falta la prueba manual de Víctor. Siguiente: F2.
 
@@ -15,6 +43,7 @@
 ### Siguiente paso
 1. **Víctor prueba la app** (`& $g --path project`): generar mazmorras y estancias, mover fichas, medir, abrir puertas, exportar PNG. Recoger ajustes de la vista (iconos de objetos, selector de tamaño/bando de ficha, nombres de objetos más legibles).
 2. **F2 – Vista 3D y 1ª persona** (§7, §16): renderizado 3D cenital y en primera persona del mismo `MapDocument` (muros en aristas → módulos de pared, ADR 018), línea de visión y luces en el modelo; criterio: cambio de vista < 500 ms y niebla coherente entre vistas. Assets CC0 a registrar en `assets/LICENSES.md`.
+
 ### Pendiente / riesgos
 - El `cartografo` no puede ejecutar tests (no tiene PowerShell en esta sesión; se añadió a su definición y debería tenerlo en la próxima). Mientras tanto, los ejecuta el coordinador.
 - `find_route` no considera otras fichas y usa la casilla de anclaje de criaturas grandes.
