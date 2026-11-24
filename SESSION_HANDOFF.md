@@ -24,7 +24,7 @@
 5. El carácter de control puede salir O/I/L/U (MOD 37,36 usa 0-9A-Z) y confundirse al dictar: mostrarlo inequívoco en la UI o cambiar de alfabeto.
 
 ### Siguiente paso
-1. Commit F0 + crear repo GitHub y subir (si no se hizo al cierre de esta sesión: ver `git log`/`git remote -v`); comprobar que el workflow de CI pasa.
+1. ~~Commit F0 y GitHub~~ **hecho**: commit `b9cd515` en `main`, repo público https://github.com/letzzar/rpg-mapping, CI de Linux **53/53 y 7456 asserts** (igual que Windows y web). Falta que Víctor cree el espejo en Gitea. Aviso menor en CI: `actions/checkout@v4` usa Node 20 (deprecado); subir a la versión que use Node 24 cuando toque.
 2. F1: interfaz de rejilla (cuadrada/hex, ADR 012), `MapDocument` (core/model), generadores `MAZ`/`EST`, vista 2D, exportación PNG. Consultar al `cartografo`.
 
 ### Pendiente / riesgos
