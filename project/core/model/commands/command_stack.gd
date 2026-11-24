@@ -42,6 +42,26 @@ func execute(cmd: MapCommand, merge: bool = false) -> bool:
 	return true
 
 
+## Aplica `cmd` como parte del último paso del historial (se deshará junto
+## con él). Si no hay paso previo, crea uno nuevo. No borra el historial de
+## rehacer si no se aplica.
+func execute_attached(cmd: MapCommand) -> bool:
+	if _done.is_empty():
+		return execute(cmd)
+	if not cmd.apply(document):
+		return false
+	_undone.clear()
+	var last: MapCommand = _done[-1]
+	var comp: CompositeCommand = last as CompositeCommand
+	if comp == null:
+		var parts: Array[MapCommand] = [last]
+		comp = CompositeCommand.new(parts)
+		_done[-1] = comp
+	comp.parts.append(cmd)
+	changed.emit()
+	return true
+
+
 func can_undo() -> bool:
 	return not _done.is_empty()
 
