@@ -1,0 +1,100 @@
+{
+	"schema_version": 1,
+	"room_types": [
+		{
+			"id": "tavern", "auto_size": "large",
+			"required": ["bar_counter", "hearth", "barrel"],
+			"optional": [
+				{ "object": "table_round", "weight": 100, "max": 6 },
+				{ "object": "chair", "weight": 120, "max": 12 },
+				{ "object": "table_long", "weight": 40, "max": 2 },
+				{ "object": "bench", "weight": 40, "max": 4 },
+				{ "object": "barrel", "weight": 30, "max": 4 },
+				{ "object": "candle_stand", "weight": 20, "max": 2 },
+				{ "object": "torch_sconce", "weight": 30, "max": 4 },
+				{ "object": "rug", "weight": 10, "max": 1 }
+			]
+		},
+		{
+			"id": "bedroom", "auto_size": "small",
+			"required": ["bed", "chest"],
+			"optional": [
+				{ "object": "wardrobe", "weight": 40, "max": 1 },
+				{ "object": "rug", "weight": 30, "max": 1 },
+				{ "object": "candle_stand", "weight": 40, "max": 1 },
+				{ "object": "table_round", "weight": 20, "max": 1 },
+				{ "object": "chair", "weight": 20, "max": 1 },
+				{ "object": "torch_sconce", "weight": 10, "max": 1 }
+			]
+		},
+		{
+			"id": "storage", "auto_size": "small",
+			"required": ["crate"],
+			"optional": [
+				{ "object": "crate", "weight": 100, "max": 8 },
+				{ "object": "barrel", "weight": 80, "max": 6 },
+				{ "object": "sack", "weight": 80, "max": 6 },
+				{ "object": "shelf", "weight": 50, "max": 3 },
+				{ "object": "torch_sconce", "weight": 10, "max": 1 }
+			]
+		},
+		{
+			"id": "temple", "auto_size": "large",
+			"required": ["altar", "brazier"],
+			"optional": [
+				{ "object": "pew", "weight": 100, "max": 8 },
+				{ "object": "statue", "weight": 30, "max": 2 },
+				{ "object": "candle_stand", "weight": 60, "max": 4 },
+				{ "object": "pillar", "weight": 30, "max": 4 },
+				{ "object": "torch_sconce", "weight": 30, "max": 4 },
+				{ "object": "rug", "weight": 20, "max": 1 }
+			]
+		},
+		{
+			"id": "library", "auto_size": "medium",
+			"required": ["bookcase", "reading_desk"],
+			"optional": [
+				{ "object": "bookcase", "weight": 100, "max": 6 },
+				{ "object": "reading_desk", "weight": 40, "max": 2 },
+				{ "object": "candle_stand", "weight": 50, "max": 3 },
+				{ "object": "table_long", "weight": 20, "max": 1 },
+				{ "object": "rug", "weight": 20, "max": 1 }
+			]
+		},
+		{
+			"id": "kitchen", "auto_size": "medium",
+			"required": ["stove", "prep_table"],
+			"optional": [
+				{ "object": "barrel", "weight": 50, "max": 3 },
+				{ "object": "sack", "weight": 60, "max": 4 },
+				{ "object": "shelf", "weight": 40, "max": 2 },
+				{ "object": "crate", "weight": 30, "max": 2 },
+				{ "object": "table_round", "weight": 20, "max": 1 },
+				{ "object": "torch_sconce", "weight": 20, "max": 2 }
+			]
+		},
+		{
+			"id": "forge", "auto_size": "medium",
+			"required": ["forge_furnace", "anvil", "quench_trough"],
+			"optional": [
+				{ "object": "weapon_rack", "weight": 50, "max": 2 },
+				{ "object": "crate", "weight": 40, "max": 3 },
+				{ "object": "barrel", "weight": 30, "max": 2 },
+				{ "object": "torch_sconce", "weight": 20, "max": 2 },
+				{ "object": "sack", "weight": 20, "max": 2 }
+			]
+		},
+		{
+			"id": "crypt", "auto_size": "medium",
+			"required": ["sarcophagus", "lever"],
+			"optional": [
+				{ "object": "sarcophagus", "weight": 80, "max": 5 },
+				{ "object": "bone_pile", "weight": 60, "max": 6 },
+				{ "object": "statue", "weight": 30, "max": 2 },
+				{ "object": "pillar", "weight": 30, "max": 4 },
+				{ "object": "brazier", "weight": 20, "max": 2 },
+				{ "object": "candle_stand", "weight": 30, "max": 2 }
+			]
+		}
+	]
+}

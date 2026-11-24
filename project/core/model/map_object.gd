@@ -36,6 +36,9 @@ var light_dim_cells: int = 0
 var interaction: String = ""
 ## Altura física en mm (vista 3D y línea de visión).
 var height_mm: int = 0
+## Material según el estilo (data/styles; p. ej. "oak", "granite"); "" si no
+## aplica. Solo afecta al aspecto (vistas 2D/3D).
+var material: String = ""
 
 
 func copy() -> MapObject:
@@ -53,6 +56,7 @@ func copy() -> MapObject:
 	o.light_dim_cells = light_dim_cells
 	o.interaction = interaction
 	o.height_mm = height_mm
+	o.material = material
 	return o
 
 
@@ -71,6 +75,7 @@ func to_dict() -> Dictionary:
 		"light_dim_cells": light_dim_cells,
 		"interaction": interaction,
 		"height_mm": height_mm,
+		"material": material,
 	}
 
 
@@ -89,6 +94,7 @@ static func from_dict(r: JsonReader, d: Dictionary) -> MapObject:
 	o.light_dim_cells = r.get_int(d, "light_dim_cells")
 	o.interaction = r.get_str(d, "interaction")
 	o.height_mm = r.get_int(d, "height_mm")
+	o.material = r.get_str(d, "material")
 	if o.cover < COVER_NONE or o.cover > COVER_TOTAL:
 		r.fail("cover fuera de rango")
 	if o.size.x < 1 or o.size.y < 1:

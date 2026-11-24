@@ -70,6 +70,8 @@ static func _ensure_builtins() -> void:
 	_loaded = true
 	var problem: String = _add(maz_g1())
 	assert(problem.is_empty(), "ParamSchemaRegistry: MAZ G1 no válido: " + problem)
+	problem = _add(est_g1())
+	assert(problem.is_empty(), "ParamSchemaRegistry: EST G1 no válido: " + problem)
 
 
 ## MAZ G1 — PROPUESTA DEFINITIVA, PENDIENTE DE APROBAR (F1, etapa 2). Se
@@ -104,3 +106,25 @@ static func maz_g1() -> ParamSchema:
 		ParamSchema.enum_field("style", PackedStringArray(["human", "dwarf", "elf"]), "human", 16),
 	]
 	return ParamSchema.new("MAZ", 1, fields)
+
+
+## EST G1 — PROPUESTA, PENDIENTE DE APROBAR (F1, etapa 3). Se congela al
+## grabar la primera seed dorada de EST. Detalle en EstGeneratorG1 y §6.5.
+## - room_type: tipo de estancia (data/rooms/est_room_types.json; los ids
+##   deben coincidir); capacity 32 para añadir tipos sin cambiar códigos.
+## - size: interior small 6×5, medium 9×7, large 13×10; auto = el del tipo.
+## - style: ADR 015, materiales y pesos del mobiliario (data/styles).
+## - shape: rectángulo o L (esquina recortada de w/2 × h/2).
+## - doors: puertas (las que quepan sin juntarse; al menos una).
+## - clutter: objetos opcionales ≈ casillas × clutter / 40.
+static func est_g1() -> ParamSchema:
+	var fields: Array[ParamSchema.Field] = [
+		ParamSchema.enum_field("room_type", PackedStringArray(["tavern", "bedroom", "storage", "temple", "library", "kitchen", "forge", "crypt"]), "tavern", 32),
+		ParamSchema.enum_field("grid", PackedStringArray(["square", "hex_flat", "hex_pointy"]), "square", 4),
+		ParamSchema.enum_field("size", PackedStringArray(["auto", "small", "medium", "large"]), "auto", 8),
+		ParamSchema.enum_field("style", PackedStringArray(["human", "dwarf", "elf"]), "human", 16),
+		ParamSchema.enum_field("shape", PackedStringArray(["rect", "l_shape"]), "rect", 4),
+		ParamSchema.int_field("doors", 1, 4, 1),
+		ParamSchema.int_field("clutter", 0, 10, 5),
+	]
+	return ParamSchema.new("EST", 1, fields)

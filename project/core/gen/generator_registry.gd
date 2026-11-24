@@ -10,7 +10,7 @@ extends RefCounted
 ## El registro sella la procedencia (seed_code, scale, gen_version) en el
 ## documento devuelto, así que el generador no tiene que hacerlo.
 ##
-## Incorporados: MAZ G1 (F1, etapa 2). EST llega en la etapa 3. Los tests
+## Incorporados: MAZ G1 y EST G1 (F1, etapas 2 y 3). Los tests
 ## registran generadores de prueba y llaman a reset().
 
 ## Resultado de generate().
@@ -102,4 +102,6 @@ static func _ensure_builtins() -> void:
 		return
 	_loaded = true
 	var problem: String = _add(MazGeneratorG1.SCALE, MazGeneratorG1.GEN, Callable(MazGeneratorG1, "generate"))
+	assert(problem.is_empty(), "GeneratorRegistry: " + problem)
+	problem = _add(EstGeneratorG1.SCALE, EstGeneratorG1.GEN, Callable(EstGeneratorG1, "generate"))
 	assert(problem.is_empty(), "GeneratorRegistry: " + problem)

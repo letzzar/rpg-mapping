@@ -61,3 +61,48 @@ TRAP_PIT,Trampa de foso,Pit trap
 TRAP_DARTS,Trampa de dardos,Dart trap
 TRAP_NET,Trampa de red,Net trap
 TRAP_ALARM,Alarma,Alarm
+ROOM_KIND_TAVERN,Taberna,Tavern
+ROOM_KIND_BEDROOM,Dormitorio,Bedroom
+ROOM_KIND_STORAGE,Almacén,Storeroom
+ROOM_KIND_TEMPLE,Templo,Temple
+ROOM_KIND_LIBRARY,Biblioteca,Library
+ROOM_KIND_KITCHEN,Cocina,Kitchen
+ROOM_KIND_FORGE,Forja,Forge
+ROOM_KIND_CRYPT,Cripta,Crypt
+STYLE_HUMAN,Humano,Human
+STYLE_DWARF,Enano,Dwarven
+STYLE_ELF,Élfico,Elven
+OBJ_TABLE_ROUND,Mesa redonda,Round table
+OBJ_TABLE_LONG,Mesa larga,Long table
+OBJ_CHAIR,Silla,Chair
+OBJ_BENCH,Banco,Bench
+OBJ_BAR_COUNTER,Barra,Bar counter
+OBJ_HEARTH,Chimenea,Hearth
+OBJ_BARREL,Barril,Barrel
+OBJ_CRATE,Caja,Crate
+OBJ_SACK,Saco,Sack
+OBJ_SHELF,Estantería,Shelf
+OBJ_BED,Cama,Bed
+OBJ_WARDROBE,Armario,Wardrobe
+OBJ_CHEST,Cofre,Chest
+OBJ_RUG,Alfombra,Rug
+OBJ_CANDLE_STAND,Candelabro,Candle stand
+OBJ_TORCH_SCONCE,Antorcha de pared,Wall torch
+OBJ_ALTAR,Altar,Altar
+OBJ_PEW,Banco de templo,Pew
+OBJ_STATUE,Estatua,Statue
+OBJ_PILLAR,Columna,Pillar
+OBJ_BRAZIER,Brasero,Brazier
+OBJ_BOOKCASE,Librería,Bookcase
+OBJ_READING_DESK,Atril,Reading desk
+OBJ_STOVE,Fogón,Stove
+OBJ_PREP_TABLE,Mesa de cocina,Prep table
+OBJ_FORGE_FURNACE,Horno de forja,Forge furnace
+OBJ_ANVIL,Yunque,Anvil
+OBJ_QUENCH_TROUGH,Pila de temple,Quench trough
+OBJ_WEAPON_RACK,Armero,Weapon rack
+OBJ_SARCOPHAGUS,Sarcófago,Sarcophagus
+OBJ_BONE_PILE,Montón de huesos,Bone pile
+OBJ_LEVER,Palanca,Lever
+UI_SCALE_MAZ,Mazmorra,Dungeon
+UI_SCALE_EST,Estancia,Room

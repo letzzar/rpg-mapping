@@ -1,0 +1,38 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://rpg-mapping.local/schemas/object_catalog.schema.json",
+	"title": "Catálogo de objetos (data/objects/*.json)",
+	"description": "PROYECTO §6.5 y ADR 023. Solo enteros. Cambiar un objeto que use un generador cambia su salida: exige subir su GEN. Nombre visible: clave i18n OBJ_<ID en mayúsculas>.",
+	"type": "object",
+	"additionalProperties": false,
+	"required": ["schema_version", "objects"],
+	"properties": {
+		"schema_version": { "const": 1 },
+		"objects": {
+			"type": "array",
+			"items": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": ["id", "size", "placement", "material_class", "cover", "difficult_terrain", "blocks_movement", "blocks_sight", "light_bright_cells", "light_dim_cells", "interaction", "height_mm"],
+				"properties": {
+					"id": { "type": "string", "pattern": "^[a-z0-9_]+$", "description": "Único entre todos los ficheros del catálogo" },
+					"size": { "type": "array", "items": { "type": "integer", "minimum": 1, "maximum": 4 }, "minItems": 2, "maxItems": 2, "description": "[ancho, fondo] en casillas, mirando al norte" },
+					"placement": {
+						"type": "array",
+						"description": "Etiquetas de colocación (todas se cumplen): against_wall (contra_pared: alguna casilla con la pared a la espalda), center (centro: ninguna casilla junto a la pared), near:<id> (junto_a: alguna casilla a distancia 1 de un objeto <id> ya colocado). Vacío = en cualquier sitio. El pasillo libre >= 1 casilla es una regla global, no una etiqueta",
+						"items": { "type": "string", "pattern": "^(against_wall|center|near:[a-z0-9_]+)$" }
+					},
+					"material_class": { "enum": ["furniture", "stone", "metal", "fabric", "none"], "description": "El estilo (data/styles) traduce la clase a un material concreto" },
+					"cover": { "enum": ["none", "half", "three_quarters", "total"] },
+					"difficult_terrain": { "type": "boolean" },
+					"blocks_movement": { "type": "boolean" },
+					"blocks_sight": { "type": "boolean" },
+					"light_bright_cells": { "type": "integer", "minimum": 0 },
+					"light_dim_cells": { "type": "integer", "minimum": 0 },
+					"interaction": { "type": "string", "pattern": "^[a-z0-9_]*$", "description": "\"\" = no interactuable; p. ej. container, chest, lever, search, light, altar" },
+					"height_mm": { "type": "integer", "minimum": 0 }
+				}
+			}
+		}
+	}
+}

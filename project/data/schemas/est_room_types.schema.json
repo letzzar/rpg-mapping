@@ -1,0 +1,38 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://rpg-mapping.local/schemas/est_room_types.schema.json",
+	"title": "Tipos de estancia del generador EST (data/rooms/est_room_types.json)",
+	"description": "ADR 023. Los ids deben coincidir con el enumerado room_type del esquema de parámetros EST G1. Cambiar esta tabla cambia la salida de EST: exige subir GEN.",
+	"type": "object",
+	"additionalProperties": false,
+	"required": ["schema_version", "room_types"],
+	"properties": {
+		"schema_version": { "const": 1 },
+		"room_types": {
+			"type": "array",
+			"items": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": ["id", "auto_size", "required", "optional"],
+				"properties": {
+					"id": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+					"auto_size": { "enum": ["small", "medium", "large"] },
+					"required": { "type": "array", "items": { "type": "string" }, "description": "Objetos que se intentan colocar siempre, en este orden (antes que los opcionales)" },
+					"optional": {
+						"type": "array",
+						"items": {
+							"type": "object",
+							"additionalProperties": false,
+							"required": ["object", "weight", "max"],
+							"properties": {
+								"object": { "type": "string" },
+								"weight": { "type": "integer", "minimum": 1 },
+								"max": { "type": "integer", "minimum": 1 }
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}

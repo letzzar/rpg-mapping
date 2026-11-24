@@ -1,0 +1,7 @@
+{
+	"schema_version": 1,
+	"id": "human",
+	"name_key": "STYLE_HUMAN",
+	"materials": { "furniture": "oak", "stone": "stone", "metal": "iron", "fabric": "wool", "none": "" },
+	"furniture_weight_pct": {}
+}

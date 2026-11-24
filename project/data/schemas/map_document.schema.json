@@ -86,7 +86,7 @@
 					"items": {
 						"type": "object",
 						"additionalProperties": false,
-						"required": ["id", "catalog_id", "cell", "size", "facing", "cover", "difficult_terrain", "blocks_movement", "blocks_sight", "light_bright_cells", "light_dim_cells", "interaction", "height_mm"],
+						"required": ["id", "catalog_id", "cell", "size", "facing", "cover", "difficult_terrain", "blocks_movement", "blocks_sight", "light_bright_cells", "light_dim_cells", "interaction", "height_mm", "material"],
 						"properties": {
 							"id": { "type": "integer", "minimum": 1 },
 							"catalog_id": { "type": "string" },
@@ -100,7 +100,8 @@
 							"light_bright_cells": { "type": "integer", "minimum": 0 },
 							"light_dim_cells": { "type": "integer", "minimum": 0 },
 							"interaction": { "type": "string" },
-							"height_mm": { "type": "integer", "minimum": 0 }
+							"height_mm": { "type": "integer", "minimum": 0 },
+							"material": { "type": "string" }
 						}
 					}
 				},
