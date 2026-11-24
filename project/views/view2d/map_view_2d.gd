@@ -18,6 +18,8 @@ extends Node2D
 
 signal status_changed(text: String)
 signal token_selected(token_id: int)
+## Tras ejecutar un comando del usuario (mover, abrir puerta): la UI explora.
+signal user_command_done
 
 const ZOOM_MIN: float = 0.2
 const ZOOM_MAX: float = 4.0
@@ -67,6 +69,14 @@ var interactive: bool = true
 var unit_system: Units.System = Units.System.METRIC
 var unit_mode: Units.Mode = Units.Mode.CONVENTION
 var diagonal_variant: String = ""
+
+## Niebla (vista de jugadores): con `fog`, lo no explorado se tapa, lo
+## explorado y no visible se oscurece y las fichas ajenas fuera de la vista
+## se ocultan. Los mapas vienen de PartyVision y del nivel (los mismos que
+## usa la vista 3D).
+var fog: bool = false
+var fog_visible: PackedByteArray = PackedByteArray()
+var fog_explored: PackedByteArray = PackedByteArray()
 
 var _drag_token: int = -1
 var _drag_route: MovementCost.Route = null
@@ -125,8 +135,49 @@ func _draw() -> void:
 	_draw_edges(g, lvl)
 	_draw_features(g, lvl)
 	_draw_objects(g, lvl)
+	if fog:
+		_draw_fog(g)
 	_draw_overlays(g)
 	_draw_tokens(g)
+
+
+func set_fog(enabled: bool, visible_map: PackedByteArray, explored: PackedByteArray) -> void:
+	fog = enabled
+	fog_visible = visible_map
+	fog_explored = explored
+	queue_redraw()
+
+
+func _cell_visible(c: Vector2i) -> bool:
+	if not fog:
+		return true
+	var i: int = document.grid.index_of(c)
+	return i >= 0 and i < fog_visible.size() and fog_visible[i] != 0
+
+
+## Velo por casilla, igual que el factor de MapMeshBuilder.fog_factor().
+func _draw_fog(g: GridGeometry) -> void:
+	for i: int in g.cell_count():
+		var vis: int = fog_visible[i] if i < fog_visible.size() else 0
+		var a: float = 0.0
+		if vis == Visibility.BRIGHT:
+			continue
+		elif vis == Visibility.DIM:
+			a = 0.3
+		elif i < fog_explored.size() and fog_explored[i] != 0:
+			a = 0.65
+		else:
+			a = 1.0
+		var c: Vector2i = g.cell_at(i)
+		var poly: PackedVector2Array = g.cell_polygon(c, cell_px)
+		if a >= 1.0:
+			# Algo mayor que la casilla, para tapar también los contornos.
+			var center: Vector2 = g.cell_to_pixel(c, cell_px)
+			for k: int in poly.size():
+				poly[k] = center.lerp(poly[k], 1.12)
+			draw_colored_polygon(poly, COL_BG)
+		else:
+			draw_colored_polygon(poly, Color(0.05, 0.03, 0.02, a))
 
 
 func _draw_outline(poly: PackedVector2Array, col: Color, width: float) -> void:
@@ -274,6 +325,8 @@ func _draw_tokens(g: GridGeometry) -> void:
 	var font: Font = ThemeDB.fallback_font
 	for t: MapToken in document.tokens:
 		if t.level != level_index or (t.hidden and not dm_view):
+			continue
+		if fog and not PartyVision.SIDES_IN_PARTY.has(t.side) and not _cell_visible(t.cell):
 			continue
 		var cells: Array[Vector2i] = _token_cells(t)
 		if cells.is_empty():
@@ -430,7 +483,8 @@ func _on_left_press(cell: Vector2i) -> void:
 		return
 	var edge: int = _door_edge_near(get_local_mouse_position())
 	if edge >= 0 and command_stack != null:
-		command_stack.execute(SetEdgeCommand.toggle_flag(document, level_index, edge, MapEdge.FLAG_OPEN))
+		if command_stack.execute(SetEdgeCommand.toggle_flag(document, level_index, edge, MapEdge.FLAG_OPEN)):
+			user_command_done.emit()
 
 
 func _on_left_release(_cell: Vector2i) -> void:
@@ -440,6 +494,7 @@ func _on_left_release(_cell: Vector2i) -> void:
 		var cost: int = _drag_route.cost_ft
 		if command_stack.execute(MoveTokenCommand.new(_drag_token, _drag_target, level_index)):
 			status_changed.emit(tr("UI_MOVED").replace("{cost}", _format_ft(cost)))
+			user_command_done.emit()
 	elif (_drag_route == null or not _drag_route.found) and _drag_target.x >= 0:
 		var t: MapToken = document.token(_drag_token)
 		if t != null and _drag_target != t.cell:
@@ -470,6 +525,8 @@ func _token_at(cell: Vector2i) -> MapToken:
 	for i: int in range(document.tokens.size() - 1, -1, -1):
 		var t: MapToken = document.tokens[i]
 		if t.level == level_index and (dm_view or not t.hidden) and _token_cells(t).has(cell):
+			if fog and not PartyVision.SIDES_IN_PARTY.has(t.side) and not _cell_visible(t.cell):
+				continue
 			return t
 	return null
 

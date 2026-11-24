@@ -108,3 +108,15 @@ UI_SCALE_MAZ,Mazmorra,Dungeon
 UI_SCALE_EST,Estancia,Room
 UI_TOKEN_ADDED,Ficha {name} añadida junto a la entrada,Token {name} added next to the entrance
 UI_NO_ROUTE_STATUS,"Sin ruta: la ficha no se mueve (muro, roca o puerta cerrada)","No route: the token stays (wall, rock or closed door)"
+CMD_EXPLORE,Explorar,Explore
+UI_VIEW_2D,Vista 2D,2D view
+UI_VIEW_3D,Vista 3D,3D view
+UI_VIEW_FP,1ª persona,First person
+UI_AUDIENCE_DM,Ve: DM,Shows: GM
+UI_AUDIENCE_PLAYERS,Ve: jugadores,Shows: players
+UI_AMBIENT_LIT,Ambiente iluminado,Lit area
+UI_CARRY_TORCH,Antorchas,Torches
+UI_TOKEN_SELECTED,Ficha {name} seleccionada,Token {name} selected
+UI_FP_NEEDS_TOKEN,Añade una ficha para verla en 1ª persona,Add a token to see it in first person
+UI_FP_HELP,"W/S o flechas: avanzar y retroceder · A/D: girar · botón derecho: mirar","W/S or arrows: forward and back · A/D: turn · right button: look around"
+UI_3D_HELP,"Arrastra una ficha para moverla · clic en una puerta · rueda: zoom · botón derecho: girar e inclinar · central: desplazar · Q/E R/F · O: ortográfica","Drag a token to move it · click a door · wheel: zoom · right button: rotate and tilt · middle: pan · Q/E R/F · O: orthographic"

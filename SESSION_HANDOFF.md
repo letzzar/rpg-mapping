@@ -1,7 +1,25 @@
 # SESSION_HANDOFF — RPG Mapping
 
-## Última sesión: 2026-11-24 (4.ª) — pruebas de ejecución con uso del ordenador
-Se pasó el guion de abajo en la app real (Claude Code desktop + `computer-use`) y se arreglaron los fallos encontrados. **Siguiente: preguntar a Víctor si se pasa a F2.**
+## Última sesión: 2026-11-24 (5.ª) — F2: vista 3D, 1ª persona, visión y niebla
+**Fase actual: F2 implementada; criterios cumplidos en tests** (cambio de vista < 500 ms medido en tests y en la app real: 2–13 ms; niebla idéntica en 2D y 3D por construcción y comprobada en test). **Falta la prueba interactiva de Víctor** (la pantalla se bloqueó a mitad de sesión: las vistas se revisaron con capturas generadas por Godot, no con el ratón).
+
+### Hecho
+- **Etapa 1 – modelo** (commit propio): `core/model/visibility.gd` (línea de visión entera y simétrica, aristas que tapan, regla de esquina, mapa de luz con sombra, visibles con alcance y visión en la oscuridad), `core/model/party_vision.gd` (lo que ve el grupo: fichas player/ally, luces de objetos y antorcha opcional = luz de `torch_sconce` del catálogo), `ExploreCommand` (niebla = sesión, con delta) y `CompositeCommand` + `CommandStack.execute_attached()` (explorar se deshace con el movimiento que lo provocó). ADR 024.
+- **Etapa 2 – vistas**: `views/view3d/map_mesh_builder.gd` + `map_vertex_color.gdshader` (geometría generada sin assets, color por vértice sRGB con niebla y luz horneadas, oscurecimiento por distancia en 1ª persona; igual en WebGL) y `views/view3d/map_view_3d.gd` (cenital orbital 0–60°, perspectiva/ortográfica con O; 1ª persona en la ficha seleccionada, W/S avanzar/retroceder con `MoveTokenCommand`, A/D girar, botón derecho mirar; clic en puertas y arrastre de fichas con rayo al suelo). Vista 2D con niebla (velo por casilla, fichas ajenas ocultas fuera de la vista). ADR 025.
+- **UI**: selector Vista 2D / Vista 3D / 1ª persona; "Ve: DM / jugadores"; casillas "Ambiente iluminado" y "Antorchas". Tras mover, abrir puerta o añadir ficha, el grupo explora (mismo paso de deshacer).
+- `tests/render/render_views.gd`: captura 2D/3D/1ª persona con y sin niebla a PNG (necesita ventana).
+- Tests: **160/160, 21085 asserts, idénticos en escritorio y navegador** (nuevos `test_visibility.gd` y `test_view3d.gd`). Los tests web se pasaron con Chrome sin ventana (`--headless=new --remote-debugging-port`, leyendo el título por `/json`) porque el panel del navegador estaba oculto.
+
+### Siguiente paso
+1. **Víctor prueba F2** en la app: Vista 3D (girar con botón derecho, Q/E/R/F, O, rueda, desplazar con central), 1ª persona (W/A/S/D), "Ve: jugadores" con y sin antorchas y ambiente iluminado, deshacer un paso y ver que se vuelve a tapar lo descubierto.
+2. Pendiente de F2 si se quiere: plantas superiores/inferiores visibles en 3D (ahora solo la actual, "corte de techo" implícito), visión en la oscuridad por ficha (llegará con los personajes de F5; hoy `darkvision_cells` = 0), FOV configurable en la UI (hoy constante 75°), modelos CC0 en lugar de cajas.
+3. Después: **F3 – Edificio y asentamiento**.
+
+### Notas
+- La pantalla bloqueada impide capturas con `computer-use` (error "empty capture"); `SetForegroundWindow` devuelve False. Usar `render_views.gd` para revisar vistas.
+
+## Sesión anterior: 2026-11-24 (4.ª) — pruebas de ejecución con uso del ordenador
+Se pasó el guion de abajo en la app real (Claude Code desktop + `computer-use`) y se arreglaron los fallos encontrados.
 
 **Resultado del guion** (OK salvo lo indicado; todo lo marcado "arreglado" tiene test):
 1. Arranque: OK. *Arreglado*: "Métrico (5 ft = 1" cortado → la coma de "1,5 m" no iba entre comillas en `strings.csv` (columna partida).
@@ -78,7 +96,7 @@ Víctor cerró la sesión de terminal para reabrir en **Claude Code desktop** co
 
 ### Comandos para retomar
 ```powershell
-pwsh tools/run_tests.ps1        # importa + tests; debe dar 146/146
+pwsh tools/run_tests.ps1        # importa + tests; debe dar 160/160
 $g = "$env:LOCALAPPDATA\Programs\Godot\Godot_v4.7.2-stable_win64_console.exe"
 & $g --path project             # ejecutar la app
 & $g --path project -e          # abrir editor

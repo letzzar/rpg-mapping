@@ -1,6 +1,7 @@
 extends Control
-## Pantalla principal de F1: generar un mapa desde un código de semilla,
-## verlo en 2D, mover fichas, medir y exportar a PNG.
+## Pantalla principal: generar un mapa desde un código de semilla, verlo en
+## 2D, 3D cenital o 1ª persona (F2), mover fichas, medir, explorar con
+## niebla de guerra y exportar a PNG.
 ##
 ## La interfaz se construye por código para mantener la escena mínima. Todos
 ## los textos salen de i18n/strings.csv.
@@ -9,8 +10,24 @@ const SCALES: Array[String] = ["MAZ", "EST"]
 const GEN: int = 1
 const UNIT_OPTIONS: Array[String] = ["UI_UNITS_METRIC", "UI_UNITS_METRIC_EXACT", "UI_UNITS_IMPERIAL"]
 const GRID_OPTIONS: Array[String] = ["square", "hex_flat", "hex_pointy"]
+const VIEW_OPTIONS: Array[String] = ["UI_VIEW_2D", "UI_VIEW_3D", "UI_VIEW_FP"]
+const VIEW_2D: int = 0
+const VIEW_3D: int = 1
+const VIEW_FP: int = 2
+## Luz que lleva cada ficha del grupo con "Antorcha": la del objeto del
+## catálogo (reglas como datos; no se fija en código).
+const CARRIED_LIGHT_OBJECT: String = "torch_sconce"
 
 var _view: MapView2D
+var _view3d: MapView3D
+var _view3d_box: SubViewportContainer
+var _view_opt: OptionButton
+var _audience_opt: OptionButton
+var _ambient_chk: CheckBox
+var _torch_chk: CheckBox
+var _vision_dirty: bool = false
+var _carried_bright: int = 0
+var _carried_dim: int = 0
 var _map_area: Control
 var _code_edit: LineEdit
 var _scale_opt: OptionButton
@@ -99,6 +116,27 @@ func _build_ui() -> void:
 	bar.add_child(_button("UI_FIT", _fit))
 	bar.add_child(_button("UI_EXPORT_PNG", _export_png))
 
+	_view_opt = OptionButton.new()
+	for k: String in VIEW_OPTIONS:
+		_view_opt.add_item(tr(k))
+	_view_opt.item_selected.connect(func(_i: int) -> void: _apply_view())
+	bar.add_child(_view_opt)
+	_audience_opt = OptionButton.new()
+	_audience_opt.add_item(tr("UI_AUDIENCE_DM"))
+	_audience_opt.add_item(tr("UI_AUDIENCE_PLAYERS"))
+	_audience_opt.item_selected.connect(func(_i: int) -> void: _refresh_vision())
+	bar.add_child(_audience_opt)
+	_ambient_chk = CheckBox.new()
+	_ambient_chk.text = tr("UI_AMBIENT_LIT")
+	_ambient_chk.toggled.connect(func(_b: bool) -> void: _refresh_vision())
+	bar.add_child(_ambient_chk)
+	_torch_chk = CheckBox.new()
+	_torch_chk.text = tr("UI_CARRY_TORCH")
+	_torch_chk.button_pressed = true
+	_torch_chk.toggled.connect(func(_b: bool) -> void: _refresh_vision())
+	bar.add_child(_torch_chk)
+	_load_carried_light()
+
 	_map_area = Control.new()
 	_map_area.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_map_area.clip_contents = true
@@ -112,6 +150,29 @@ func _build_ui() -> void:
 	_view.set_process_unhandled_input(false)
 	_map_area.add_child(_view)
 	_map_area.gui_input.connect(_view.process_input)
+	_view.user_command_done.connect(_on_user_command)
+	_view.token_selected.connect(func(id: int) -> void: _view3d.selected_token = id)
+
+	# Vista 3D en su propio SubViewport (mundo 3D propio). El contenedor
+	# recoge ratón y teclado y se los pasa a la vista, como en 2D.
+	_view3d_box = SubViewportContainer.new()
+	_view3d_box.stretch = true
+	_view3d_box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_view3d_box.mouse_filter = Control.MOUSE_FILTER_STOP
+	_view3d_box.focus_mode = Control.FOCUS_ALL
+	_view3d_box.visible = false
+	_map_area.add_child(_view3d_box)
+	var sv: SubViewport = SubViewport.new()
+	sv.own_world_3d = true
+	sv.handle_input_locally = false
+	_view3d_box.add_child(sv)
+	_view3d = MapView3D.new()
+	_view3d.active = false
+	sv.add_child(_view3d)
+	_view3d_box.gui_input.connect(_on_view3d_input)
+	_view3d.status_changed.connect(func(t: String) -> void: _status.text = t)
+	_view3d.user_command_done.connect(_on_user_command)
+	_view3d.token_selected.connect(func(id: int) -> void: _status.text = tr("UI_TOKEN_SELECTED").replace("{name}", _doc.token(id).name))
 
 	_status = Label.new()
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -190,16 +251,26 @@ func _set_document(doc: MapDocument) -> void:
 	_stack.changed.connect(_refresh_buttons)
 	_view.command_stack = _stack
 	_view.document = doc
+	_view3d.command_stack = _stack
+	_view3d.profile = _current_profile()
+	_view3d.document = doc
+	doc.changed.connect(func(_l: int, layer: String) -> void:
+		if layer != MapDocument.LAYER_FOG:
+			_queue_vision())
 	_level_opt.clear()
 	for i: int in doc.level_count():
 		_level_opt.add_item(tr("UI_LEVEL").replace("{n}", str(i + 1)))
 	_fit.call_deferred()
 	_refresh_buttons()
+	_refresh_vision()
 
 
 func _apply_profile() -> void:
 	_view.profile = _current_profile()
 	_view.queue_redraw()
+	if _view3d != null:
+		_view3d.profile = _current_profile()
+		_view3d.mark_dirty()
 
 
 func _apply_units() -> void:
@@ -214,15 +285,116 @@ func _apply_units() -> void:
 			_view.unit_system = Units.System.METRIC
 			_view.unit_mode = Units.Mode.CONVENTION
 	_view.queue_redraw()
+	if _view3d != null:
+		_view3d.unit_system = _view.unit_system
+		_view3d.unit_mode = _view.unit_mode
 
 
 func _on_level_selected(i: int) -> void:
 	_view.level_index = i
 	_view.queue_redraw()
+	_view3d.level_index = i
+	if _view_opt.selected == VIEW_FP:
+		_view3d.set_mode(MapView3D.Mode.FIRST_PERSON)
+	_refresh_vision()
 
 
 func _fit() -> void:
 	_view.fit_to(Rect2(Vector2.ZERO, _map_area.size))
+	if _view3d != null and _view_opt.selected == VIEW_3D:
+		_view3d.fit()
+
+
+# --- Vistas y niebla (F2) -----------------------------------------------------
+
+## Cambia entre 2D, 3D cenital y 1ª persona. Devuelve los ms que tardó en
+## tener la vista lista (criterio de F2: < 500 ms).
+func _apply_view() -> int:
+	var t0: int = Time.get_ticks_msec()
+	var sel: int = _view_opt.selected
+	_view.visible = sel == VIEW_2D
+	_view3d_box.visible = sel != VIEW_2D
+	_view3d.active = sel != VIEW_2D
+	if sel != VIEW_2D:
+		_view3d.level_index = _view.level_index
+		_view3d.set_mode(MapView3D.Mode.FIRST_PERSON if sel == VIEW_FP else MapView3D.Mode.TOP)
+		_view3d.rebuild()
+		_view3d_box.grab_focus()
+		if sel == VIEW_FP and _doc != null and _doc.token(_view3d.selected_token) == null:
+			_status.text = tr("UI_FP_NEEDS_TOKEN")
+		elif sel == VIEW_FP:
+			_status.text = tr("UI_FP_HELP")
+		else:
+			_status.text = tr("UI_3D_HELP")
+	else:
+		_status.text = tr("UI_HELP")
+	return Time.get_ticks_msec() - t0
+
+
+func _on_view3d_input(event: InputEvent) -> void:
+	var mb: InputEventMouseButton = event as InputEventMouseButton
+	if mb != null and mb.pressed:
+		_view3d_box.grab_focus()
+	var k: InputEventKey = event as InputEventKey
+	if k != null and k.ctrl_pressed:
+		return
+	_view3d.process_input(event)
+	_view3d_box.accept_event()
+
+
+func _players_view() -> bool:
+	return _audience_opt.selected == 1
+
+
+func _load_carried_light() -> void:
+	var cat: ObjectCatalog = ObjectCatalog.load_default()
+	var e: ObjectCatalog.Entry = cat.entry(CARRIED_LIGHT_OBJECT) if cat.error.is_empty() else null
+	if e != null:
+		_carried_bright = e.light_bright_cells
+		_carried_dim = e.light_dim_cells
+
+
+func _vision_options() -> PartyVision.Options:
+	var o: PartyVision.Options = PartyVision.Options.new()
+	o.ambient_lit = _ambient_chk.button_pressed
+	if _torch_chk.button_pressed:
+		o.carried_bright = _carried_bright
+		o.carried_dim = _carried_dim
+	return o
+
+
+func _queue_vision() -> void:
+	if _vision_dirty:
+		return
+	_vision_dirty = true
+	_refresh_vision.call_deferred()
+
+
+## Recalcula lo que ve el grupo y se lo pasa a las vistas. La niebla solo se
+## pinta en la vista de jugadores; el DM lo ve todo.
+func _refresh_vision() -> void:
+	_vision_dirty = false
+	if _doc == null:
+		return
+	var lvl_i: int = _view.level_index
+	var players: bool = _players_view()
+	var r: PartyVision.Result = PartyVision.compute(_doc, lvl_i, _current_profile(), _vision_options())
+	var explored: PackedByteArray = _doc.level(lvl_i).explored(PartyVision.VIEWER_PARTY)
+	_view.dm_view = not players
+	_view.set_fog(players, r.visible, explored)
+	_view3d.dm_view = not players
+	_view3d.set_fog(players, r.visible, explored)
+
+
+## Tras mover una ficha, abrir una puerta o añadir una ficha: explora lo que
+## ve ahora el grupo, unido al mismo paso de deshacer.
+func _on_user_command() -> void:
+	if _doc == null or _stack == null:
+		return
+	var lvl_i: int = _view.level_index
+	var r: PartyVision.Result = PartyVision.compute(_doc, lvl_i, _current_profile(), _vision_options())
+	_stack.execute_attached(ExploreCommand.from_visible(_doc, lvl_i, PartyVision.VIEWER_PARTY, r.visible))
+	_refresh_vision()
 
 
 ## Coloca una ficha de jugador en la casilla transitable y libre más cercana
@@ -247,6 +419,7 @@ func _add_token() -> void:
 		t.cell = c
 		t.side = MapToken.SIDE_PLAYER
 		_stack.execute(AddTokenCommand.new(t))
+		_on_user_command()
 		_status.text = tr("UI_TOKEN_ADDED").replace("{name}", t.name)
 		return
 
