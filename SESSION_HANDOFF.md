@@ -13,7 +13,7 @@
 - Tests de escritorio: **53/53** (`pwsh tools/run_tests.ps1`).
 
 ### Decisiones de esta sesión (Víctor)
-- PARAMS posicional (ADR 009). Commit tras exportaciones. Remoto: **GitHub público `letzzar/rpg-mapping`, rama `main`**, + **espejo pull en Gitea** (lo configura Víctor en la web de Gitea: Nuevo repositorio → Migración → GitHub → marcar "Espejo").
+- PARAMS posicional (ADR 009). Commit tras exportaciones. Remoto: **GitHub público `letzzar/rpg-mapping`, rama `main`**, + **espejo en el NAS** como en sus otros proyectos: clon en `Y:\Mi software\RPG Mapping` (`receive.denyCurrentBranch=updateInstead`), remoto `nas`; Gitea descartado.
 - Licencias: Daggerheart fuera (ADR 011). Hex opcional en todas las escalas (012). Universal VTT en F3, Foundry tras v1 (013). Impresión a escala antes de v1, no en F1 (014). Estilos humano/enano/élfico en v1 como datos (015). Cliente web servido por la app del DM + imagen Docker alternativa (016).
 
 ### Para validar con Víctor (propuestas del `cartografo`)
@@ -24,7 +24,7 @@
 5. El carácter de control puede salir O/I/L/U (MOD 37,36 usa 0-9A-Z) y confundirse al dictar: mostrarlo inequívoco en la UI o cambiar de alfabeto.
 
 ### Siguiente paso
-1. ~~Commit F0 y GitHub~~ **hecho**: commit `b9cd515` en `main`, repo público https://github.com/letzzar/rpg-mapping, CI de Linux **53/53 y 7456 asserts** (igual que Windows y web). Falta que Víctor cree el espejo en Gitea. Aviso menor en CI: `actions/checkout@v4` usa Node 20 (deprecado); subir a la versión que use Node 24 cuando toque.
+1. ~~Commit F0 y GitHub~~ **hecho**: commit `b9cd515` en `main`, repo público https://github.com/letzzar/rpg-mapping, CI de Linux **53/53 y 7456 asserts** (igual que Windows y web). Espejo NAS creado y al día (`git push nas main` tras cada `git push`). Aviso menor en CI: `actions/checkout@v4` usa Node 20 (deprecado); subir a la versión que use Node 24 cuando toque.
 2. F1: interfaz de rejilla (cuadrada/hex, ADR 012), `MapDocument` (core/model), generadores `MAZ`/`EST`, vista 2D, exportación PNG. Consultar al `cartografo`.
 
 ### Pendiente / riesgos
