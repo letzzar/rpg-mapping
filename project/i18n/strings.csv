@@ -21,3 +21,43 @@ SYSTEM_DND5E_2024,D&D 5e (2024),D&D 5e (2024)
 SYSTEM_PF2E,Pathfinder 2e,Pathfinder 2e
 CMD_GENERIC,Edición,Edit
 CMD_MOVE_TOKEN,Mover ficha,Move token
+CMD_SET_EDGE,Cambiar puerta,Change door
+CMD_ADD_TOKEN,Añadir ficha,Add token
+UI_SEED_PLACEHOLDER,Código de semilla (RPGM1-…),Seed code (RPGM1-…)
+UI_GENERATE,Generar,Generate
+UI_RANDOM,Nueva aleatoria,New random
+UI_GRID_SQUARE,Cuadrícula,Square grid
+UI_GRID_HEX_FLAT,Hex (lado plano),Hex (flat top)
+UI_GRID_HEX_POINTY,Hex (punta),Hex (pointy top)
+UI_UNITS_METRIC,Métrico (5 ft = 1,5 m),Metric (5 ft = 1.5 m)
+UI_UNITS_METRIC_EXACT,Métrico exacto,Metric (exact)
+UI_UNITS_IMPERIAL,Imperial,Imperial
+UI_LEVEL,Nivel {n},Level {n}
+UI_ADD_TOKEN,Añadir ficha,Add token
+UI_UNDO,Deshacer,Undo
+UI_REDO,Rehacer,Redo
+UI_FIT,Ajustar,Fit
+UI_EXPORT_PNG,Exportar PNG,Export PNG
+UI_EXPORTED,Exportado: {path},Exported: {path}
+UI_EXPORT_FAILED,No se pudo exportar la imagen,Could not export the image
+UI_GENERATED,Mapa generado: {code},Map generated: {code}
+UI_OVER_SPEED,(supera la velocidad),(exceeds speed)
+UI_NO_ROUTE,Sin ruta,No route
+UI_MOVED,Ficha movida ({cost}),Token moved ({cost})
+UI_HELP,"Arrastra una ficha para moverla · clic en una puerta para abrirla · botón derecho para medir · rueda para zoom · botón central para desplazar","Drag a token to move it · click a door to open it · right button to measure · wheel to zoom · middle button to pan"
+ROOM_KIND_ROOM,Sala,Room
+ROOM_KIND_CORRIDOR,Pasillo,Corridor
+ROOM_KIND_CAVE,Cueva,Cave
+ROOM_KIND_ENTRANCE,Entrada,Entrance
+ROOM_KIND_EXIT,Salida,Exit
+TERRAIN_VOID,Vacío,Void
+TERRAIN_FLOOR,Suelo,Floor
+TERRAIN_WALL,Roca,Rock
+TERRAIN_RUBBLE,Escombros,Rubble
+TERRAIN_WATER_SHALLOW,Agua poco profunda,Shallow water
+TERRAIN_WATER_DEEP,Agua profunda,Deep water
+TERRAIN_PIT,Foso,Pit
+TRAP_PIT,Trampa de foso,Pit trap
+TRAP_DARTS,Trampa de dardos,Dart trap
+TRAP_NET,Trampa de red,Net trap
+TRAP_ALARM,Alarma,Alarm
