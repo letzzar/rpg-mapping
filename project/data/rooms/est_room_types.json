@@ -95,6 +95,81 @@
 				{ "object": "brazier", "weight": 20, "max": 2 },
 				{ "object": "candle_stand", "weight": 30, "max": 2 }
 			]
+		},
+		{
+			"id": "hall", "auto_size": "small",
+			"required": [],
+			"optional": [
+				{ "object": "torch_sconce", "weight": 60, "max": 2 },
+				{ "object": "rug", "weight": 20, "max": 1 },
+				{ "object": "statue", "weight": 10, "max": 1 },
+				{ "object": "crate", "weight": 10, "max": 1 }
+			]
+		},
+		{
+			"id": "living", "auto_size": "medium",
+			"required": ["hearth", "table_round"],
+			"optional": [
+				{ "object": "chair", "weight": 100, "max": 4 },
+				{ "object": "rug", "weight": 30, "max": 1 },
+				{ "object": "shelf", "weight": 30, "max": 1 },
+				{ "object": "wardrobe", "weight": 20, "max": 1 },
+				{ "object": "candle_stand", "weight": 20, "max": 1 },
+				{ "object": "barrel", "weight": 10, "max": 1 }
+			]
+		},
+		{
+			"id": "shop", "auto_size": "medium",
+			"required": ["bar_counter"],
+			"optional": [
+				{ "object": "shelf", "weight": 100, "max": 4 },
+				{ "object": "crate", "weight": 60, "max": 3 },
+				{ "object": "barrel", "weight": 40, "max": 2 },
+				{ "object": "sack", "weight": 40, "max": 2 },
+				{ "object": "table_long", "weight": 20, "max": 1 },
+				{ "object": "candle_stand", "weight": 20, "max": 1 }
+			]
+		},
+		{
+			"id": "barracks", "auto_size": "medium",
+			"required": ["bed", "weapon_rack"],
+			"optional": [
+				{ "object": "bed", "weight": 100, "max": 6 },
+				{ "object": "chest", "weight": 50, "max": 4 },
+				{ "object": "table_long", "weight": 20, "max": 1 },
+				{ "object": "bench", "weight": 20, "max": 2 },
+				{ "object": "torch_sconce", "weight": 20, "max": 2 }
+			]
+		},
+		{
+			"id": "armory", "auto_size": "small",
+			"required": ["weapon_rack"],
+			"optional": [
+				{ "object": "weapon_rack", "weight": 100, "max": 4 },
+				{ "object": "crate", "weight": 40, "max": 3 },
+				{ "object": "barrel", "weight": 20, "max": 2 },
+				{ "object": "torch_sconce", "weight": 20, "max": 1 }
+			]
+		},
+		{
+			"id": "cell", "auto_size": "small",
+			"required": [],
+			"optional": [
+				{ "object": "sack", "weight": 40, "max": 1 },
+				{ "object": "bone_pile", "weight": 20, "max": 1 },
+				{ "object": "torch_sconce", "weight": 10, "max": 1 }
+			]
+		},
+		{
+			"id": "guardroom", "auto_size": "medium",
+			"required": ["table_long", "weapon_rack"],
+			"optional": [
+				{ "object": "bench", "weight": 100, "max": 3 },
+				{ "object": "barrel", "weight": 40, "max": 2 },
+				{ "object": "torch_sconce", "weight": 40, "max": 2 },
+				{ "object": "chest", "weight": 20, "max": 1 },
+				{ "object": "crate", "weight": 20, "max": 2 }
+			]
 		}
 	]
 }

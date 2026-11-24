@@ -26,9 +26,12 @@ const TERRAIN_COLORS: Array[Color] = [
 const COL_WALL_FACE: Color = Color("8f7b62")
 const COL_WALL_TOP: Color = Color("3a2a1e")
 const COL_CEILING: Color = Color("2e231b")
+## Suelo exterior de un edificio (calle o patio): más gris que el de dentro.
+const COL_OUTDOOR: Color = Color("c9c3a6")
 const COL_EDGE_WALL: Color = Color("6e5a46")
 const COL_DOOR: Color = Color("8a5f1f")
 const COL_SECRET: Color = Color("5fb4d6")
+const COL_WINDOW: Color = Color("a8d4e6")
 const COL_LOCK: Color = Color("2b1d14")
 const COL_OBJ_BLOCK: Color = Color("8a5f1f")
 const COL_OBJ_FREE: Color = Color("c9a46a")
@@ -43,6 +46,9 @@ class Options:
 	var cell_m: float = 1.5
 	var wall_h: float = 3.0
 	var door_h: float = 2.2
+	## Hueco de las ventanas (MapEdge.KIND_WINDOW), en metros.
+	var window_sill_h: float = 0.9
+	var window_top_h: float = 2.0
 	## Vista del DM: secretas y trampas ocultas visibles.
 	var dm_view: bool = true
 	## Niebla: con `fog`, las casillas no exploradas no se construyen, las
@@ -179,6 +185,7 @@ static func _build_cells(g: GridGeometry, lvl: MapLevel, opts: Options, factor: 
 	var cm: float = opts.cell_m
 	var h: float = opts.wall_h
 	var caps: Dictionary[int, float] = {}
+	var outdoor: PackedByteArray = outdoor_mask(lvl)
 	for i: int in g.cell_count():
 		var f: float = factor[i]
 		if f <= 0.0:
@@ -190,6 +197,8 @@ static func _build_cells(g: GridGeometry, lvl: MapLevel, opts: Options, factor: 
 		var poly: PackedVector2Array = g.cell_polygon(c, cm)
 		var center: Vector2 = g.cell_to_pixel(c, cm)
 		var col: Color = TERRAIN_COLORS[t] if t < TERRAIN_COLORS.size() else TERRAIN_COLORS[0]
+		if outdoor[i] != 0 and t == Terrain.FLOOR:
+			col = COL_OUTDOOR
 		var y_floor: float = -0.6 if t == Terrain.PIT else (-0.15 if t == Terrain.WATER_DEEP else 0.0)
 		# Junta de rejilla: casilla oscura debajo y la casilla algo menor
 		# encima (las líneas son el hueco entre las dos).
@@ -198,12 +207,18 @@ static func _build_cells(g: GridGeometry, lvl: MapLevel, opts: Options, factor: 
 		for q: Vector2 in poly:
 			inner.append(center.lerp(q, 0.94))
 		_fan(floor_geo, center, inner, y_floor + 0.003, col * f, true)
-		if opts.ceiling:
+		if opts.ceiling and outdoor[i] == 0:
 			_fan(floor_geo, center, poly, h, COL_CEILING * f, false)
 		for dir: int in g.edge_direction_count():
 			var n: Vector2i = g.neighbor(c, dir)
 			var ni: int = g.index_of(n)
 			if ni >= 0 and not is_solid_terrain(lvl.terrain[ni]):
+				continue
+			# Si el lado ya tiene arista (muro fino, puerta o ventana de un
+			# edificio, cuyas plantas altas lindan con VOID), la dibuja
+			# _build_edges: una cara maciza taparía la ventana. En MAZ y EST
+			# las aristas solo separan casillas transitables: no cambia nada.
+			if lvl.get_edge(c, dir) != MapEdge.NONE:
 				continue
 			var seg: PackedVector2Array = g.edge_segment(c, dir, cm)
 			var shade: float = _face_shade(seg[1] - seg[0])
@@ -221,6 +236,29 @@ static func _build_cells(g: GridGeometry, lvl: MapLevel, opts: Options, factor: 
 		var c2: Vector2i = g.cell_at(ni)
 		var cf: float = caps[ni]
 		_fan(wall_geo, g.cell_to_pixel(c2, cm), g.cell_polygon(c2, cm), h, COL_WALL_TOP * cf, true)
+
+
+## 1 por casilla al aire libre: zona "outside" de un edificio y, si el nivel
+## la tiene, también sus zonas de entrada/salida (el rellano de la calle). En
+## una mazmorra la entrada está bajo tierra: sin zona "outside" no cuenta.
+static func outdoor_mask(lvl: MapLevel) -> PackedByteArray:
+	var g: GridGeometry = lvl.grid
+	var m: PackedByteArray = PackedByteArray()
+	m.resize(g.cell_count())
+	var ids: Dictionary[int, bool] = {}
+	var has_outside: bool = false
+	for r: MapRoom in lvl.rooms:
+		if r.kind == MapRoom.KIND_OUTSIDE:
+			has_outside = true
+	if not has_outside:
+		return m
+	for r: MapRoom in lvl.rooms:
+		if r.kind == MapRoom.KIND_OUTSIDE or r.kind == MapRoom.KIND_ENTRANCE or r.kind == MapRoom.KIND_EXIT:
+			ids[r.id] = true
+	for i: int in g.cell_count():
+		if ids.has(lvl.room_ids[i]):
+			m[i] = 1
+	return m
 
 
 ## Oscurece las caras según su orientación para dar volumen sin luces.
@@ -283,6 +321,17 @@ static func _build_edges(g: GridGeometry, lvl: MapLevel, opts: Options, factor: 
 		var seg: PackedVector2Array = g.edge_segment(Vector2i(ce.x, ce.y), ce.z, cm)
 		var k: int = MapEdge.kind_of(v)
 		var secret: bool = k == MapEdge.KIND_SECRET_DOOR
+		if k == MapEdge.KIND_WINDOW:
+			# Muro con hueco a media altura: alféizar, dintel, jambas y un
+			# cristal fino (se ve a través: no tapa la visión del modelo).
+			var wa: Vector2 = seg[0].lerp(seg[1], 0.2)
+			var wb: Vector2 = seg[0].lerp(seg[1], 0.8)
+			box_along(geo, seg[0], wa, th, 0.0, h, COL_EDGE_WALL * f)
+			box_along(geo, wb, seg[1], th, 0.0, h, COL_EDGE_WALL * f)
+			box_along(geo, wa, wb, th, 0.0, opts.window_sill_h, COL_EDGE_WALL * f)
+			box_along(geo, wa, wb, th, opts.window_top_h, h, COL_EDGE_WALL * f)
+			box_along(geo, wa, wb, th * 0.15, opts.window_sill_h, opts.window_top_h, COL_WINDOW * f)
+			continue
 		if k == MapEdge.KIND_WALL or (secret and not opts.dm_view and not MapEdge.has_flag(v, MapEdge.FLAG_DISCOVERED)):
 			box_along(geo, seg[0], seg[1], th, 0.0, h, COL_EDGE_WALL * f)
 			continue

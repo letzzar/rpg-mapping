@@ -131,7 +131,15 @@ func test_edge_blocking_rules() -> void:
 	assert_false(MapEdge.blocks_movement(MapEdge.NONE))
 	assert_true(MapEdge.is_valid(found))
 	assert_false(MapEdge.is_valid(MapEdge.make(MapEdge.KIND_DOOR, MapEdge.FLAG_DISCOVERED)))
-	assert_false(MapEdge.is_valid(5))
+	# Ventana (F3): tipo 5, bloquea el paso y la conectividad pero no la vista.
+	var window: int = MapEdge.make(MapEdge.KIND_WINDOW)
+	assert_eq(window, 5)
+	assert_true(MapEdge.is_valid(window))
+	assert_true(MapEdge.blocks_movement(window))
+	assert_false(MapEdge.blocks_sight(window))
+	assert_false(MapEdge.is_traversable(window))
+	assert_false(MapEdge.is_valid(MapEdge.make(MapEdge.KIND_WINDOW, MapEdge.FLAG_OPEN)), "banderas en una ventana")
+	assert_false(MapEdge.is_valid(6))
 
 
 func test_rooms_objects_and_ids() -> void:

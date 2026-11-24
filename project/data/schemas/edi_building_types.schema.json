@@ -1,0 +1,67 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://rpg-mapping.local/schemas/edi_building_types.schema.json",
+	"title": "Tipos de edificio del generador EDI (data/buildings/edi_building_types.json)",
+	"description": "ADR 026, PROYECTO §6.4. Los ids deben coincidir con el enumerado building_type del esquema de parámetros EDI G1. Cambiar esta tabla cambia la salida de EDI: exige subir GEN. Reglas que comprueba EdiData al cargar: claves de estancia únicas dentro del tipo; 'kind' es un tipo de data/rooms/est_room_types.json; cada planta (cellar, ground, upper) tiene al menos una estancia que no es 'hub' y como mucho un 'hub'; las adyacencias unen estancias de la misma planta; entrance, back_door (o \"\"), stairs_up y stairs_down son estancias de la planta baja que no son 'hub'.",
+	"type": "object",
+	"additionalProperties": false,
+	"required": ["schema_version", "building_types"],
+	"properties": {
+		"schema_version": { "const": 1 },
+		"building_types": {
+			"type": "array",
+			"items": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": ["id", "auto_size", "floors", "footprints", "upper_shrink_permille", "window_permille", "back_door_permille",
+					"entrance", "back_door", "stairs_up", "stairs_down", "rooms", "adjacency"],
+				"properties": {
+					"id": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+					"auto_size": { "enum": ["small", "medium", "large"], "description": "Tamaño con size = auto" },
+					"floors": { "type": "integer", "minimum": 1, "maximum": 4, "description": "Plantas sobre el suelo con floors = 0 (auto)" },
+					"footprints": {
+						"type": "object",
+						"additionalProperties": false,
+						"required": ["small", "medium", "large"],
+						"description": "Huella interior [ancho, alto] en casillas por tamaño (antes del % del estilo); lado mínimo 6",
+						"properties": {
+							"small": { "$ref": "#/$defs/dims" }, "medium": { "$ref": "#/$defs/dims" }, "large": { "$ref": "#/$defs/dims" }
+						}
+					},
+					"upper_shrink_permille": { "type": "integer", "minimum": 0, "maximum": 1000, "description": "Probabilidad (‰) de que cada planta alta recorte un extremo de su eje largo" },
+					"window_permille": { "type": "integer", "minimum": 0, "maximum": 1000, "description": "Ventanas por cada mil aristas exteriores de una estancia (× window_pct del estilo / 100)" },
+					"back_door_permille": { "type": "integer", "minimum": 0, "maximum": 1000, "description": "Probabilidad (‰) de puerta trasera" },
+					"entrance": { "type": "string", "description": "Estancia de la planta baja con la puerta principal" },
+					"back_door": { "type": "string", "description": "Estancia de la planta baja con la puerta trasera; \"\" = ninguna" },
+					"stairs_up": { "type": "string", "description": "Estancia de la planta baja donde arranca la escalera a la planta 1" },
+					"stairs_down": { "type": "string", "description": "Estancia de la planta baja donde arranca la escalera al sótano" },
+					"rooms": {
+						"type": "array",
+						"description": "Estancias en orden de prioridad (si no caben, se descartan las últimas de su planta). En plantas altas, cada planta repite la lista 'upper'.",
+						"items": {
+							"type": "object",
+							"additionalProperties": false,
+							"required": ["key", "kind", "floor"],
+							"properties": {
+								"key": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+								"kind": { "type": "string", "pattern": "^[a-z0-9_]+$", "description": "Tipo de estancia EST (amueblado y nombre ROOM_KIND_*)" },
+								"floor": { "enum": ["cellar", "ground", "upper"] },
+								"area": { "type": "integer", "minimum": 1, "description": "Peso del área (obligatorio salvo en el hub)" },
+								"hub": { "type": "boolean", "default": false, "description": "Pasillo/recibidor que recorre el eje largo y toca a todas las demás estancias de la planta" },
+								"windows": { "type": "boolean", "default": true }
+							}
+						}
+					},
+					"adjacency": {
+						"type": "array",
+						"description": "Pares de estancias de la misma planta que deben tener una puerta entre ellas",
+						"items": { "type": "array", "items": { "type": "string" }, "minItems": 2, "maxItems": 2 }
+					}
+				}
+			}
+		}
+	},
+	"$defs": {
+		"dims": { "type": "array", "items": { "type": "integer", "minimum": 6, "maximum": 64 }, "minItems": 2, "maxItems": 2 }
+	}
+}

@@ -32,6 +32,8 @@ const COL_OUTLINE: Color = Color("120b07")
 const COL_DOOR: Color = Color("8a5f1f")
 const COL_DOOR_OPEN: Color = Color("f7dc8e")
 const COL_SECRET: Color = Color("5fb4d6")
+## Cristal de las ventanas (F3).
+const COL_WINDOW: Color = Color("a8d4e6")
 const COL_PATH_OK: Color = Color(0.11, 0.31, 0.49, 0.9)
 const COL_PATH_FAR: Color = Color(0.70, 0.15, 0.10, 0.9)
 const COL_RULER: Color = Color(0.55, 0.37, 0.12, 0.95)
@@ -121,11 +123,15 @@ func _draw() -> void:
 	var g: GridGeometry = document.grid
 	var lvl: MapLevel = document.level(level_index)
 	draw_rect(Rect2(Vector2.ZERO, g.map_pixel_size(cell_px)), COL_BG)
+	var outdoor: PackedByteArray = MapMeshBuilder.outdoor_mask(lvl)
 	for i: int in g.cell_count():
 		var c: Vector2i = g.cell_at(i)
 		var t: int = lvl.get_terrain(c)
 		var poly: PackedVector2Array = g.cell_polygon(c, cell_px)
-		draw_colored_polygon(poly, TERRAIN_COLORS[t] if t >= 0 and t < TERRAIN_COLORS.size() else COL_BG)
+		var fill: Color = TERRAIN_COLORS[t] if t >= 0 and t < TERRAIN_COLORS.size() else COL_BG
+		if outdoor[i] != 0 and t == Terrain.FLOOR:
+			fill = MapMeshBuilder.COL_OUTDOOR
+		draw_colored_polygon(poly, fill)
 		if show_grid and Terrain.is_passable(t):
 			# Ancho negativo = línea fina de 1 px de pantalla a cualquier zoom;
 			# con 1.0 en coordenadas locales, al alejar quedaba < 1 px y las
@@ -220,6 +226,15 @@ func _draw_edges(g: GridGeometry, lvl: MapLevel) -> void:
 				draw_line(seg[1], seg[1].lerp(seg[0], 0.2), COL_WALL_EDGE, w)
 			MapEdge.KIND_DOOR, MapEdge.KIND_SECRET_DOOR:
 				_draw_door(seg, v, k == MapEdge.KIND_SECRET_DOOR, w)
+			MapEdge.KIND_WINDOW:
+				# Muro en los extremos y cristal claro en el centro (bloquea el
+				# paso, no la vista).
+				var a: Vector2 = seg[0].lerp(seg[1], 0.2)
+				var b: Vector2 = seg[0].lerp(seg[1], 0.8)
+				draw_line(seg[0], a, COL_WALL_EDGE, w)
+				draw_line(b, seg[1], COL_WALL_EDGE, w)
+				draw_line(a, b, COL_WALL_EDGE, w * 0.9)
+				draw_line(a, b, COL_WINDOW, w * 0.45)
 
 
 func _draw_door(seg: PackedVector2Array, v: int, secret: bool, w: float) -> void:

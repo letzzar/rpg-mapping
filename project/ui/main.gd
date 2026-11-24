@@ -6,7 +6,7 @@ extends Control
 ## La interfaz se construye por código para mantener la escena mínima. Todos
 ## los textos salen de i18n/strings.csv.
 
-const SCALES: Array[String] = ["MAZ", "EST"]
+const SCALES: Array[String] = ["MAZ", "EST", "EDI"]
 const GEN: int = 1
 const UNIT_OPTIONS: Array[String] = ["UI_UNITS_METRIC", "UI_UNITS_METRIC_EXACT", "UI_UNITS_IMPERIAL"]
 const GRID_OPTIONS: Array[String] = ["square", "hex_flat", "hex_pointy"]
@@ -263,9 +263,25 @@ func _set_document(doc: MapDocument) -> void:
 	_level_opt.clear()
 	for i: int in doc.level_count():
 		_level_opt.add_item(tr("UI_LEVEL").replace("{n}", str(i + 1)))
+	# Se abre en el nivel de la entrada: en un edificio con sótano (EDI) el
+	# nivel 0 es el sótano y la puerta está en la planta baja.
+	var start: int = _entrance_level(doc)
+	if start > 0:
+		_level_opt.select(start)
+		_view.level_index = start
+		_view3d.level_index = start
 	_fit.call_deferred()
 	_refresh_buttons()
 	_refresh_vision()
+
+
+## Primer nivel con una zona "entrance" (0 si no hay ninguna).
+func _entrance_level(doc: MapDocument) -> int:
+	for li: int in doc.level_count():
+		for r: MapRoom in doc.level(li).rooms:
+			if r.kind == MapRoom.KIND_ENTRANCE:
+				return li
+	return 0
 
 
 func _apply_profile() -> void:
@@ -467,7 +483,7 @@ func _cells_by_entrance_distance(lvl: MapLevel, mask: PackedByteArray) -> Array[
 			var ni: int = g.index_of(n)
 			if seen[ni] != 0 or (mask[ni] & MapLevel.MOVE_PASSABLE) == 0:
 				continue
-			if dir < g.edge_direction_count() and MapEdge.kind_of(lvl.get_edge(c, dir)) == MapEdge.KIND_WALL:
+			if dir < g.edge_direction_count() and not MapEdge.is_traversable(lvl.get_edge(c, dir)):
 				continue
 			seen[ni] = 1
 			queue.append(n)

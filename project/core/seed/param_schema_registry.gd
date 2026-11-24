@@ -72,6 +72,8 @@ static func _ensure_builtins() -> void:
 	assert(problem.is_empty(), "ParamSchemaRegistry: MAZ G1 no válido: " + problem)
 	problem = _add(est_g1())
 	assert(problem.is_empty(), "ParamSchemaRegistry: EST G1 no válido: " + problem)
+	problem = _add(edi_g1())
+	assert(problem.is_empty(), "ParamSchemaRegistry: EDI G1 no válido: " + problem)
 
 
 ## MAZ G1 — PROPUESTA DEFINITIVA, PENDIENTE DE APROBAR (F1, etapa 2). Se
@@ -117,9 +119,12 @@ static func maz_g1() -> ParamSchema:
 ## - shape: rectángulo o L (esquina recortada de w/2 × h/2).
 ## - doors: puertas (las que quepan sin juntarse; al menos una).
 ## - clutter: objetos opcionales ≈ casillas × clutter / 40.
+## F3 (EDI G1) añade AL FINAL de room_type, dentro de capacity, los tipos que
+## necesitan los edificios (hall … guardroom): ningún código emitido cambia.
 static func est_g1() -> ParamSchema:
 	var fields: Array[ParamSchema.Field] = [
-		ParamSchema.enum_field("room_type", PackedStringArray(["tavern", "bedroom", "storage", "temple", "library", "kitchen", "forge", "crypt"]), "tavern", 32),
+		ParamSchema.enum_field("room_type", PackedStringArray(["tavern", "bedroom", "storage", "temple", "library", "kitchen", "forge", "crypt",
+			"hall", "living", "shop", "barracks", "armory", "cell", "guardroom"]), "tavern", 32),
 		ParamSchema.enum_field("grid", PackedStringArray(["square", "hex_flat", "hex_pointy"]), "square", 4),
 		ParamSchema.enum_field("size", PackedStringArray(["auto", "small", "medium", "large"]), "auto", 8),
 		ParamSchema.enum_field("style", PackedStringArray(["human", "dwarf", "elf"]), "human", 16),
@@ -128,3 +133,28 @@ static func est_g1() -> ParamSchema:
 		ParamSchema.int_field("clutter", 0, 10, 5),
 	]
 	return ParamSchema.new("EST", 1, fields)
+
+
+## EDI G1 — PROPUESTA, PENDIENTE DE APROBAR (F3, etapa 1). Se congela al
+## grabar la primera seed dorada de EDI. Detalle en EdiGeneratorG1 y §6.4.
+## Orden de más a menos usado (los del final casi siempre valen su defecto y
+## no ocupan caracteres):
+## - building_type: tipo de edificio (data/buildings/edi_building_types.json;
+##   los ids deben coincidir); capacity 32 para añadir tipos.
+## - grid: rejilla (ADR 012).
+## - style: ADR 015 (mismos ids que EST y MAZ).
+## - floors: plantas sobre el suelo; 0 = las del tipo (taberna 2, casa 1…).
+## - cellar: sótano bajo la planta baja.
+## - size: huella del edificio; auto = la del tipo.
+## - clutter: como en EST (se pasa a cada estancia).
+static func edi_g1() -> ParamSchema:
+	var fields: Array[ParamSchema.Field] = [
+		ParamSchema.enum_field("building_type", PackedStringArray(["tavern", "house", "smithy", "temple", "shop", "inn", "guardhouse"]), "tavern", 32),
+		ParamSchema.enum_field("grid", PackedStringArray(["square", "hex_flat", "hex_pointy"]), "square", 4),
+		ParamSchema.enum_field("style", PackedStringArray(["human", "dwarf", "elf"]), "human", 16),
+		ParamSchema.int_field("floors", 0, 4, 0),
+		ParamSchema.bool_field("cellar", false),
+		ParamSchema.enum_field("size", PackedStringArray(["auto", "small", "medium", "large"]), "auto", 8),
+		ParamSchema.int_field("clutter", 0, 10, 5),
+	]
+	return ParamSchema.new("EDI", 1, fields)

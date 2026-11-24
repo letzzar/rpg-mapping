@@ -12,6 +12,8 @@ const KIND_CAVE: String = "cave"
 const KIND_ENTRANCE: String = "entrance"
 ## Otras salidas al exterior (casilla del borde).
 const KIND_EXIT: String = "exit"
+## Terreno exterior alrededor de un edificio (EDI, F3).
+const KIND_OUTSIDE: String = "outside"
 
 ## Id estable (único en todo el documento, de MapDocument.allocate_id()).
 var id: int = 0

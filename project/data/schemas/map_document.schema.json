@@ -65,7 +65,7 @@
 				"room_ids": { "$ref": "#/$defs/cell_layer", "description": "Id de sala por casilla; 0 = ninguna" },
 				"edges": {
 					"type": "array",
-					"description": "[x, y, lado, valor] con (x, y, lado) canónico (lado < nº de direcciones con arista / 2) y valor MapEdge (tipo | banderas). Ordenadas por id de arista",
+					"description": "[x, y, lado, valor] con (x, y, lado) canónico (lado < nº de direcciones con arista / 2) y valor MapEdge (tipo | banderas; tipos 1 muro, 2 puerta, 3 secreta, 4 vano, 5 ventana). Ordenadas por id de arista",
 					"items": { "type": "array", "items": { "type": "integer" }, "minItems": 4, "maxItems": 4 }
 				},
 				"rooms": {

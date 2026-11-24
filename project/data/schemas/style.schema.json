@@ -19,6 +19,15 @@
 				"fabric": { "type": "string" }, "none": { "type": "string" }
 			}
 		},
-		"furniture_weight_pct": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0 }, "description": "id de objeto -> % del peso (100 si no aparece)" }
+		"furniture_weight_pct": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0 }, "description": "id de objeto -> % del peso (100 si no aparece)" },
+		"building": {
+			"type": "object",
+			"additionalProperties": false,
+			"description": "Opcional (EDI G1, F3; EST no lo lee). Sin él, ambos valen 100.",
+			"properties": {
+				"footprint_pct": { "type": "integer", "minimum": 50, "maximum": 200, "description": "% del ancho y alto de la huella del edificio" },
+				"window_pct": { "type": "integer", "minimum": 0, "maximum": 400, "description": "% de la densidad de ventanas del tipo de edificio" }
+			}
+		}
 	}
 }

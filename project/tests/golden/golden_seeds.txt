@@ -34,3 +34,16 @@ RPGM1-PF2E-EST-G1-R0D5-VXG730MK-B a63244ac421d63f888ad9d3a434017a2f42e3144422e11
 RPGM1-DND5-EST-G1-4106-W1RR54X4-N fa366c2fe35da7142855bfbf238acbfa3c1f4ef17eae9312329a640ef368d26f
 RPGM1-PF2E-EST-G1-20G27-Y619795N-J aa233a9cc818aca7030fff850671209334761d4fbc4d04254a46a3bf0c4c75cc
 RPGM1-DND5-EST-G1-6190-7-Y d9dcd5b3dddf1cca46a40ae51216ffaa9f858cfd5a27fe0dbf4377ad7f884d41
+# EDI G1: CANDIDATAS, pendientes de que Víctor apruebe el esquema EDI G1 y los
+# datos (edi_building_types.json, bloque "building" de los estilos, tipos de
+# estancia nuevos). Para grabarlas: quitar "# " y grabar en modo RECORD.
+# (salen de test_edi_generator.gd::candidates(); 7 tipos, 3 rejillas, 3 estilos,
+#  1-3 plantas, sótano, tamaños y clutter)
+# RPGM1-DND5-EDI-G1-0-H8DJRFAE-3
+# RPGM1-DND5-EDI-G1-A01-KCP3TKJZ-2
+# RPGM1-PF2E-EDI-G1-52-NGYMWQV0-K
+# RPGM1-DND5-EDI-G1-AA3-QN75YR3H-A
+# RPGM1-DND5-EDI-G1-1E04-SSFP0WC2-N
+# RPGM1-PF2E-EDI-G1-F015-VXG730MK-E
+# RPGM1-DND5-EDI-G1-A46-W1RR54X4-6
+# RPGM1-PF2E-EDI-G1-2820-Y619795N-E

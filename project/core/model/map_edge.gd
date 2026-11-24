@@ -12,6 +12,7 @@ extends RefCounted
 ##   DOOR          si está cerrada (con llave o sin ella)
 ##   SECRET_DOOR   si no está descubierta o está cerrada
 ##   ARCH (vano)   nunca
+##   WINDOW        movimiento siempre; visión nunca (F3, EDI G1, ADR 026)
 ## Decisión de Víctor (ADR 020): cualquier puerta cerrada corta la ruta
 ## automática hasta que alguien la abra (un comando); FLAG_LOCKED solo indica
 ## que abrirla exige llave o prueba. La CONECTIVIDAD de un mapa generado
@@ -23,6 +24,12 @@ const KIND_WALL: int = 1
 const KIND_DOOR: int = 2
 const KIND_SECRET_DOOR: int = 3
 const KIND_ARCH: int = 4
+## Ventana (F3): un muro con hueco. No se cruza andando (ni cuenta para la
+## conectividad de un generador) pero no tapa la visión. Valor nuevo al final:
+## ningún mapa MAZ/EST existente lo usa, así que no cambia ningún hash.
+const KIND_WINDOW: int = 5
+## Último tipo válido.
+const KIND_LAST: int = KIND_WINDOW
 const KIND_MASK: int = 0xF
 
 const FLAG_OPEN: int = 0x10
@@ -62,7 +69,7 @@ static func is_valid(v: int) -> bool:
 	if (v & ~(KIND_MASK | FLAGS_MASK)) != 0:
 		return false
 	var k: int = kind_of(v)
-	if k < KIND_WALL or k > KIND_ARCH:
+	if k < KIND_WALL or k > KIND_LAST:
 		return false
 	if not is_door(v) and (v & FLAGS_MASK) != 0:
 		return false
@@ -73,7 +80,7 @@ static func is_valid(v: int) -> bool:
 
 static func blocks_movement(v: int) -> bool:
 	match kind_of(v):
-		KIND_WALL:
+		KIND_WALL, KIND_WINDOW:
 			return true
 		KIND_DOOR:
 			return not has_flag(v, FLAG_OPEN)
@@ -83,9 +90,11 @@ static func blocks_movement(v: int) -> bool:
 
 
 ## Se puede llegar a cruzar (abriendo, forzando o encontrando la puerta): todo
-## salvo un muro. Es el criterio de "sala accesible" de los generadores.
+## salvo un muro o una ventana. Es el criterio de "sala accesible" de los
+## generadores.
 static func is_traversable(v: int) -> bool:
-	return kind_of(v) != KIND_WALL
+	var k: int = kind_of(v)
+	return k != KIND_WALL and k != KIND_WINDOW
 
 
 static func blocks_sight(v: int) -> bool:

@@ -106,6 +106,22 @@ OBJ_BONE_PILE,Montón de huesos,Bone pile
 OBJ_LEVER,Palanca,Lever
 UI_SCALE_MAZ,Mazmorra,Dungeon
 UI_SCALE_EST,Estancia,Room
+UI_SCALE_EDI,Edificio,Building
+ROOM_KIND_HALL,Recibidor,Hall
+ROOM_KIND_LIVING,Sala de estar,Living room
+ROOM_KIND_SHOP,Tienda,Shop
+ROOM_KIND_BARRACKS,Barracón,Barracks
+ROOM_KIND_ARMORY,Armería,Armory
+ROOM_KIND_CELL,Celda,Cell
+ROOM_KIND_GUARDROOM,Cuerpo de guardia,Guardroom
+ROOM_KIND_OUTSIDE,Exterior,Outside
+BUILDING_TAVERN,Taberna,Tavern
+BUILDING_HOUSE,Casa,House
+BUILDING_SMITHY,Herrería,Smithy
+BUILDING_TEMPLE,Templo,Temple
+BUILDING_SHOP,Tienda,Shop
+BUILDING_INN,Posada,Inn
+BUILDING_GUARDHOUSE,Cuartel de la guardia,Guardhouse
 UI_TOKEN_ADDED,Ficha {name} añadida junto a la entrada,Token {name} added next to the entrance
 UI_NO_ROUTE_STATUS,"Sin ruta: la ficha no se mueve (muro, roca o puerta cerrada)","No route: the token stays (wall, rock or closed door)"
 CMD_EXPLORE,Explorar,Explore

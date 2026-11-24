@@ -3,5 +3,6 @@
 	"id": "dwarf",
 	"name_key": "STYLE_DWARF",
 	"materials": { "furniture": "granite", "stone": "granite", "metal": "steel", "fabric": "leather", "none": "" },
-	"furniture_weight_pct": { "barrel": 200, "weapon_rack": 200, "statue": 150, "pillar": 150, "brazier": 150, "rug": 50, "candle_stand": 50, "pew": 70 }
+	"furniture_weight_pct": { "barrel": 200, "weapon_rack": 200, "statue": 150, "pillar": 150, "brazier": 150, "rug": 50, "candle_stand": 50, "pew": 70 },
+	"building": { "footprint_pct": 115, "window_pct": 40 }
 }

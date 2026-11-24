@@ -3,5 +3,6 @@
 	"id": "elf",
 	"name_key": "STYLE_ELF",
 	"materials": { "furniture": "living_wood", "stone": "marble", "metal": "silver", "fabric": "silk", "none": "" },
-	"furniture_weight_pct": { "candle_stand": 200, "bookcase": 150, "rug": 200, "statue": 150, "barrel": 50, "crate": 60, "weapon_rack": 50, "pillar": 70 }
+	"furniture_weight_pct": { "candle_stand": 200, "bookcase": 150, "rug": 200, "statue": 150, "barrel": 50, "crate": 60, "weapon_rack": 50, "pillar": 70 },
+	"building": { "footprint_pct": 100, "window_pct": 160 }
 }

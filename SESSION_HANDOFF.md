@@ -1,6 +1,32 @@
 # SESSION_HANDOFF — RPG Mapping
 
-## Última sesión: 2026-11-24 (5.ª) — F2: vista 3D, 1ª persona, visión y niebla
+## Última sesión: 2026-11-24 (6.ª) — F3 etapa 1: generador de edificios EDI G1 (`cartografo`)
+Tests: **178/178, 22352 asserts, idénticos en escritorio y navegador**; las 20 seeds doradas MAZ/EST siguen iguales.
+
+**Verificación del coordinador**: tests en escritorio y web (Chrome sin ventana), capturas reales 2D/3D/1ª persona de la taberna y del templo élfico hex (`render_views.gd`, carpeta `scratchpad/edi`) y `play_f2.gd` sin fallos. Retoque de vistas: el suelo exterior del edificio (zona `outside` y su entrada/salida) se pinta en otro tono (`MapMeshBuilder.COL_OUTDOOR`, `outdoor_mask()`) y en 1ª persona no lleva techo; en MAZ no cambia nada (sin zona `outside`). Detalle pendiente: en la cenital 3D los rótulos de objetos vecinos se solapan ("Mesa redonda" ×2).
+
+### Hecho
+- **EDI G1** (`core/gen/edi/edi_generator_g1.gd`, `edi_data.gd`; PROYECTO §6.4, ADR 026): espina (hub + rebanadas) o BSP por pesos con 12 intentos y hub de reserva; puertas con conectividad por construcción; ventanas; escaleras en la misma casilla; plantas altas recortables; sótano; mobiliario con `EstFurnisherG1` y semilla `hash64(semilla, "EST", nivel×256+orden)` (`EdiGeneratorG1.room_seed`).
+- **Esquema EDI G1** en `ParamSchemaRegistry.edi_g1()`: `building_type, grid, style, floors (0=auto), cellar, size, clutter`. Registrado en `GeneratorRegistry`.
+- **Datos**: `data/buildings/edi_building_types.json` (+ esquema) con 7 tipos (taberna, casa, herrería, templo, tienda, posada, cuartel); bloque `building` opcional en `data/styles/*.json` (`footprint_pct`, `window_pct`; EST no lo lee). Tipos de estancia EST nuevos al final (dentro de capacity): `hall, living, shop, barracks, armory, cell, guardroom` (también en el enumerado `room_type` de EST G1).
+- **`MapEdge.KIND_WINDOW` = 5**: bloquea paso y conectividad, no visión. Vista 2D (muro + cristal), 3D (muro con hueco 0,9–2,0 m; las caras macizas no se dibujan donde ya hay arista: no cambia nada en MAZ/EST). `MapRoom.KIND_OUTSIDE`.
+- **UI**: escala "Edificio" (`UI_SCALE_EDI`); al generar se abre el nivel con la entrada (con sótano, el nivel 0 es el sótano); la ficha nueva no atraviesa ventanas.
+- Tests nuevos `tests/unit/test_edi_generator.gd` (datos, código ida y vuelta, 7 tipos × 3 rejillas × estilos/plantas/sótano/tamaños, adyacencias, escaleras, ventanas en el modelo y en vistas, mobiliario por semilla hija, hub de reserva forzado, pantalla principal, estadísticas y ASCII). Prueba de estrés aparte (no versionada): 630 edificios, 0 fallos, ~97 ms/edificio.
+
+### Pendiente de Víctor
+- Aprobar el esquema EDI G1, los 7 tipos de edificio, los tipos de estancia nuevos y el bloque `building` de los estilos. Después: quitar `# ` a las 8 candidatas EDI de `tests/golden/golden_seeds.txt` y grabarlas (`$env:RPGM_GOLDEN_RECORD="1"; pwsh tools/run_tests.ps1 -Dir res://tests/golden`).
+- Decidir cómo cumplir el criterio de F3 "estancia aislada = dentro de la aldea" (una estancia de EDI tiene la forma de la partición, no los tamaños de EST): EST G2 con forma/puertas dadas o un código de estancia de edificio.
+
+### Códigos para probar en la app
+`RPGM1-DND5-EDI-G1-0-H8DJRFAE-3` (taberna) · `RPGM1-DND5-EDI-G1-A01-KCP3TKJZ-2` (casa con sótano) · `RPGM1-PF2E-EDI-G1-52-NGYMWQV0-K` (herrería enana, hex plana) · `RPGM1-DND5-EDI-G1-AA3-QN75YR3H-A` (templo élfico con cripta, hex punta) · `RPGM1-DND5-EDI-G1-1E04-SSFP0WC2-N` (tienda de 3 plantas) · `RPGM1-PF2E-EDI-G1-F015-VXG730MK-E` (posada, hex plana) · `RPGM1-DND5-EDI-G1-A46-W1RR54X4-6` (cuartel enano con celdas) · `RPGM1-PF2E-EDI-G1-2820-Y619795N-E` (taberna grande de 1 planta con sótano, hex punta).
+
+### Limitaciones conocidas
+- Huellas solo rectangulares (L o patios: campo nuevo al final más adelante). Plantas altas solo se recortan por un extremo del eje largo.
+- En hex, las "rectas" de la partición son rectángulos en coordenadas offset (bordes dentados, como en EST).
+- El selector de nivel dice "Nivel n" (no "Sótano"/"Planta baja"). El 3D solo muestra la planta actual; fuera de la planta baja el exterior es vacío.
+- Con datos muy apretados se descartan estancias del final de la lista (6 de 480 en las estadísticas: dormitorios de la posada pequeña).
+
+## Sesión anterior: 2026-11-24 (5.ª) — F2: vista 3D, 1ª persona, visión y niebla
 **Fase actual: F2 implementada; criterios cumplidos en tests** (cambio de vista < 500 ms medido en tests y en la app real: 2–13 ms; niebla idéntica en 2D y 3D por construcción y comprobada en test). **Falta la prueba interactiva de Víctor** (la pantalla se bloqueó a mitad de sesión: las vistas se revisaron con capturas generadas por Godot, no con el ratón).
 
 ### Hecho
@@ -108,7 +134,7 @@ Víctor cerró la sesión de terminal para reabrir en **Claude Code desktop** co
 
 ### Comandos para retomar
 ```powershell
-pwsh tools/run_tests.ps1        # importa + tests; debe dar 162/162
+pwsh tools/run_tests.ps1        # importa + tests; debe dar 178/178
 $g = "$env:LOCALAPPDATA\Programs\Godot\Godot_v4.7.2-stable_win64_console.exe"
 & $g --path project             # ejecutar la app
 & $g --path project -e          # abrir editor

@@ -1,0 +1,130 @@
+{
+	"schema_version": 1,
+	"building_types": [
+		{
+			"id": "tavern", "auto_size": "medium", "floors": 2,
+			"footprints": { "small": [10, 7], "medium": [13, 9], "large": [16, 11] },
+			"upper_shrink_permille": 300, "window_permille": 150, "back_door_permille": 700,
+			"entrance": "common", "back_door": "kitchen", "stairs_up": "common", "stairs_down": "store",
+			"rooms": [
+				{ "key": "common", "kind": "tavern", "floor": "ground", "area": 55 },
+				{ "key": "kitchen", "kind": "kitchen", "floor": "ground", "area": 25 },
+				{ "key": "store", "kind": "storage", "floor": "ground", "area": 20, "windows": false },
+				{ "key": "hall", "kind": "hall", "floor": "upper", "hub": true },
+				{ "key": "bed_1", "kind": "bedroom", "floor": "upper", "area": 25 },
+				{ "key": "bed_2", "kind": "bedroom", "floor": "upper", "area": 25 },
+				{ "key": "bed_3", "kind": "bedroom", "floor": "upper", "area": 25 },
+				{ "key": "bed_4", "kind": "bedroom", "floor": "upper", "area": 25 },
+				{ "key": "cellar", "kind": "storage", "floor": "cellar", "area": 100, "windows": false }
+			],
+			"adjacency": [["common", "kitchen"], ["kitchen", "store"]]
+		},
+		{
+			"id": "house", "auto_size": "small", "floors": 1,
+			"footprints": { "small": [8, 6], "medium": [10, 8], "large": [13, 9] },
+			"upper_shrink_permille": 400, "window_permille": 200, "back_door_permille": 500,
+			"entrance": "living", "back_door": "kitchen", "stairs_up": "living", "stairs_down": "kitchen",
+			"rooms": [
+				{ "key": "living", "kind": "living", "floor": "ground", "area": 50 },
+				{ "key": "kitchen", "kind": "kitchen", "floor": "ground", "area": 25 },
+				{ "key": "bed", "kind": "bedroom", "floor": "ground", "area": 25 },
+				{ "key": "hall", "kind": "hall", "floor": "upper", "hub": true },
+				{ "key": "bed_1", "kind": "bedroom", "floor": "upper", "area": 50 },
+				{ "key": "bed_2", "kind": "bedroom", "floor": "upper", "area": 50 },
+				{ "key": "cellar", "kind": "storage", "floor": "cellar", "area": 100, "windows": false }
+			],
+			"adjacency": [["living", "kitchen"], ["living", "bed"]]
+		},
+		{
+			"id": "smithy", "auto_size": "medium", "floors": 1,
+			"footprints": { "small": [9, 7], "medium": [12, 8], "large": [14, 10] },
+			"upper_shrink_permille": 300, "window_permille": 150, "back_door_permille": 600,
+			"entrance": "forge", "back_door": "store", "stairs_up": "shop", "stairs_down": "store",
+			"rooms": [
+				{ "key": "forge", "kind": "forge", "floor": "ground", "area": 50 },
+				{ "key": "shop", "kind": "shop", "floor": "ground", "area": 25 },
+				{ "key": "store", "kind": "storage", "floor": "ground", "area": 25, "windows": false },
+				{ "key": "hall", "kind": "hall", "floor": "upper", "hub": true },
+				{ "key": "bed", "kind": "bedroom", "floor": "upper", "area": 60 },
+				{ "key": "upstore", "kind": "storage", "floor": "upper", "area": 40, "windows": false },
+				{ "key": "cellar", "kind": "storage", "floor": "cellar", "area": 100, "windows": false }
+			],
+			"adjacency": [["forge", "shop"], ["forge", "store"]]
+		},
+		{
+			"id": "temple", "auto_size": "large", "floors": 1,
+			"footprints": { "small": [10, 7], "medium": [14, 9], "large": [18, 11] },
+			"upper_shrink_permille": 500, "window_permille": 250, "back_door_permille": 500,
+			"entrance": "nave", "back_door": "vestry", "stairs_up": "vestry", "stairs_down": "store",
+			"rooms": [
+				{ "key": "nave", "kind": "temple", "floor": "ground", "area": 70 },
+				{ "key": "vestry", "kind": "library", "floor": "ground", "area": 15 },
+				{ "key": "store", "kind": "storage", "floor": "ground", "area": 15, "windows": false },
+				{ "key": "hall", "kind": "hall", "floor": "upper", "hub": true },
+				{ "key": "cell_1", "kind": "bedroom", "floor": "upper", "area": 50 },
+				{ "key": "books", "kind": "library", "floor": "upper", "area": 50 },
+				{ "key": "crypt", "kind": "crypt", "floor": "cellar", "area": 70, "windows": false },
+				{ "key": "ossuary", "kind": "storage", "floor": "cellar", "area": 30, "windows": false }
+			],
+			"adjacency": [["nave", "vestry"], ["nave", "store"], ["crypt", "ossuary"]]
+		},
+		{
+			"id": "shop", "auto_size": "small", "floors": 2,
+			"footprints": { "small": [8, 6], "medium": [10, 8], "large": [13, 9] },
+			"upper_shrink_permille": 200, "window_permille": 200, "back_door_permille": 600,
+			"entrance": "shop", "back_door": "store", "stairs_up": "store", "stairs_down": "store",
+			"rooms": [
+				{ "key": "shop", "kind": "shop", "floor": "ground", "area": 60 },
+				{ "key": "store", "kind": "storage", "floor": "ground", "area": 40, "windows": false },
+				{ "key": "hall", "kind": "hall", "floor": "upper", "hub": true },
+				{ "key": "living", "kind": "living", "floor": "upper", "area": 40 },
+				{ "key": "bed", "kind": "bedroom", "floor": "upper", "area": 35 },
+				{ "key": "kitchen", "kind": "kitchen", "floor": "upper", "area": 25 },
+				{ "key": "cellar", "kind": "storage", "floor": "cellar", "area": 100, "windows": false }
+			],
+			"adjacency": [["shop", "store"]]
+		},
+		{
+			"id": "inn", "auto_size": "large", "floors": 2,
+			"footprints": { "small": [12, 8], "medium": [15, 10], "large": [18, 12] },
+			"upper_shrink_permille": 200, "window_permille": 150, "back_door_permille": 800,
+			"entrance": "common", "back_door": "kitchen", "stairs_up": "common", "stairs_down": "store",
+			"rooms": [
+				{ "key": "common", "kind": "tavern", "floor": "ground", "area": 50 },
+				{ "key": "kitchen", "kind": "kitchen", "floor": "ground", "area": 20 },
+				{ "key": "store", "kind": "storage", "floor": "ground", "area": 12, "windows": false },
+				{ "key": "keeper", "kind": "bedroom", "floor": "ground", "area": 18 },
+				{ "key": "hall", "kind": "hall", "floor": "upper", "hub": true },
+				{ "key": "bed_1", "kind": "bedroom", "floor": "upper", "area": 20 },
+				{ "key": "bed_2", "kind": "bedroom", "floor": "upper", "area": 20 },
+				{ "key": "bed_3", "kind": "bedroom", "floor": "upper", "area": 20 },
+				{ "key": "bed_4", "kind": "bedroom", "floor": "upper", "area": 20 },
+				{ "key": "bed_5", "kind": "bedroom", "floor": "upper", "area": 20 },
+				{ "key": "bed_6", "kind": "bedroom", "floor": "upper", "area": 20 },
+				{ "key": "cellar", "kind": "storage", "floor": "cellar", "area": 60, "windows": false },
+				{ "key": "wine", "kind": "storage", "floor": "cellar", "area": 40, "windows": false }
+			],
+			"adjacency": [["common", "kitchen"], ["kitchen", "store"], ["common", "keeper"]]
+		},
+		{
+			"id": "guardhouse", "auto_size": "medium", "floors": 2,
+			"footprints": { "small": [9, 7], "medium": [12, 9], "large": [15, 10] },
+			"upper_shrink_permille": 0, "window_permille": 100, "back_door_permille": 400,
+			"entrance": "guard", "back_door": "store", "stairs_up": "guard", "stairs_down": "guard",
+			"rooms": [
+				{ "key": "guard", "kind": "guardroom", "floor": "ground", "area": 55 },
+				{ "key": "armory", "kind": "armory", "floor": "ground", "area": 20, "windows": false },
+				{ "key": "store", "kind": "storage", "floor": "ground", "area": 25, "windows": false },
+				{ "key": "hall", "kind": "hall", "floor": "upper", "hub": true },
+				{ "key": "barracks", "kind": "barracks", "floor": "upper", "area": 60 },
+				{ "key": "captain", "kind": "bedroom", "floor": "upper", "area": 40 },
+				{ "key": "corridor", "kind": "hall", "floor": "cellar", "hub": true },
+				{ "key": "cell_1", "kind": "cell", "floor": "cellar", "area": 25, "windows": false },
+				{ "key": "cell_2", "kind": "cell", "floor": "cellar", "area": 25, "windows": false },
+				{ "key": "cell_3", "kind": "cell", "floor": "cellar", "area": 25, "windows": false },
+				{ "key": "cell_4", "kind": "cell", "floor": "cellar", "area": 25, "windows": false }
+			],
+			"adjacency": [["guard", "armory"], ["guard", "store"]]
+		}
+	]
+}
