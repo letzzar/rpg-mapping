@@ -29,7 +29,7 @@ UI_RANDOM,Nueva aleatoria,New random
 UI_GRID_SQUARE,Cuadrícula,Square grid
 UI_GRID_HEX_FLAT,Hex (lado plano),Hex (flat top)
 UI_GRID_HEX_POINTY,Hex (punta),Hex (pointy top)
-UI_UNITS_METRIC,Métrico (5 ft = 1,5 m),Metric (5 ft = 1.5 m)
+UI_UNITS_METRIC,"Métrico (5 ft = 1,5 m)",Metric (5 ft = 1.5 m)
 UI_UNITS_METRIC_EXACT,Métrico exacto,Metric (exact)
 UI_UNITS_IMPERIAL,Imperial,Imperial
 UI_LEVEL,Nivel {n},Level {n}
@@ -106,3 +106,5 @@ OBJ_BONE_PILE,Montón de huesos,Bone pile
 OBJ_LEVER,Palanca,Lever
 UI_SCALE_MAZ,Mazmorra,Dungeon
 UI_SCALE_EST,Estancia,Room
+UI_TOKEN_ADDED,Ficha {name} añadida junto a la entrada,Token {name} added next to the entrance
+UI_NO_ROUTE_STATUS,"Sin ruta: la ficha no se mueve (muro, roca o puerta cerrada)","No route: the token stays (wall, rock or closed door)"

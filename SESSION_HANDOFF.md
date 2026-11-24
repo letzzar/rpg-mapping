@@ -1,6 +1,31 @@
 # SESSION_HANDOFF — RPG Mapping
 
-## ⚠ AL RETOMAR (instrucción de Víctor, 2026-11-24): pruebas de ejecución desde Claude Code desktop
+## Última sesión: 2026-11-24 (4.ª) — pruebas de ejecución con uso del ordenador
+Se pasó el guion de abajo en la app real (Claude Code desktop + `computer-use`) y se arreglaron los fallos encontrados. **Siguiente: preguntar a Víctor si se pasa a F2.**
+
+**Resultado del guion** (OK salvo lo indicado; todo lo marcado "arreglado" tiene test):
+1. Arranque: OK. *Arreglado*: "Métrico (5 ft = 1" cortado → la coma de "1,5 m" no iba entre comillas en `strings.csv` (columna partida).
+2. Códigos conocidos (cuadrícula, hex plana, hex punta 3 niveles): OK; sistema, escala y rejilla se ajustan solos.
+3. Errores de código: errata → "El carácter de control no coincide…" traducido; vacío → error de formato; minúsculas/espacios aceptados.
+4. Aleatorias MAZ/EST × 3 rejillas: OK; regenerar desde la caja da el mismo mapa.
+5. Niveles: OK. *Arreglado*: la flecha de escalera era un "▼" de la fuente diminuto y pegado a los peldaños → ahora es un triángulo dibujado.
+6. Zoom/desplazamiento: *arreglado* (ver 7); el zoom de rueda ignoraba `InputEventMouseButton.factor` (Windows agrupa pasos: 20 clics ≈ ×1,3) → ahora `ZOOM_STEP^factor`. El desplazamiento con botón central no se pudo probar (la herramienta no arrastra con el central).
+7. Fichas: **fallo grave arreglado** — ningún clic/arrastre/rueda llegaba a la vista: `_map_area` tenía `MOUSE_FILTER_PASS`, el evento subía hasta el `Control` raíz (STOP) y no llegaba a `_unhandled_input`. Ahora `_map_area` es STOP y reenvía `gui_input` a `MapView2D.process_input()`. Tras el arreglo: ruta + coste, "Ficha movida (4,5 m)", "Sin ruta" con puertas cerradas, rodea muebles. *Mejoras*: la ficha nueva aparece junto a la entrada (zona `entrance`/`exit`/escalera, BFS sin cruzar muros) y la barra dice "Ficha P1 añadida junto a la entrada"; soltar sin ruta dice "Sin ruta: la ficha no se mueve (…)" (antes la barra no cambiaba).
+8. Puertas: OK (abrir/cerrar, la ruta pasa al abrir). Nota: un punto concreto de la pantalla no entregaba clics a Godot (ventana invisible de otro programa del PC); no es de la app.
+9. Deshacer/rehacer: botones, Ctrl+Z/Ctrl+Y/Ctrl+Mayús+Z y tooltip ("Cambiar puerta"): OK.
+10. Regla: no se puede arrastrar con botón derecho desde la herramienta → cubierto con test GUT (6 casillas = 9 m / 9,14 m / 30 ft).
+11. Estancias (taberna, templo élfico hex): OK. *Arreglado*: nombres cortados a 10 letras y al ancho de una casilla ("Mesa re", "Chimene") → nombre completo centrado en la huella, letra reducida y en dos líneas si hace falta.
+12. Exportar PNG: OK (coincide con la vista). *Arreglado*: el diálogo de Godot salía en inglés y en la carpeta del proyecto → diálogo nativo del sistema (en español) que abre en Imágenes.
+13. Rendimiento: fluido con los mapas probados (no se construyó un "huge").
+14. Consola/log (`%APPDATA%\Godot\app_userdata\RPG Mapping\logs\godot.log`): sin errores ni avisos.
+- Rejilla: *arreglado* — al alejar desaparecían líneas verticales u horizontales (ancho 1.0 en coordenadas locales < 1 px) → ancho -1 (1 px de pantalla siempre).
+- Tests: **146/146, 20076 asserts, idénticos en escritorio y navegador**. Nuevo `tests/unit/test_main_interaction.gd`: simula ratón real (`push_input`) sobre `ui/main.tscn` en un `SubViewport` (arrastre, rueda con factor, clic en todas las puertas con desplazamientos, regla, ficha en la entrada, mensaje sin ruta, textos no partidos por comas).
+
+**Notas para la próxima sesión de pruebas con el ordenador**: la ventana es `Godot_v4.7.2-stable_win64.exe` (pedir acceso con la ruta completa); `open_application` abre el gestor de proyectos (no usarlo): traer la ventana al frente con `SetForegroundWindow` desde PowerShell. Lanzar con el exe sin `_console`; los `print` van a `godot.log`.
+
+---
+
+## Guion de pruebas de ejecución (2026-11-24, ya pasado; conservar para repetirlo)
 Víctor cerró la sesión de terminal para reabrir en **Claude Code desktop** con **uso del ordenador** (skill `computer-use`). Al abrir, **hacer las pruebas del tirón, sin preguntar entre pasos**; al final, un único informe con capturas de los fallos y la lista de arreglos propuestos.
 
 **Preparación**
@@ -28,7 +53,7 @@ Víctor cerró la sesión de terminal para reabrir en **Claude Code desktop** co
 
 **Plan B (sin uso del ordenador)**: exportar el preset "Web" (`--export-release "Web" ../build/web/index.html`), servir `build/web` con `python -m http.server 8766 --bind 127.0.0.1` y hacer el mismo guion en Chrome con `claude-in-chrome` (clics/arrastres sobre el canvas y capturas). El PNG en web se descarga en lugar de abrir diálogo.
 
-## Última sesión: 2026-11-24 (3.ª)
+## Sesión anterior: 2026-11-24 (3.ª)
 **Fase actual:** **F1 – Mazmorra y estancia 2D: criterios de aceptación cumplidos** (20 seeds doradas estables en escritorio y web; movimiento en 5e, PF2e y bandas en las tres rejillas). Falta la prueba manual de Víctor. Siguiente: F2.
 
 ### Hecho en esta sesión
@@ -41,7 +66,7 @@ Víctor cerró la sesión de terminal para reabrir en **Claude Code desktop** co
 - Tests: **139/139, 19923 asserts, idénticos en escritorio y en navegador** (incluidas las 20 seeds doradas).
 
 ### Siguiente paso
-1. **Víctor prueba la app** (`& $g --path project`): generar mazmorras y estancias, mover fichas, medir, abrir puertas, exportar PNG. Recoger ajustes de la vista (iconos de objetos, selector de tamaño/bando de ficha, nombres de objetos más legibles).
+1. ~~Prueba de la app~~ (hecha en la 4.ª sesión, ver arriba). Ajustes pendientes de la vista si Víctor los quiere: iconos de objetos, selector de tamaño/bando de ficha.
 2. **F2 – Vista 3D y 1ª persona** (§7, §16): renderizado 3D cenital y en primera persona del mismo `MapDocument` (muros en aristas → módulos de pared, ADR 018), línea de visión y luces en el modelo; criterio: cambio de vista < 500 ms y niebla coherente entre vistas. Assets CC0 a registrar en `assets/LICENSES.md`.
 
 ### Pendiente / riesgos
@@ -53,7 +78,7 @@ Víctor cerró la sesión de terminal para reabrir en **Claude Code desktop** co
 
 ### Comandos para retomar
 ```powershell
-pwsh tools/run_tests.ps1        # importa + tests; debe dar 139/139
+pwsh tools/run_tests.ps1        # importa + tests; debe dar 146/146
 $g = "$env:LOCALAPPDATA\Programs\Godot\Godot_v4.7.2-stable_win64_console.exe"
 & $g --path project             # ejecutar la app
 & $g --path project -e          # abrir editor

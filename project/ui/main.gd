@@ -102,12 +102,16 @@ func _build_ui() -> void:
 	_map_area = Control.new()
 	_map_area.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_map_area.clip_contents = true
-	_map_area.mouse_filter = Control.MOUSE_FILTER_PASS
+	# El área del mapa recoge el ratón y se lo pasa a la vista: con PASS el
+	# evento subía hasta este Control raíz (STOP) y la vista no lo recibía.
+	_map_area.mouse_filter = Control.MOUSE_FILTER_STOP
 	root.add_child(_map_area)
 
 	_view = MapView2D.new()
 	_view.status_changed.connect(func(t: String) -> void: _status.text = t)
+	_view.set_process_unhandled_input(false)
 	_map_area.add_child(_view)
+	_map_area.gui_input.connect(_view.process_input)
 
 	_status = Label.new()
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -117,6 +121,12 @@ func _build_ui() -> void:
 	_save_dialog.file_mode = FileDialog.FILE_MODE_SAVE_FILE
 	_save_dialog.access = FileDialog.ACCESS_FILESYSTEM
 	_save_dialog.filters = PackedStringArray(["*.png ; PNG"])
+	# Diálogo del sistema: sale en el idioma del usuario (el de Godot sale en
+	# inglés en las exportaciones) y empieza en Imágenes, no en la carpeta
+	# del ejecutable.
+	_save_dialog.use_native_dialog = true
+	_save_dialog.title = tr("UI_EXPORT_PNG")
+	_save_dialog.current_dir = OS.get_system_dir(OS.SYSTEM_DIR_PICTURES)
 	_save_dialog.file_selected.connect(_save_png_to)
 	add_child(_save_dialog)
 
@@ -215,8 +225,10 @@ func _fit() -> void:
 	_view.fit_to(Rect2(Vector2.ZERO, _map_area.size))
 
 
-## Coloca una ficha de jugador en la primera casilla transitable y libre,
-## empezando por la entrada si el generador la marcó (escalera o sala 0).
+## Coloca una ficha de jugador en la casilla transitable y libre más cercana
+## a la entrada (zona "entrance", si no "exit", si no una escalera); sin
+## ninguna de ellas, en la primera casilla libre. Antes siempre usaba la
+## primera casilla del mapa (esquina superior izquierda), lejos de la puerta.
 func _add_token() -> void:
 	if _doc == null:
 		return
@@ -224,10 +236,7 @@ func _add_token() -> void:
 	var mask: PackedByteArray = lvl.movement_mask()
 	var g: GridGeometry = _doc.grid
 	var p: SystemProfile = _current_profile()
-	for i: int in g.cell_count():
-		var c: Vector2i = g.cell_at(i)
-		if (mask[i] & MapLevel.MOVE_PASSABLE) == 0:
-			continue
+	for c: Vector2i in _cells_by_entrance_distance(lvl, mask):
 		if p != null and not _doc.tokens_at(_view.level_index, c, p).is_empty():
 			continue
 		_token_counter += 1
@@ -238,7 +247,53 @@ func _add_token() -> void:
 		t.cell = c
 		t.side = MapToken.SIDE_PLAYER
 		_stack.execute(AddTokenCommand.new(t))
+		_status.text = tr("UI_TOKEN_ADDED").replace("{name}", t.name)
 		return
+
+
+## Casillas transitables ordenadas por distancia (en pasos, sin cruzar
+## muros) a la entrada del nivel; al final, las no alcanzables en orden.
+func _cells_by_entrance_distance(lvl: MapLevel, mask: PackedByteArray) -> Array[Vector2i]:
+	var g: GridGeometry = _doc.grid
+	var seeds: Array[Vector2i] = []
+	for kind: String in [MapRoom.KIND_ENTRANCE, MapRoom.KIND_EXIT]:
+		for r: MapRoom in lvl.rooms:
+			if r.kind == kind:
+				seeds.append_array(lvl.room_cells(r.id))
+		if not seeds.is_empty():
+			break
+	if seeds.is_empty():
+		for s: MapStair in lvl.stairs:
+			seeds.append(s.cell)
+	var out: Array[Vector2i] = []
+	var seen: PackedByteArray = PackedByteArray()
+	seen.resize(g.cell_count())
+	var queue: Array[Vector2i] = []
+	for c: Vector2i in seeds:
+		var i: int = g.index_of(c)
+		if seen[i] == 0 and (mask[i] & MapLevel.MOVE_PASSABLE) != 0:
+			seen[i] = 1
+			queue.append(c)
+	var head: int = 0
+	while head < queue.size():
+		var c: Vector2i = queue[head]
+		head += 1
+		out.append(c)
+		for dir: int in g.direction_count():
+			var n: Vector2i = g.neighbor(c, dir)
+			if not g.in_bounds(n):
+				continue
+			var ni: int = g.index_of(n)
+			if seen[ni] != 0 or (mask[ni] & MapLevel.MOVE_PASSABLE) == 0:
+				continue
+			if dir < g.edge_direction_count() and MapEdge.kind_of(lvl.get_edge(c, dir)) == MapEdge.KIND_WALL:
+				continue
+			seen[ni] = 1
+			queue.append(n)
+	for i: int in g.cell_count():
+		if seen[i] == 0 and (mask[i] & MapLevel.MOVE_PASSABLE) != 0:
+			out.append(g.cell_at(i))
+	return out
 
 
 func _undo() -> void:

@@ -117,7 +117,10 @@ func _draw() -> void:
 		var poly: PackedVector2Array = g.cell_polygon(c, cell_px)
 		draw_colored_polygon(poly, TERRAIN_COLORS[t] if t >= 0 and t < TERRAIN_COLORS.size() else COL_BG)
 		if show_grid and Terrain.is_passable(t):
-			_draw_outline(poly, COL_GRID, 1.0)
+			# Ancho negativo = línea fina de 1 px de pantalla a cualquier zoom;
+			# con 1.0 en coordenadas locales, al alejar quedaba < 1 px y las
+			# líneas verticales u horizontales desaparecían según el redondeo.
+			_draw_outline(poly, COL_GRID, -1.0)
 	_draw_outlines(g, lvl)
 	_draw_edges(g, lvl)
 	_draw_features(g, lvl)
@@ -190,15 +193,23 @@ func _draw_door(seg: PackedVector2Array, v: int, secret: bool, w: float) -> void
 
 
 func _draw_features(g: GridGeometry, lvl: MapLevel) -> void:
-	var font: Font = ThemeDB.fallback_font
 	for s: MapStair in lvl.stairs:
 		var p: Vector2 = g.cell_to_pixel(s.cell, cell_px)
 		var r: float = cell_px * 0.35
+		# Peldaños a la izquierda y flecha a la derecha. La flecha es un
+		# polígono (no un glifo): el "▼" de la fuente quedaba diminuto y
+		# pegado a los peldaños, casi invisible.
 		for k: int in 4:
-			var y: float = -r + k * r * 0.5
-			draw_line(p + Vector2(-r, y), p + Vector2(r, y), COL_WALL_EDGE, 2.0)
-		var arrow: String = "▲" if s.to_level < level_index else "▼"
-		draw_string(font, p + Vector2(-r, r), arrow, HORIZONTAL_ALIGNMENT_LEFT, -1, int(cell_px * 0.3), COL_DOOR)
+			var y: float = -r + k * r * 0.66
+			draw_line(p + Vector2(-r, y), p + Vector2(r * 0.15, y), COL_WALL_EDGE, maxf(1.5, cell_px * 0.04))
+		var up: bool = s.to_level < level_index
+		var ac: Vector2 = p + Vector2(r * 0.6, 0.0)
+		var h: float = r * 0.55
+		var tip: float = -h if up else h
+		var tri: PackedVector2Array = PackedVector2Array([
+			ac + Vector2(0.0, tip), ac + Vector2(-h * 0.7, -tip * 0.6), ac + Vector2(h * 0.7, -tip * 0.6)])
+		draw_colored_polygon(tri, COL_DOOR)
+		_draw_outline(tri, COL_WALL_EDGE, maxf(1.0, cell_px * 0.02))
 	for t: MapTrap in lvl.traps:
 		if t.hidden and not dm_view:
 			continue
@@ -227,9 +238,36 @@ func _draw_objects(g: GridGeometry, lvl: MapLevel) -> void:
 		var label: String = tr("OBJ_" + o.catalog_id.to_upper())
 		if label.begins_with("OBJ_"):
 			label = o.catalog_id
-		var lp2: Vector2 = g.cell_to_pixel(o.cell, cell_px)
-		draw_string(font, lp2 + Vector2(-cell_px * 0.45, cell_px * 0.1), label.substr(0, 10),
-			HORIZONTAL_ALIGNMENT_LEFT, cell_px * 0.9, int(cell_px * 0.22), Color("2b1d14"))
+		_draw_object_label(font, g, cells, label)
+
+
+## Nombre completo centrado sobre la huella del objeto: se reduce la letra
+## hasta que cabe y, si aun así no cabe, se parte en dos líneas. Antes se
+## cortaba a 10 caracteres y al ancho de una casilla ("Mesa re", "Chimene").
+func _draw_object_label(font: Font, g: GridGeometry, cells: Array[Vector2i], label: String) -> void:
+	if cells.is_empty():
+		return
+	var lo: Vector2 = Vector2(INF, INF)
+	var hi: Vector2 = Vector2(-INF, -INF)
+	var center: Vector2 = Vector2.ZERO
+	for c: Vector2i in cells:
+		var q: Vector2 = g.cell_to_pixel(c, cell_px)
+		lo = lo.min(q)
+		hi = hi.max(q)
+		center += q
+	center /= float(cells.size())
+	var avail: float = (hi.x - lo.x) + cell_px * 0.95
+	var fs: int = int(cell_px * 0.22)
+	var fs_min: int = maxi(6, int(cell_px * 0.15))
+	while fs > fs_min and font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x > avail:
+		fs -= 1
+	var col: Color = Color("2b1d14")
+	if font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x <= avail or not label.contains(" "):
+		draw_string(font, center + Vector2(-avail * 0.5, fs * 0.35), label,
+			HORIZONTAL_ALIGNMENT_CENTER, avail, fs, col)
+		return
+	draw_multiline_string(font, center + Vector2(-avail * 0.5, fs * 0.35 - fs * 0.55), label,
+		HORIZONTAL_ALIGNMENT_CENTER, avail, fs, 2, col)
 
 
 func _draw_tokens(g: GridGeometry) -> void:
@@ -315,6 +353,14 @@ func _token_cells(t: MapToken) -> Array[Vector2i]:
 # --- Interacción --------------------------------------------------------------
 
 func _unhandled_input(event: InputEvent) -> void:
+	process_input(event)
+
+
+## Punto de entrada del ratón. Lo llama `_unhandled_input` cuando la vista
+## va suelta, y el Control que la contiene (vía `gui_input`) cuando está
+## dentro de una interfaz: un Control con mouse_filter STOP bajo el puntero
+## consume el evento y nunca llegaría a `_unhandled_input`.
+func process_input(event: InputEvent) -> void:
 	if not interactive or document == null:
 		return
 	var mb: InputEventMouseButton = event as InputEventMouseButton
@@ -331,7 +377,11 @@ func _handle_button(mb: InputEventMouseButton) -> void:
 	match mb.button_index:
 		MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN:
 			if mb.pressed:
-				_zoom_at(get_global_mouse_position(), ZOOM_STEP if mb.button_index == MOUSE_BUTTON_WHEEL_UP else 1.0 / ZOOM_STEP)
+				# Windows agrupa varios pasos de rueda en un solo evento con
+				# factor > 1, y los paneles táctiles envían factor < 1.
+				var steps: float = mb.factor if mb.factor > 0.0 else 1.0
+				var f: float = pow(ZOOM_STEP, steps)
+				_zoom_at(get_global_mouse_position(), f if mb.button_index == MOUSE_BUTTON_WHEEL_UP else 1.0 / f)
 				get_viewport().set_input_as_handled()
 		MOUSE_BUTTON_MIDDLE:
 			_panning = mb.pressed
@@ -390,6 +440,11 @@ func _on_left_release(_cell: Vector2i) -> void:
 		var cost: int = _drag_route.cost_ft
 		if command_stack.execute(MoveTokenCommand.new(_drag_token, _drag_target, level_index)):
 			status_changed.emit(tr("UI_MOVED").replace("{cost}", _format_ft(cost)))
+	elif (_drag_route == null or not _drag_route.found) and _drag_target.x >= 0:
+		var t: MapToken = document.token(_drag_token)
+		if t != null and _drag_target != t.cell:
+			# Sin esto la barra seguía mostrando el mensaje anterior.
+			status_changed.emit(tr("UI_NO_ROUTE_STATUS"))
 	_cancel_drag()
 
 
