@@ -159,7 +159,10 @@ func _build_ui() -> void:
 	_view3d_box.stretch = true
 	_view3d_box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_view3d_box.mouse_filter = Control.MOUSE_FILTER_STOP
-	_view3d_box.focus_mode = Control.FOCUS_ALL
+	# Sin foco: un SubViewportContainer con el foco se queda también los
+	# clics dirigidos a la barra superior (no se podía volver a 2D ni cambiar
+	# opciones tras tocar la vista 3D). Las teclas se las pasa main.
+	_view3d_box.focus_mode = Control.FOCUS_NONE
 	_view3d_box.visible = false
 	_map_area.add_child(_view3d_box)
 	var sv: SubViewport = SubViewport.new()
@@ -319,7 +322,7 @@ func _apply_view() -> int:
 		_view3d.level_index = _view.level_index
 		_view3d.set_mode(MapView3D.Mode.FIRST_PERSON if sel == VIEW_FP else MapView3D.Mode.TOP)
 		_view3d.rebuild()
-		_view3d_box.grab_focus()
+		_release_text_focus()
 		if sel == VIEW_FP and _doc != null and _doc.token(_view3d.selected_token) == null:
 			_status.text = tr("UI_FP_NEEDS_TOKEN")
 		elif sel == VIEW_FP:
@@ -334,12 +337,17 @@ func _apply_view() -> int:
 func _on_view3d_input(event: InputEvent) -> void:
 	var mb: InputEventMouseButton = event as InputEventMouseButton
 	if mb != null and mb.pressed:
-		_view3d_box.grab_focus()
-	var k: InputEventKey = event as InputEventKey
-	if k != null and k.ctrl_pressed:
-		return
+		_release_text_focus()
 	_view3d.process_input(event)
 	_view3d_box.accept_event()
+
+
+## Quita el foco de la caja del código (u otro control) para que W/A/S/D y
+## Q/E lleguen a la vista 3D en vez de escribirse.
+func _release_text_focus() -> void:
+	var f: Control = get_viewport().gui_get_focus_owner()
+	if f != null:
+		f.release_focus()
 
 
 func _players_view() -> bool:
@@ -509,7 +517,13 @@ func _save_png_to(path: String) -> void:
 
 func _unhandled_key_input(event: InputEvent) -> void:
 	var k: InputEventKey = event as InputEventKey
-	if k == null or not k.pressed or not k.ctrl_pressed:
+	if k == null or not k.pressed:
+		return
+	if not k.ctrl_pressed:
+		# Teclas de cámara y de 1ª persona, solo con la vista 3D activa.
+		if _view3d != null and _view3d.active:
+			_view3d.process_input(k)
+			get_viewport().set_input_as_handled()
 		return
 	if k.keycode == KEY_Z and not k.shift_pressed:
 		_undo()

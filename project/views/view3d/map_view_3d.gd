@@ -14,6 +14,7 @@ extends Node3D
 ##     arrastrarla la mueve por la ruta más barata (MoveTokenCommand).
 ##   - Clic izquierdo en una puerta: abre/cierra.
 ## 1ª persona (MODE_FIRST_PERSON), en la ficha seleccionada:
+##   - Espacio o E: abrir/cerrar la puerta de delante.
 ##   - W/↑ avanzar una casilla, S/↓ retroceder, A/← y D/→ girar (un lado de
 ##     la rejilla), botón derecho arrastrando: mirar alrededor.
 ##   - La altura de los ojos depende del tamaño de la ficha.
@@ -473,10 +474,46 @@ func handle_key(k: InputEventKey) -> void:
 			turn_first_person(-1)
 		KEY_D, KEY_RIGHT:
 			turn_first_person(1)
+		KEY_SPACE, KEY_E:
+			toggle_door_ahead()
+
+
+## Dirección de arista más cercana a donde mira la cámara: tras mirar con el
+## ratón, "delante" es hacia donde se mira, no la última dirección girada.
+func _sync_facing_to_view() -> void:
+	var best: int = _fp_facing
+	var best_diff: float = TAU
+	for d: int in document.grid.edge_direction_count():
+		var diff: float = absf(wrapf(_facing_yaw(d) - _fp_yaw, -PI, PI))
+		if diff < best_diff:
+			best_diff = diff
+			best = d
+	_fp_facing = best
+
+
+## Abre o cierra la puerta de la arista que hay delante en 1ª persona.
+func toggle_door_ahead() -> bool:
+	var t: MapToken = document.token(selected_token)
+	if t == null or command_stack == null:
+		return false
+	_sync_facing_to_view()
+	var lvl: MapLevel = document.level(level_index)
+	var v: int = lvl.get_edge(t.cell, _fp_facing)
+	if not MapEdge.is_door(v):
+		return false
+	var secret_hidden: bool = MapEdge.kind_of(v) == MapEdge.KIND_SECRET_DOOR and not MapEdge.has_flag(v, MapEdge.FLAG_DISCOVERED)
+	if secret_hidden and (fog or not dm_view):
+		return false
+	var id: int = document.grid.edge_id(t.cell, _fp_facing)
+	if not command_stack.execute(SetEdgeCommand.toggle_flag(document, level_index, id, MapEdge.FLAG_OPEN)):
+		return false
+	user_command_done.emit()
+	return true
 
 
 ## Gira a la dirección de arista vecina (horario = +1).
 func turn_first_person(sign_dir: int) -> void:
+	_sync_facing_to_view()
 	var n: int = document.grid.edge_direction_count()
 	# El orden de direcciones de cada rejilla no es siempre horario en las
 	# primeras edge_direction_count(): se elige la siguiente por ángulo.
@@ -502,6 +539,7 @@ func step_first_person(sign_dir: int) -> bool:
 	if t == null or command_stack == null or profile == null:
 		return false
 	var g: GridGeometry = document.grid
+	_sync_facing_to_view()
 	var dir: int = _fp_facing if sign_dir > 0 else g.opposite(_fp_facing)
 	var target: Vector2i = g.neighbor(t.cell, dir)
 	if not g.in_bounds(target):

@@ -203,3 +203,86 @@ func test_fog_is_the_same_in_2d_and_3d() -> void:
 	assert_gt(explored, 0, "la ficha ya ha explorado su entorno")
 	assert_lt(explored, _doc().grid.cell_count() / 4, "pero no todo el mapa")
 	assert_false(v2.dm_view, "la vista de jugadores no enseña secretos")
+
+
+func _push_click(pos: Vector2) -> void:
+	for pressed: bool in [true, false]:
+		var ev: InputEventMouseButton = InputEventMouseButton.new()
+		ev.position = pos
+		ev.global_position = pos
+		ev.button_index = MOUSE_BUTTON_LEFT
+		ev.pressed = pressed
+		_vp.push_input(ev, true)
+		await wait_process_frames(1)
+
+
+## Regresión: con el contenedor 3D enfocado, los clics a la barra superior
+## no llegaban (no se podía volver a 2D). Y las teclas deben llegar a la
+## 1ª persona sin que la vista tenga el foco.
+func test_toolbar_still_works_after_using_3d_and_keys_reach_fp() -> void:
+	await _generate(CODE_SQUARE)
+	_main.call("_add_token")
+	_select_view(1)
+	await wait_process_frames(2)
+	var box: SubViewportContainer = _main.get("_view3d_box")
+	var torch: CheckBox = _main.get("_torch_chk")
+	var was: bool = torch.button_pressed
+	await _push_click(box.get_global_rect().get_center())
+	await _push_click(torch.get_global_rect().get_center())
+	assert_ne(torch.button_pressed, was, "la barra responde tras hacer clic en la vista 3D")
+	_select_view(2)
+	await wait_process_frames(1)
+	var d: MapDocument = _doc()
+	var t: MapToken = d.token(_v3().selected_token)
+	var moved: bool = false
+	for k: int in 6:
+		var before: Vector2i = t.cell
+		for pressed: bool in [true, false]:
+			var ev: InputEventKey = InputEventKey.new()
+			ev.keycode = KEY_W
+			ev.physical_keycode = KEY_W
+			ev.pressed = pressed
+			_vp.push_input(ev, true)
+		await wait_process_frames(1)
+		if t.cell != before:
+			moved = true
+			break
+		for pressed2: bool in [true, false]:
+			var ev2: InputEventKey = InputEventKey.new()
+			ev2.keycode = KEY_D
+			ev2.physical_keycode = KEY_D
+			ev2.pressed = pressed2
+			_vp.push_input(ev2, true)
+		await wait_process_frames(1)
+	assert_true(moved, "W llega a la 1ª persona sin foco en la vista")
+
+
+func test_first_person_opens_door_ahead() -> void:
+	var d: MapDocument = MapDocument.create("square", 6, 3)
+	d.level(0).fill_terrain(Terrain.FLOOR)
+	var east: int = d.grid.direction_between(Vector2i(2, 1), Vector2i(3, 1))
+	var door: int = d.grid.edge_id(Vector2i(2, 1), east)
+	d.level(0).set_edge_by_id(door, MapEdge.make(MapEdge.KIND_DOOR))
+	var t: MapToken = MapToken.new()
+	t.id = d.allocate_id()
+	t.cell = Vector2i(2, 1)
+	t.side = MapToken.SIDE_PLAYER
+	d.add_token(t)
+	var v: MapView3D = MapView3D.new()
+	v.profile = SystemProfile.load_id("dnd5e_2024")
+	add_child_autofree(v)
+	v.command_stack = CommandStack.new(d)
+	v.document = d
+	v.selected_token = t.id
+	v.set_mode(MapView3D.Mode.FIRST_PERSON)
+	v.set("_fp_facing", east)
+	var yaw_east: float = v.call("_facing_yaw", east)
+	v.set("_fp_yaw", yaw_east)
+	assert_false(v.step_first_person(1), "la puerta cerrada para el paso")
+	var ev: InputEventKey = InputEventKey.new()
+	ev.keycode = KEY_SPACE
+	ev.pressed = true
+	v.process_input(ev)
+	assert_true(MapEdge.has_flag(d.level(0).get_edge_by_id(door), MapEdge.FLAG_OPEN), "Espacio abre la puerta de delante")
+	assert_true(v.step_first_person(1))
+	assert_eq(t.cell, Vector2i(3, 1), "y ya se puede pasar")

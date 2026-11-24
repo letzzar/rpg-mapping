@@ -10,8 +10,20 @@
 - `tests/render/render_views.gd`: captura 2D/3D/1ª persona con y sin niebla a PNG (necesita ventana).
 - Tests: **160/160, 21085 asserts, idénticos en escritorio y navegador** (nuevos `test_visibility.gd` y `test_view3d.gd`). Los tests web se pasaron con Chrome sin ventana (`--headless=new --remote-debugging-port`, leyendo el título por `/json`) porque el panel del navegador estaba oculto.
 
+### Pruebas de F2 en la app real (misma sesión, después)
+Con la pantalla bloqueada no había capturas del sistema, así que se escribió `tests/render/play_f2.gd`: abre la app con ventana real, inyecta ratón y teclado en la ventana raíz (pasan por toda la interfaz, como los del sistema) y guarda una captura por paso. **31/31 comprobaciones OK** tras estos arreglos:
+- **1ª persona no podía abrir puertas** → Espacio o E abre/cierra la puerta de delante (test `test_first_person_opens_door_ahead`).
+- **Tras mirar con el ratón, W/Espacio iban en la dirección anterior** → avanzar, girar y abrir usan la dirección de la rejilla más cercana a donde mira la cámara.
+- El contenedor 3D ya no toma el foco de teclado (un SubViewportContainer enfocado puede quedarse eventos) y las teclas de cámara/1ª persona se las pasa `main` desde `_unhandled_key_input`; un clic en la vista 3D quita el foco a la caja del código (test de regresión `test_toolbar_still_works_after_using_3d_and_keys_reach_fp`).
+- Lecciones para inyectar eventos: separar pulsar y soltar por un fotograma, y mandar siempre el "soltar" de la rueda (si no, Godot cree que hay un botón apretado y la vista 3D se queda todos los clics).
+- Tests: **162/162, 21091 asserts, idénticos en escritorio y navegador**.
+
+```powershell
+& "$env:LOCALAPPDATA\Programs\Godot\Godot_v4.7.2-stable_win64_console.exe" --path project -s res://tests/render/play_f2.gd -- <carpeta>
+```
+
 ### Siguiente paso
-1. **Víctor prueba F2** en la app: Vista 3D (girar con botón derecho, Q/E/R/F, O, rueda, desplazar con central), 1ª persona (W/A/S/D), "Ve: jugadores" con y sin antorchas y ambiente iluminado, deshacer un paso y ver que se vuelve a tapar lo descubierto.
+1. Si Víctor quiere, probarlo él a mano (Vista 3D, 1ª persona con W/A/S/D y Espacio, "Ve: jugadores", antorchas, deshacer).
 2. Pendiente de F2 si se quiere: plantas superiores/inferiores visibles en 3D (ahora solo la actual, "corte de techo" implícito), visión en la oscuridad por ficha (llegará con los personajes de F5; hoy `darkvision_cells` = 0), FOV configurable en la UI (hoy constante 75°), modelos CC0 en lugar de cajas.
 3. Después: **F3 – Edificio y asentamiento**.
 
@@ -96,7 +108,7 @@ Víctor cerró la sesión de terminal para reabrir en **Claude Code desktop** co
 
 ### Comandos para retomar
 ```powershell
-pwsh tools/run_tests.ps1        # importa + tests; debe dar 160/160
+pwsh tools/run_tests.ps1        # importa + tests; debe dar 162/162
 $g = "$env:LOCALAPPDATA\Programs\Godot\Godot_v4.7.2-stable_win64_console.exe"
 & $g --path project             # ejecutar la app
 & $g --path project -e          # abrir editor

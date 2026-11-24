@@ -118,5 +118,5 @@ UI_AMBIENT_LIT,Ambiente iluminado,Lit area
 UI_CARRY_TORCH,Antorchas,Torches
 UI_TOKEN_SELECTED,Ficha {name} seleccionada,Token {name} selected
 UI_FP_NEEDS_TOKEN,Añade una ficha para verla en 1ª persona,Add a token to see it in first person
-UI_FP_HELP,"W/S o flechas: avanzar y retroceder · A/D: girar · botón derecho: mirar","W/S or arrows: forward and back · A/D: turn · right button: look around"
+UI_FP_HELP,"W/S o flechas: avanzar y retroceder · A/D: girar · Espacio o E: abrir/cerrar puerta · botón derecho: mirar","W/S or arrows: forward and back · A/D: turn · Space or E: open/close door · right button: look around"
 UI_3D_HELP,"Arrastra una ficha para moverla · clic en una puerta · rueda: zoom · botón derecho: girar e inclinar · central: desplazar · Q/E R/F · O: ortográfica","Drag a token to move it · click a door · wheel: zoom · right button: rotate and tilt · middle: pan · Q/E R/F · O: orthographic"
