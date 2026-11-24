@@ -22,7 +22,8 @@ Identidad: la brújula con el dragón del icono (`assets/icon/icon-simple.svg`).
 2. **Versionado de generadores**
    - Cualquier cambio que altere la salida de un generador ⇒ subir `GEN`, conservar la versión anterior en `core/gen/<escala>/legacy/` y añadir seeds doradas nuevas sin tocar las antiguas.
    - Si el cambio no debe alterar la salida, demuéstralo ejecutando las seeds doradas.
-3. **Código de semilla RPGM1**: `RPGM1-SIS-ESC-GEN-PARAMS-SEED-CRC`, Base32 Crockford, parámetros serializados de forma canónica (claves ordenadas, enteros, sin espacios). Ida y vuelta sin pérdida.
+3. **Código de semilla RPGM1**: `RPGM1-SIS-ESC-GEN-PARAMS-SEED-CRC`, Base32 Crockford; PARAMS posicional según el `ParamSchema` del generador (ESC+GEN), SEED de longitud variable (la app genera 40 bits = 8 car.), control GF(32) dentro del alfabeto Crockford (ADR 009, PROYECTO §5.3). Ida y vuelta sin pérdida. Un esquema publicado no se cambia: solo se añaden campos al final con defecto o huecos de `capacity`; lo demás exige subir `GEN`.
+   - Los subagentes no pueden ejecutar tests si solo tienen Bash (Git Bash falla al hacer fork en esta máquina): pedir al coordinador que lance `pwsh tools/run_tests.ps1`.
 4. **Reglas como datos**: coste de movimiento, diagonales, terreno difícil, tamaños y bandas de alcance salen de `data/systems/*.json`. Nunca lógica condicionada por el nombre del sistema.
 5. **Unidades**: casillas y mm enteros internamente; modo convención (5 ft = 1,5 m) y exacto (0,3048 m/ft); salida solo por `Units.format_distance()`.
 6. **Calidad del contenido generado**: conectividad de mazmorras (todas las salas accesibles), pasillo libre mínimo de 1 casilla junto al mobiliario, coherencia de plantas y escaleras.

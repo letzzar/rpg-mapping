@@ -62,6 +62,39 @@ static func decode_u64(text: String) -> U64Result:
 	return U64Result.new(true, v)
 
 
+## uint64 → forma compacta canónica: sin ceros a la izquierda, "0" para 0
+## (1 a 13 caracteres). Es la que usa el campo SEED de RPGM1.
+static func encode_u64_compact(value: int) -> String:
+	if value == 0:
+		return "0"
+	var out: String = ""
+	var v: int = value
+	while v != 0:
+		out = ALPHABET[v & 31] + out
+		v = Bits64.lsr(v, 5)
+	return out
+
+
+## Forma compacta → uint64 (como int64). Admite alias y minúsculas, pero
+## rechaza ceros a la izquierda (cada valor tiene un único texto), textos
+## vacíos, de más de 13 caracteres o que no caben en 64 bits.
+static func decode_u64_compact(text: String) -> U64Result:
+	var n: int = text.length()
+	if n == 0 or n > U64_LEN:
+		return U64Result.new()
+	var v: int = 0
+	for i: int in n:
+		var d: int = char_value(text[i])
+		if d < 0:
+			return U64Result.new()
+		if i == 0 and n > 1 and d == 0:
+			return U64Result.new()
+		if i == 0 and n == U64_LEN and d > 15:
+			return U64Result.new()
+		v = (v << 5) | d
+	return U64Result.new(true, v)
+
+
 ## Bytes → Base32 (MSB primero, último grupo rellenado con ceros, sin '=').
 static func encode_bytes(data: PackedByteArray) -> String:
 	var out: String = ""

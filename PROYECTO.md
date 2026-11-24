@@ -91,30 +91,40 @@ Formato legible, copiable y validable:
 
 ```
 RPGM1-<SIS>-<ESC>-<GEN>-<PARAMS>-<SEED>-<CRC>
-ej.: RPGM1-PF2E-ALD-G3-0-000000000001A-<CRC>   (todo por defecto, semilla 42)
-ej.: RPGM1-DND5-MAZ-G1-FA8-0000000000016-<CRC> (rooms=20, layout=cave, grid=hex_flat, corridor_pct=45; 37 caracteres)
+ej.: RPGM1-DND5-MAZ-G1-FA8-3QV8M2KD-P   (rooms=20, layout=cave, grid=hex_flat, corridor_pct=45; semilla de la app; 32 caracteres)
+ej.: RPGM1-PF2E-ALD-G3-0-1A-K           (todo por defecto, semilla 42 tecleada a mano)
 ```
-Detalles fijados en F0 (ADR 009): `SEED` ocupa siempre 13 caracteres (64 bits); `CRC` = ISO/IEC 7064 MOD 37,36 (carácter 0-9A-Z) sobre el cuerpo sin guiones.
+Detalles fijados en F0 (ADR 009):
+
+**`SEED` de longitud variable**: uint64 en Base32 Crockford, forma canónica **sin ceros a la izquierda** (`0` = semilla 0), de 1 a 13 caracteres (13 solo si el primero es ≤ `F`). La app genera semillas de **40 bits** con entropía del sistema (`SeedCode.random_app_seed()`, nunca en `core/gen`) y el primer carácter no nulo, así que siempre ocupan **8 caracteres**; a mano se aceptan semillas cortas (42 → `1A`) y hasta 64 bits.
+
+**`SIS`**: 3-4 caracteres del alfabeto de Crockford (sin I, L, O ni U), para que el control los cubra.
+
+**`CRC`: un carácter del alfabeto de Crockford** (sin I, L, O ni U; al leerlo se aplican los alias O→0, I/L→1), calculado en GF(32) = GF(2)[x]/(x⁵+x²+1):
+- El cuerpo `RPGM1-SIS-ESC-Gn-PARAMS-SEED` se convierte en símbolos 0..31: cada carácter por su valor Crockford; la escala como **un** símbolo (su índice en `MUN, REG, ALD, EDI, EST, MAZ`, porque MUN y ALD contienen U y L); y un **separador de valor 0** entre campos.
+- `CRC = Σ sᵢ·x^(n−i)` (Horner: `c = (c ⊕ s)·x` por símbolo; multiplicar por x es un desplazamiento y un XOR con `0x25`).
+- Garantías (demostradas y verificadas de forma exhaustiva en los tests): una sustitución cambia el control en `x^k·(a⊕a')`, que nunca es 0 en un cuerpo; una transposición adyacente lo cambia en `(x^k ⊕ x^(k+1))·(a⊕b)`, no nulo porque x ≠ 1. También detecta transposiciones saltadas (x tiene orden 31) y la del último símbolo con el control. El separador hace que correr un guion entre `PARAMS` y `SEED` (de longitud variable) sea una transposición con un 0 o deje un cero a la izquierda: también se detecta. Ninguna escala está a una errata de otra, así que un error en `ESC` da `SEED_ERR_SCALE`.
+- Por qué no ISO 7064 con 32 símbolos: los sistemas puros requieren módulo primo (31 hace coincidir dos símbolos; 37 necesita 37 caracteres de control) y el híbrido MOD 33,32 requiere M+1 primo (33 = 3·11). GF(32) da las mismas garantías con exactamente 32 símbolos.
 
 **`PARAMS` posicional por esquema** (`core/seed/param_schema.gd`, registro en `param_schema_registry.gd`):
 - Cada generador declara, ligado a su `GEN`, una lista **ordenada** de campos: entero `[min, max]`, booleano o enumerado (lista cerrada de ids, con `capacity` opcional ≥ nº de ids), cada uno con su valor por defecto. El esquema depende de (`ESC`, `GEN`), no del sistema.
 - Cada valor se convierte en un dígito relativo a su defecto: `d = (valor − defecto) mod radix` (radix: `max − min + 1`, 2 o `capacity`); el defecto es siempre 0.
 - Los dígitos forman un entero de base mixta con el **primer campo como dígito menos significativo**: `N = d0 + r0·(d1 + r1·(d2 + …))`, escrito en Base32 Crockford **sin ceros a la izquierda**; `0` si todo vale su defecto. Por eso los campos del final que valen su defecto no ocupan nada: hay que ordenar los campos de más a menos usados.
 - `N` puede superar 64 bits: se calcula por trozos (dígitos base 32, radix ≤ 2³¹), solo con enteros. Máximo 64 caracteres por esquema.
-- Un único texto por conjunto de valores (se rechazan ceros a la izquierda). Con 4 parámetros típicos, `PARAMS` ocupa 3 caracteres y el código entero 37 (antes, solo `PARAMS` ~70).
+- Un único texto por conjunto de valores (se rechazan ceros a la izquierda). Con 4 parámetros típicos, `PARAMS` ocupa 3 caracteres y, con semilla de la app, el código entero 32 (con el texto canónico inicial, solo `PARAMS` ocupaba ~70).
 - Compatibilidad: añadir un campo **al final** con su defecto, o un id de enumerado **dentro de su `capacity`**, no cambia ningún código ya emitido. Cualquier otro cambio del esquema (orden, rangos, defectos, ids existentes) exige `GEN` nuevo.
 - Errores (claves i18n): `SEED_ERR_SCHEMA` (no hay esquema para ese `ESC`/`GEN`), `SEED_ERR_PARAMS` (texto mal formado o que no cabe en el esquema), `SEED_ERR_PARAM_UNKNOWN`, `SEED_ERR_PARAM_TYPE`, `SEED_ERR_PARAM_RANGE`, `SEED_ERR_PARAM_ENUM` (con `{param}`).
-- Al analizar, el control se comprueba **antes** que el contenido: si no cuadra, lo probable es una errata (`SEED_ERR_CHECK`); si cuadra y falla el contenido, el código es de otra versión.
+- Al analizar: primero la estructura necesaria para calcular el control (7 partes, versión, `SIS`, `ESC`, `G`+dígitos, caracteres Base32 válidos), luego el **control antes que el contenido**: si no cuadra, lo probable es una errata (`SEED_ERR_CHECK`); si cuadra y falla el contenido, el código es de otra versión o no canónico.
 
 | Campo | Contenido |
 |-------|-----------|
 | `RPGM1` | Versión del formato de código |
-| `SIS` | Sistema: `DND5`, `PF2E`, `DGHT`, `GEN` (genérico) |
+| `SIS` | Sistema, 3-4 caracteres Crockford: `DND5`, `PF2E`, `GEN` (genérico) |
 | `ESC` | Escala: `MUN`, `REG`, `ALD` (asentamiento), `EDI`, `EST`, `MAZ` |
 | `GEN` | Versión del algoritmo del generador de esa escala (`G1`, `G2`…) |
 | `PARAMS` | Parámetros iniciales con codificación **posicional por esquema del generador** (base mixta) en **Base32 Crockford**; `0` = todo por defecto |
-| `SEED` | 64 bits en Base32 Crockford |
-| `CRC` | Carácter de control (mod 37) para detectar erratas |
+| `SEED` | Hasta 64 bits en Base32 Crockford, sin ceros a la izquierda (8 caracteres las de la app) |
+| `CRC` | Carácter de control Crockford calculado en GF(32) para detectar erratas |
 
 Reglas:
 - Cambiar un algoritmo **obliga a subir `GEN`** y mantener el anterior en `core/gen/<escala>/legacy/` para que las semillas antiguas sigan funcionando.
@@ -294,7 +304,7 @@ Todos los JSON tienen `schema_version` y esquema en `data/schemas/`. Migraciones
 | 006 | Reglas como datos | Añadir sistemas sin tocar código | Lógica por sistema en código |
 | 007 | GPL-3.0 + contenido abierto separado | Software libre sin mezclar licencias de contenido | Licencia privativa |
 | 008 | `tests/` y `data/` dentro de `project/` | Godot no carga ni exporta nada fuera de `res://` (`res://../tests` falla en GUT); los perfiles deben ir en la build | Mantenerlos en la raíz con enlaces simbólicos (frágil en Windows y CI) |
-| 009 | Formato RPGM1 (implementado): `SEED` de 13 caracteres fijos; `PARAMS` **posicional por esquema del generador** (`ParamSchema` por `ESC`+`GEN`: campos ordenados entero `[min,max]` / booleano / enumerado cerrado con `capacity`, cada uno con defecto), codificado como entero de base mixta de dígitos relativos al defecto, primer campo menos significativo, en Base32 Crockford sin ceros a la izquierda (`0` = todo por defecto); control ISO/IEC 7064 MOD 37,36 sobre el cuerpo, comprobado antes que el contenido. Detalle en §5.3 | Corto y fácil de dictar (decisión de Víctor, 2026-11-24): 4 parámetros = 3 caracteres, código de 37; los defectos del final no ocupan nada sin necesidad de marcas; texto único por valores; añadir campos al final o ids dentro de `capacity` no rompe códigos; 64 bits no caben en 12 caracteres; MOD 37,36 detecta toda sustitución simple y transposición adyacente sin símbolos raros | Texto canónico `clave=<i\|b\|s><valor>` en Base32 (primera versión de F0: ~70 car. solo `PARAMS` con 4 parámetros); compresión deflate; marcas de presencia por campo; suma mod 37 con alfabeto de Crockford extendido |
+| 009 | Formato RPGM1 (implementado; revisado 2026-11-24): `SEED` de **longitud variable** sin ceros a la izquierda (`0` = semilla 0, hasta 13 car.; la app genera semillas de 40 bits = 8 car.); `SIS` en alfabeto Crockford; `PARAMS` **posicional por esquema del generador** (`ParamSchema` por `ESC`+`GEN`: campos ordenados entero `[min,max]` / booleano / enumerado cerrado con `capacity`, cada uno con defecto), codificado como entero de base mixta de dígitos relativos al defecto, primer campo menos significativo, en Base32 Crockford sin ceros a la izquierda (`0` = todo por defecto); control de **un carácter Crockford calculado en GF(32)** (x⁵+x²+1, Horner, escala como un símbolo y separador 0 entre campos), comprobado antes que el contenido. Ej.: `RPGM1-DND5-MAZ-G1-FA8-3QV8M2KD-P`. Detalle en §5.3 | Corto y fácil de dictar (decisiones de Víctor, 2026-11-24): 4 parámetros = 3 caracteres, código de 32; los defectos del final no ocupan nada sin necesidad de marcas; texto único por valores; añadir campos al final o ids dentro de `capacity` no rompe códigos; 40 bits bastan para semillas aleatorias de la app y se admiten cortas a mano; el control no usa I/L/O/U (confundibles al dictar) y en GF(32) detecta el 100 % de sustituciones simples y transposiciones adyacentes (verificado exhaustivamente), además de guiones corridos entre campos variables | Texto canónico `clave=<i\|b\|s><valor>` en Base32 (~70 car. solo `PARAMS`); compresión deflate; marcas de presencia por campo; `SEED` fija de 13 car.; control ISO/IEC 7064 MOD 37,36 (usaba 0-9A-Z: O/0 e I/1/L distintos); ISO 7064 sobre 32 símbolos (MOD 31 no distingue 2 símbolos; híbrido MOD 33,32 exige M+1 primo) |
 | 010 | Unidades: mm enteros; convención 1 ft = 300 mm y 1 mi = 10/6 km; exacta 1 ft = 304,8 mm. Tamaños en décimas de pie (`space_ft_x10`) | Sin floats en el modelo; 2,5 ft no es entero en pies | Guardar floats en metros |
 | 011 | Licencias de reglas: se **descarta Daggerheart** (DPCGL); PF2e se mantiene bajo ORC con `pf2e.json` licenciado ORC (no GPL) y aviso ORC completo; el modo `bands` queda como mecanismo genérico | DPCGL 2.0 no permite software/videojuegos fuera de VTT de lista blanca no comerciales y es revocable/modificable; ORC es irrevocable, cubre todo medio y su copyleft se limita a las mecánicas | Pedir permiso a Darrington Press; perfil Daggerheart descargable aparte (sigue sin ser un formato permitido) |
 | 012 | Rejilla hexagonal opcional **en todas las escalas**, también táctica; geometría tras una interfaz de rejilla (cuadrada/hex) | Lo pide Víctor; muchas mesas juegan en hex | Hex solo en región/mundo |

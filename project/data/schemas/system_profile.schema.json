@@ -9,7 +9,7 @@
 	"properties": {
 		"schema_version": { "const": 1 },
 		"id": { "type": "string", "pattern": "^[a-z0-9_]+$", "description": "Igual al nombre del fichero sin .json" },
-		"seed_code": { "type": "string", "pattern": "^[A-Z0-9]{3,4}$", "description": "Campo SIS del código RPGM1; único entre perfiles" },
+		"seed_code": { "type": "string", "pattern": "^[0-9A-HJKMNP-TV-Z]{3,4}$", "description": "Campo SIS del código RPGM1 (alfabeto Base32 de Crockford: sin I, L, O ni U); único entre perfiles" },
 		"name_key": { "type": "string", "description": "Clave de i18n del nombre visible" },
 		"content": {
 			"type": "object",
