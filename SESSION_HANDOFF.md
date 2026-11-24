@@ -13,8 +13,10 @@ Tests: **178/178, 22352 asserts, idénticos en escritorio y navegador**; las 20 
 - **UI**: escala "Edificio" (`UI_SCALE_EDI`); al generar se abre el nivel con la entrada (con sótano, el nivel 0 es el sótano); la ficha nueva no atraviesa ventanas.
 - Tests nuevos `tests/unit/test_edi_generator.gd` (datos, código ida y vuelta, 7 tipos × 3 rejillas × estilos/plantas/sótano/tamaños, adyacencias, escaleras, ventanas en el modelo y en vistas, mobiliario por semilla hija, hub de reserva forzado, pantalla principal, estadísticas y ASCII). Prueba de estrés aparte (no versionada): 630 edificios, 0 fallos, ~97 ms/edificio.
 
+### Aprobado (2026-11-25)
+- **Víctor aprobó** el esquema EDI G1, los 7 tipos de edificio, los tipos de estancia nuevos, el bloque `building` de los estilos y `KIND_WINDOW`. **EDI G1 queda congelado** con 8 seeds doradas grabadas (28 en total: 11 MAZ, 9 EST, 8 EDI). Cualquier cambio que altere esos hashes exige EDI G2 (y mover G1 a `legacy/`). PROYECTO §6.4-6.6 y ADR 022/023/026 actualizados (también decían "pendiente" para MAZ y EST, ya aprobados en F1).
+
 ### Pendiente de Víctor
-- Aprobar el esquema EDI G1, los 7 tipos de edificio, los tipos de estancia nuevos y el bloque `building` de los estilos. Después: quitar `# ` a las 8 candidatas EDI de `tests/golden/golden_seeds.txt` y grabarlas (`$env:RPGM_GOLDEN_RECORD="1"; pwsh tools/run_tests.ps1 -Dir res://tests/golden`).
 - Decidir cómo cumplir el criterio de F3 "estancia aislada = dentro de la aldea" (una estancia de EDI tiene la forma de la partición, no los tamaños de EST): EST G2 con forma/puertas dadas o un código de estancia de edificio.
 
 ### Códigos para probar en la app
