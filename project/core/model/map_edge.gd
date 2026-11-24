@@ -6,14 +6,17 @@ extends RefCounted
 ## (FLAG_*). 0 = arista libre (no se guarda). Los valores entran en el hash:
 ## no renumerar; los tipos y banderas nuevos se añaden con valores nuevos.
 ##
-## Bloqueo (lo que usan el coste de movimiento y la futura línea de visión):
-##   tipo          movimiento                      visión
-##   WALL          siempre                         siempre
-##   DOOR          si cerrada CON LLAVE            si cerrada
-##   SECRET_DOOR   si no descubierta, o con llave  si no descubierta o cerrada
-##                 y cerrada
-##   ARCH (vano)   nunca                           nunca
-## Una puerta cerrada sin llave no bloquea el movimiento (se abre al pasar).
+## Bloqueo (lo que usan la ruta automática y la futura línea de visión):
+##   tipo          movimiento y visión
+##   WALL          siempre
+##   DOOR          si está cerrada (con llave o sin ella)
+##   SECRET_DOOR   si no está descubierta o está cerrada
+##   ARCH (vano)   nunca
+## Decisión de Víctor (ADR 020): cualquier puerta cerrada corta la ruta
+## automática hasta que alguien la abra (un comando); FLAG_LOCKED solo indica
+## que abrirla exige llave o prueba. La CONECTIVIDAD de un mapa generado
+## (todas las salas accesibles) sí cuenta las puertas como franqueables:
+## is_traversable().
 
 const NONE: int = 0
 const KIND_WALL: int = 1
@@ -73,12 +76,16 @@ static func blocks_movement(v: int) -> bool:
 		KIND_WALL:
 			return true
 		KIND_DOOR:
-			return has_flag(v, FLAG_LOCKED) and not has_flag(v, FLAG_OPEN)
+			return not has_flag(v, FLAG_OPEN)
 		KIND_SECRET_DOOR:
-			if not has_flag(v, FLAG_DISCOVERED):
-				return true
-			return has_flag(v, FLAG_LOCKED) and not has_flag(v, FLAG_OPEN)
+			return not (has_flag(v, FLAG_DISCOVERED) and has_flag(v, FLAG_OPEN))
 	return false
+
+
+## Se puede llegar a cruzar (abriendo, forzando o encontrando la puerta): todo
+## salvo un muro. Es el criterio de "sala accesible" de los generadores.
+static func is_traversable(v: int) -> bool:
+	return kind_of(v) != KIND_WALL
 
 
 static func blocks_sight(v: int) -> bool:

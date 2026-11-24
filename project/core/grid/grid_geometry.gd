@@ -38,6 +38,9 @@ const STEP_DIAGONAL: int = 1
 const STEP_HEX: int = 2
 const STEP_KIND_COUNT: int = 3
 
+## Huellas hexagonales admitidas (nº de hexágonos), ver footprint().
+const HEX_FOOTPRINTS: PackedInt32Array = [1, 3, 7, 19]
+
 ## Tamaño máximo de un lado del mapa (cabe holgado en los ids de arista).
 const MAX_SIDE: int = 4096
 
@@ -99,10 +102,15 @@ func step_counts(_a: Vector2i, _b: Vector2i) -> PackedInt32Array:
 	return PackedInt32Array([0, 0, 0])
 
 
-## Casillas ocupadas por algo de `size_cells` casillas de lado anclado en
-## `anchor` (tokens, objetos). Cuadrada: bloque size×size con `anchor` arriba a
-## la izquierda. Hex: provisional (ver HexGrid.footprint). No recorta al mapa.
-func footprint(anchor: Vector2i, _size_cells: int) -> Array[Vector2i]:
+## Casillas ocupadas por una criatura anclada en `anchor`, en orden por filas.
+## Cada rejilla usa el dato que le corresponde del perfil (reglas como datos):
+## - cuadrada: bloque side_cells×side_cells con `anchor` arriba a la izquierda
+##   (SystemProfile.size_cells());
+## - hex: `hex_cells` hexágonos (SystemProfile.size_hex_cells_of()): 1; 3 =
+##   triángulo `anchor` + vecinos en las direcciones 2 y 3 (orientación fija);
+##   7 = radio 1; 19 = radio 2 alrededor de `anchor`.
+## No recorta al mapa.
+func footprint(anchor: Vector2i, _side_cells: int, _hex_cells: int = 1) -> Array[Vector2i]:
 	var out: Array[Vector2i] = [anchor]
 	return out
 

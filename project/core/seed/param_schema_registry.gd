@@ -72,25 +72,35 @@ static func _ensure_builtins() -> void:
 	assert(problem.is_empty(), "ParamSchemaRegistry: MAZ G1 no válido: " + problem)
 
 
-## MAZ G1 — PROVISIONAL. Se puede cambiar libremente hasta que exista la
-## primera seed dorada de MAZ (F1); a partir de ahí queda congelado.
+## MAZ G1 — PROPUESTA DEFINITIVA, PENDIENTE DE APROBAR (F1, etapa 2). Se
+## congela al grabar la primera seed dorada de MAZ; a partir de ahí, solo se
+## pueden añadir campos AL FINAL con su defecto o ids dentro de `capacity`.
 ## Orden de más a menos usado: los campos del final casi nunca se tocan y,
-## al valer su defecto, no ocupan caracteres.
-## - grid: rejilla táctica cuadrada o hexagonal (ADR 012). Va en el código
-##   porque cambia la geometría de muros y salas, no solo la vista.
-## - densidades de trampas y puertas secretas: por cada 10 salas.
-## Sin estilo cultural: ADR 015 lo prevé para ALD, EDI y EST (allí será un
-## enumerado con `capacity` holgada para añadir estilos sin cambiar códigos).
+## al valer su defecto, no ocupan caracteres. Los cuatro primeros no cambian
+## respecto al esquema provisional de F0 (el ejemplo FA8 sigue valiendo).
+## Significado (detalle en MazGeneratorG1 y PROYECTO §6.6):
+## - rooms: salas por nivel (máximo; si no caben, las que quepan).
+## - grid: rejilla táctica (ADR 012). Va en el código porque cambia la
+##   geometría de muros y salas, no solo la vista.
+## - corridor_pct: pasillos extra (bucles) sobre el árbol mínimo que une las
+##   salas, en % de (salas - 1).
+## - size: tamaño del mapa; "auto" lo deduce de rooms.
+## - exits: salidas al exterior en el nivel 0 (la primera es la entrada).
+## - densidades de trampas y puertas secretas: por cada 10 salas del nivel.
+## - style: estilo cultural (ADR 015), capacity 16 para añadir estilos.
+## wfc_tiles se quita: cuando exista, se añadirá AL FINAL (booleano, defecto
+## false) sin cambiar ningún código emitido.
 static func maz_g1() -> ParamSchema:
 	var fields: Array[ParamSchema.Field] = [
 		ParamSchema.int_field("rooms", 1, 64, 12),
 		ParamSchema.enum_field("layout", PackedStringArray(["built", "cave", "mixed"]), "built", 4),
 		ParamSchema.enum_field("grid", PackedStringArray(["square", "hex_flat", "hex_pointy"]), "square", 4),
 		ParamSchema.int_field("corridor_pct", 0, 100, 30),
+		ParamSchema.enum_field("size", PackedStringArray(["auto", "small", "medium", "large", "huge"]), "auto", 8),
 		ParamSchema.int_field("exits", 1, 4, 1),
+		ParamSchema.int_field("levels", 1, 8, 1),
 		ParamSchema.int_field("trap_density", 0, 10, 3),
 		ParamSchema.int_field("secret_door_density", 0, 10, 2),
-		ParamSchema.int_field("levels", 1, 8, 1),
-		ParamSchema.bool_field("wfc_tiles", false),
+		ParamSchema.enum_field("style", PackedStringArray(["human", "dwarf", "elf"]), "human", 16),
 	]
 	return ParamSchema.new("MAZ", 1, fields)

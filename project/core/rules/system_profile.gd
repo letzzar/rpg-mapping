@@ -43,6 +43,8 @@ var sizes_occupy_cells: bool = true
 var size_ids: PackedStringArray = PackedStringArray()
 ## id de tamaño → lado ocupado en décimas de pie (2,5 ft = 25).
 var size_space_ft_x10: Dictionary[String, int] = {}
+## id de tamaño → hexágonos ocupados en rejilla hex (1, 3, 7 o 19).
+var size_hex_cells: Dictionary[String, int] = {}
 
 ## Ids de banda ordenados de menor a mayor alcance.
 var band_ids: PackedStringArray = PackedStringArray()
@@ -126,6 +128,15 @@ func size_cells(size_id: String) -> int:
 	return maxi(1, (size_space_ft_x10[size_id] + cell_x10 - 1) / cell_x10)
 
 
+## Hexágonos que ocupa una criatura del tamaño `size_id` en rejilla hex
+## (sizes[].hex_cells). 1 si el perfil no hace ocupar casillas o el tamaño no
+## existe.
+func size_hex_cells_of(size_id: String) -> int:
+	if not sizes_occupy_cells or not size_hex_cells.has(size_id):
+		return 1
+	return size_hex_cells[size_id]
+
+
 ## Banda de alcance para una distancia en casillas ("" si el perfil no usa
 ## bandas o la distancia es negativa).
 func band_for_cells(cells: int) -> String:
@@ -188,6 +199,10 @@ func _read(d: Dictionary) -> void:
 		var sid: String = _str(s, "id")
 		size_ids.append(sid)
 		size_space_ft_x10[sid] = _int(s, "space_ft_x10")
+		var hc: int = _int(s, "hex_cells")
+		if not GridGeometry.HEX_FOOTPRINTS.has(hc):
+			_fail("sizes.hex_cells debe ser 1, 3, 7 o 19")
+		size_hex_cells[sid] = hc
 
 	var last_max: int = 0
 	for b: Dictionary in _dict_array(d, "range_bands"):

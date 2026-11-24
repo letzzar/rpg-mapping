@@ -177,10 +177,30 @@ func test_footprints() -> void:
 	var large: Array[Vector2i] = [Vector2i(2, 2), Vector2i(3, 2), Vector2i(2, 3), Vector2i(3, 3)]
 	assert_eq(sq.footprint(Vector2i(2, 2), 2), large)
 	assert_eq(sq.footprint(Vector2i(2, 2), 3).size(), 9)
+	# La cuadrada ignora hex_cells; la hex ignora el lado.
+	assert_eq(sq.footprint(Vector2i(2, 2), 2, 19), large)
 	var hx: GridGeometry = _grid("hex_flat")
-	assert_eq(hx.footprint(Vector2i(4, 4), 1).size(), 1)
-	assert_eq(hx.footprint(Vector2i(4, 4), 2).size(), 1)
-	assert_eq(hx.footprint(Vector2i(4, 4), 3).size(), 7)
+	assert_eq(hx.footprint(Vector2i(4, 4), 4, 1).size(), 1)
+	var tri_flat: Array[Vector2i] = [Vector2i(4, 4), Vector2i(5, 4), Vector2i(4, 5)]
+	assert_eq(hx.footprint(Vector2i(4, 4), 2, 3), tri_flat)
+	var hp: GridGeometry = _grid("hex_pointy")
+	var tri_pointy: Array[Vector2i] = [Vector2i(4, 4), Vector2i(3, 5), Vector2i(4, 5)]
+	assert_eq(hp.footprint(Vector2i(4, 4), 2, 3), tri_pointy)
+	for g: GridGeometry in [hx, hp]:
+		assert_eq(g.footprint(Vector2i(4, 4), 3, 7).size(), 7)
+		assert_eq(g.footprint(Vector2i(4, 4), 4, 19).size(), 19)
+		# Triángulo: los tres hexágonos se tocan entre sí.
+		var t: Array[Vector2i] = g.footprint(Vector2i(3, 3), 2, 3)
+		assert_eq(g.distance(t[0], t[1]), 1)
+		assert_eq(g.distance(t[1], t[2]), 1)
+		assert_eq(g.distance(t[0], t[2]), 1)
+	# Con el perfil: grande = 3 hex, enorme = 7, gargantuesca = 19.
+	var p: SystemProfile = SystemProfile.load_id("dnd5e_2024")
+	assert_eq(p.size_hex_cells_of("medium"), 1)
+	assert_eq(p.size_hex_cells_of("large"), 3)
+	assert_eq(p.size_hex_cells_of("huge"), 7)
+	assert_eq(p.size_hex_cells_of("gargantuan"), 19)
+	assert_eq(p.size_hex_cells_of("no_existe"), 1)
 
 
 func test_floor_and_round_div() -> void:

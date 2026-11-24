@@ -121,7 +121,8 @@ static func cells_within_ft(profile: SystemProfile, grid: GridGeometry, center: 
 ## level.movement_mask(). Reglas (ADR 020):
 ## - El destino debe estar en el mapa y ser transitable.
 ## - Paso con arista (ortogonal o hex): la arista no debe bloquear
-##   (MapEdge.blocks_movement: muro, puerta con llave, secreta sin descubrir).
+##   (MapEdge.blocks_movement: muro, cualquier puerta cerrada, secreta sin
+##   descubrir). El foso (Terrain.PIT) no es transitable.
 ## - Diagonal (cuadrada): cada rodeo ortogonal (from -> casilla intermedia ->
 ##   destino) está libre si la intermedia es transitable y ninguna de sus dos
 ##   aristas bloquea; se exige uno o los dos según

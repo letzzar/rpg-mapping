@@ -113,13 +113,20 @@ func test_edge_blocking_rules() -> void:
 	var found: int = MapEdge.with_flag(secret, MapEdge.FLAG_DISCOVERED, true)
 	var arch: int = MapEdge.make(MapEdge.KIND_ARCH)
 	assert_true(MapEdge.blocks_movement(wall) and MapEdge.blocks_sight(wall))
-	assert_false(MapEdge.blocks_movement(door))
+	# Cualquier puerta cerrada bloquea la ruta automática (ADR 020).
+	assert_true(MapEdge.blocks_movement(door))
 	assert_true(MapEdge.blocks_sight(door))
 	assert_true(MapEdge.blocks_movement(locked))
 	assert_false(MapEdge.blocks_movement(open_door) or MapEdge.blocks_sight(open_door))
 	assert_true(MapEdge.blocks_movement(secret) and MapEdge.blocks_sight(secret))
-	assert_false(MapEdge.blocks_movement(found))
+	assert_true(MapEdge.blocks_movement(found))
 	assert_true(MapEdge.blocks_sight(found))
+	var found_open: int = MapEdge.with_flag(found, MapEdge.FLAG_OPEN, true)
+	assert_false(MapEdge.blocks_movement(found_open) or MapEdge.blocks_sight(found_open))
+	# Pero todas son franqueables para la conectividad; el muro no.
+	for v: int in [door, locked, secret, found, arch, MapEdge.NONE]:
+		assert_true(MapEdge.is_traversable(v))
+	assert_false(MapEdge.is_traversable(wall))
 	assert_false(MapEdge.blocks_movement(arch) or MapEdge.blocks_sight(arch))
 	assert_false(MapEdge.blocks_movement(MapEdge.NONE))
 	assert_true(MapEdge.is_valid(found))

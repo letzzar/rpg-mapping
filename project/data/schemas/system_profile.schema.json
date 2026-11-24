@@ -66,10 +66,11 @@
 			"items": {
 				"type": "object",
 				"additionalProperties": false,
-				"required": ["id", "space_ft_x10"],
+				"required": ["id", "space_ft_x10", "hex_cells"],
 				"properties": {
 					"id": { "type": "string", "pattern": "^[a-z0-9_]+$" },
-					"space_ft_x10": { "type": "integer", "minimum": 1, "description": "Lado ocupado en décimas de pie (2,5 ft = 25)" }
+					"space_ft_x10": { "type": "integer", "minimum": 1, "description": "Lado ocupado en décimas de pie (2,5 ft = 25)" },
+					"hex_cells": { "enum": [1, 3, 7, 19], "description": "Hexágonos que ocupa en rejilla hex: 1, 3 (triángulo de orientación fija), 7 (radio 1) o 19 (radio 2)" }
 				}
 			}
 		},

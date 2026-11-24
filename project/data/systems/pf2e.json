@@ -28,12 +28,12 @@
 	},
 	"sizes_occupy_cells": true,
 	"sizes": [
-		{ "id": "tiny", "space_ft_x10": 25 },
-		{ "id": "small", "space_ft_x10": 50 },
-		{ "id": "medium", "space_ft_x10": 50 },
-		{ "id": "large", "space_ft_x10": 100 },
-		{ "id": "huge", "space_ft_x10": 150 },
-		{ "id": "gargantuan", "space_ft_x10": 200 }
+		{ "id": "tiny", "space_ft_x10": 25, "hex_cells": 1 },
+		{ "id": "small", "space_ft_x10": 50, "hex_cells": 1 },
+		{ "id": "medium", "space_ft_x10": 50, "hex_cells": 1 },
+		{ "id": "large", "space_ft_x10": 100, "hex_cells": 3 },
+		{ "id": "huge", "space_ft_x10": 150, "hex_cells": 7 },
+		{ "id": "gargantuan", "space_ft_x10": 200, "hex_cells": 19 }
 	],
 	"range_bands": [],
 	"senses": ["darkvision", "greater_darkvision", "low_light_vision", "scent", "tremorsense"],

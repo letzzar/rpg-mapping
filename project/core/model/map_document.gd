@@ -164,7 +164,7 @@ func tokens_at(level_index: int, cell: Vector2i, profile: SystemProfile) -> Arra
 
 ## Casillas que ocupa el token según su tamaño en el perfil (sin recortar).
 func token_cells(t: MapToken, profile: SystemProfile) -> Array[Vector2i]:
-	return grid.footprint(t.cell, profile.size_cells(t.size_id))
+	return grid.footprint(t.cell, profile.size_cells(t.size_id), profile.size_hex_cells_of(t.size_id))
 
 
 # --- Serialización ----------------------------------------------------------

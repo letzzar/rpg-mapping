@@ -60,8 +60,8 @@ func step_counts(a: Vector2i, b: Vector2i) -> PackedInt32Array:
 	return PackedInt32Array([maxi(dx, dy) - diag, diag, 0])
 
 
-func footprint(anchor: Vector2i, size_cells: int) -> Array[Vector2i]:
-	var n: int = maxi(1, size_cells)
+func footprint(anchor: Vector2i, side_cells: int, _hex_cells: int = 1) -> Array[Vector2i]:
+	var n: int = maxi(1, side_cells)
 	var out: Array[Vector2i] = []
 	for y: int in n:
 		for x: int in n:

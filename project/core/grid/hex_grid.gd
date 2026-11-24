@@ -79,10 +79,23 @@ func step_counts(a: Vector2i, b: Vector2i) -> PackedInt32Array:
 	return PackedInt32Array([0, 0, distance(a, b)])
 
 
-## PROVISIONAL (validar con Víctor): 1-2 casillas de lado -> 1 hex; 3-4 -> el
-## hex y su anillo (7); en general, radio (size - 1) / 2 alrededor de `anchor`.
-func footprint(anchor: Vector2i, size_cells: int) -> Array[Vector2i]:
-	return cells_in_radius(anchor, maxi(0, (maxi(1, size_cells) - 1) / 2), false)
+## Decisión de Víctor: 1 hex (Diminuta a Mediana), 3 en triángulo (Grande),
+## 7 = radio 1 (Enorme), 19 = radio 2 (Gargantuesca). El triángulo es
+## `anchor` + sus vecinos en las direcciones 2 y 3 (consecutivas, así que los
+## tres se tocan): hacia abajo en hex_pointy (SE, SW) y hacia abajo a la
+## derecha en hex_flat (SE, S). Otros valores -> 1 hex.
+func footprint(anchor: Vector2i, _side_cells: int, hex_cells: int = 1) -> Array[Vector2i]:
+	match hex_cells:
+		3:
+			var tri: Array[Vector2i] = [anchor, neighbor(anchor, 2), neighbor(anchor, 3)]
+			tri.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return a.y < b.y or (a.y == b.y and a.x < b.x))
+			return tri
+		7:
+			return cells_in_radius(anchor, 1, false)
+		19:
+			return cells_in_radius(anchor, 2, false)
+	var one: Array[Vector2i] = [anchor]
+	return one
 
 
 ## Interpolación en cúbicas con aritmética entera (equivalente a la de Red Blob

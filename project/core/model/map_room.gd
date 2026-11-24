@@ -8,7 +8,10 @@ extends RefCounted
 const KIND_ROOM: String = "room"
 const KIND_CORRIDOR: String = "corridor"
 const KIND_CAVE: String = "cave"
+## Casilla del borde del mapa por la que se entra a la mazmorra (una).
 const KIND_ENTRANCE: String = "entrance"
+## Otras salidas al exterior (casilla del borde).
+const KIND_EXIT: String = "exit"
 
 ## Id estable (único en todo el documento, de MapDocument.allocate_id()).
 var id: int = 0
