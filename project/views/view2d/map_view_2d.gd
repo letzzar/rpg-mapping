@@ -26,6 +26,7 @@ const ZOOM_STEP: float = 1.15
 const COL_BG: Color = Color("2b1d14")
 const COL_GRID: Color = Color(0.35, 0.25, 0.15, 0.35)
 const COL_WALL_EDGE: Color = Color("3a2a1e")
+const COL_OUTLINE: Color = Color("120b07")
 const COL_DOOR: Color = Color("8a5f1f")
 const COL_DOOR_OPEN: Color = Color("f7dc8e")
 const COL_SECRET: Color = Color("5fb4d6")
@@ -117,6 +118,7 @@ func _draw() -> void:
 		draw_colored_polygon(poly, TERRAIN_COLORS[t] if t >= 0 and t < TERRAIN_COLORS.size() else COL_BG)
 		if show_grid and Terrain.is_passable(t):
 			_draw_outline(poly, COL_GRID, 1.0)
+	_draw_outlines(g, lvl)
 	_draw_edges(g, lvl)
 	_draw_features(g, lvl)
 	_draw_objects(g, lvl)
@@ -128,6 +130,23 @@ func _draw_outline(poly: PackedVector2Array, col: Color, width: float) -> void:
 	var closed: PackedVector2Array = poly.duplicate()
 	closed.append(poly[0])
 	draw_polyline(closed, col, width)
+
+
+## Contorno donde una casilla transitable linda con roca, vacío o el borde
+## del mapa (solo visual: los muros del modelo se dibujan en _draw_edges).
+func _draw_outlines(g: GridGeometry, lvl: MapLevel) -> void:
+	var w: float = maxf(2.0, cell_px * 0.16)
+	for i: int in g.cell_count():
+		var c: Vector2i = g.cell_at(i)
+		if not Terrain.is_passable(lvl.get_terrain(c)):
+			continue
+		for dir: int in g.edge_direction_count():
+			var n: Vector2i = g.neighbor(c, dir)
+			if g.in_bounds(n) and Terrain.is_passable(lvl.get_terrain(n)):
+				continue
+			var seg: PackedVector2Array = g.edge_segment(c, dir, cell_px)
+			if seg.size() >= 2:
+				draw_line(seg[0], seg[1], COL_OUTLINE, w)
 
 
 func _draw_edges(g: GridGeometry, lvl: MapLevel) -> void:

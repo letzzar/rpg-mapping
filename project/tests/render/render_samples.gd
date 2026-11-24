@@ -35,6 +35,6 @@ func _run() -> void:
 		var sc: SeedCode = SeedCode.parse(code)
 		var profile: SystemProfile = SystemProfile.find_by_seed_code(sc.system)
 		var path: String = out_dir.path_join(code + ".png")
-		var err: Error = await PngExporter.save(host, res.doc, 0, profile, path, 24, true)
+		var err: Error = await PngExporter.save(host, res.doc, 0, profile, path, 48 if res.doc.scale == "EST" else 24, true)
 		print("PNG ", path, " -> ", error_string(err))
 	quit()

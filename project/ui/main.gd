@@ -5,7 +5,7 @@ extends Control
 ## La interfaz se construye por código para mantener la escena mínima. Todos
 ## los textos salen de i18n/strings.csv.
 
-const SCALE: String = "MAZ"
+const SCALES: Array[String] = ["MAZ", "EST"]
 const GEN: int = 1
 const UNIT_OPTIONS: Array[String] = ["UI_UNITS_METRIC", "UI_UNITS_METRIC_EXACT", "UI_UNITS_IMPERIAL"]
 const GRID_OPTIONS: Array[String] = ["square", "hex_flat", "hex_pointy"]
@@ -13,6 +13,7 @@ const GRID_OPTIONS: Array[String] = ["square", "hex_flat", "hex_pointy"]
 var _view: MapView2D
 var _map_area: Control
 var _code_edit: LineEdit
+var _scale_opt: OptionButton
 var _system_opt: OptionButton
 var _grid_opt: OptionButton
 var _units_opt: OptionButton
@@ -63,6 +64,10 @@ func _build_ui() -> void:
 	_code_edit.text_submitted.connect(func(_t: String) -> void: _generate_from_text())
 	bar.add_child(_code_edit)
 	bar.add_child(_button("UI_GENERATE", _generate_from_text))
+	_scale_opt = OptionButton.new()
+	for sc_id: String in SCALES:
+		_scale_opt.add_item(tr("UI_SCALE_" + sc_id))
+	bar.add_child(_scale_opt)
 	bar.add_child(_button("UI_RANDOM", _generate_random))
 
 	_system_opt = OptionButton.new()
@@ -139,7 +144,7 @@ func _generate_random() -> void:
 	if p == null:
 		return
 	var params: Dictionary = {"grid": GRID_OPTIONS[maxi(0, _grid_opt.selected)]}
-	var sc: SeedCode = SeedCode.create(p.seed_code, SCALE, GEN, params, SeedCode.random_app_seed())
+	var sc: SeedCode = SeedCode.create(p.seed_code, SCALES[maxi(0, _scale_opt.selected)], GEN, params, SeedCode.random_app_seed())
 	if not sc.is_valid():
 		_status.text = tr(sc.error).replace("{param}", sc.error_field)
 		return
@@ -157,6 +162,12 @@ func _generate_from_text() -> void:
 	for i: int in _profiles.size():
 		if _profiles[i].seed_code == parsed.system:
 			_system_opt.select(i)
+	var scale_idx: int = SCALES.find(parsed.scale)
+	if scale_idx >= 0:
+		_scale_opt.select(scale_idx)
+	var grid_idx: int = GRID_OPTIONS.find(res.doc.grid_kind())
+	if grid_idx >= 0:
+		_grid_opt.select(grid_idx)
 	_code_edit.text = res.doc.seed_code if not res.doc.seed_code.is_empty() else _code_edit.text
 	_apply_profile()
 	_status.text = tr("UI_GENERATED").replace("{code}", _code_edit.text)
