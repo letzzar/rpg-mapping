@@ -8,6 +8,8 @@ extends RefCounted
 
 const DIR: String = "res://data/systems/"
 const SCHEMA_VERSION: int = 1
+const CORNER_ANY_SIDE_FREE: String = "any_side_free"
+const CORNER_BOTH_SIDES_FREE: String = "both_sides_free"
 
 var id: String = ""
 var seed_code: String = ""
@@ -24,6 +26,13 @@ var default_speed_ft: int = 0
 ## Coste en pies de las diagonales sucesivas; se repite cíclicamente.
 var diagonal_ft: PackedInt32Array = PackedInt32Array()
 var diagonal_variants: Dictionary[String, PackedInt32Array] = {}
+## Coste en pies de los pasos sucesivos en rejilla hexagonal; cíclico, como
+## diagonal_ft (ADR 020: el coste por tipo de paso es dato del perfil).
+var hex_step_ft: PackedInt32Array = PackedInt32Array()
+## Paso diagonal junto a una esquina en la cuadrada: "any_side_free" (basta
+## con que uno de los dos rodeos ortogonales esté libre) o "both_sides_free"
+## (no se puede cortar ninguna esquina).
+var diagonal_corner_rule: String = CORNER_ANY_SIDE_FREE
 var difficult_multiplier_pct: int = 100
 var difficult_extra_ft: int = 0
 var difficult_visual_only: bool = false
@@ -83,6 +92,40 @@ static func available_ids() -> PackedStringArray:
 	return out
 
 
+## Perfil cuyo seed_code (campo SIS del código RPGM1) es `code`; null si no
+## hay ninguno. Recorre los perfiles en orden de id (determinista).
+static func find_by_seed_code(code: String) -> SystemProfile:
+	for pid: String in available_ids():
+		var p: SystemProfile = load_id(pid)
+		if p.is_valid() and p.seed_code == code:
+			return p
+	return null
+
+
+## Patrón de coste (pies, cíclico) de un tipo de paso GridGeometry.STEP_*.
+## Ortogonal = [cell_ft]; diagonal = diagonal_ft o la variante de mesa
+## `diagonal_variant` (si existe); hex = hex_step_ft.
+func step_pattern(step_kind: int, diagonal_variant: String = "") -> PackedInt32Array:
+	match step_kind:
+		GridGeometry.STEP_DIAGONAL:
+			if not diagonal_variant.is_empty() and diagonal_variants.has(diagonal_variant):
+				return diagonal_variants[diagonal_variant]
+			return diagonal_ft
+		GridGeometry.STEP_HEX:
+			return hex_step_ft
+	return PackedInt32Array([cell_ft])
+
+
+## Casillas de lado que ocupa una criatura del tamaño `size_id`: el espacio
+## del perfil redondeado hacia arriba a casillas, mínimo 1 (Diminuto comparte
+## casilla). 1 si el perfil no hace ocupar casillas o el tamaño no existe.
+func size_cells(size_id: String) -> int:
+	if not sizes_occupy_cells or not size_space_ft_x10.has(size_id):
+		return 1
+	var cell_x10: int = cell_ft * 10
+	return maxi(1, (size_space_ft_x10[size_id] + cell_x10 - 1) / cell_x10)
+
+
 ## Banda de alcance para una distancia en casillas ("" si el perfil no usa
 ## bandas o la distancia es negativa).
 func band_for_cells(cells: int) -> String:
@@ -124,6 +167,16 @@ func _read(d: Dictionary) -> void:
 	vkeys.sort()
 	for k: Variant in vkeys:
 		diagonal_variants[str(k)] = _int_array(variants, str(k))
+	hex_step_ft = _int_array(mv, "hex_step_ft")
+	if hex_step_ft.is_empty():
+		_fail("movement.hex_step_ft vacío")
+	for pattern: PackedInt32Array in [diagonal_ft, hex_step_ft]:
+		for c: int in pattern:
+			if c < 1:
+				_fail("los costes de paso deben ser >= 1")
+	diagonal_corner_rule = _str(mv, "diagonal_corner_rule")
+	if diagonal_corner_rule != CORNER_ANY_SIDE_FREE and diagonal_corner_rule != CORNER_BOTH_SIDES_FREE:
+		_fail("movement.diagonal_corner_rule debe ser '%s' o '%s'" % [CORNER_ANY_SIDE_FREE, CORNER_BOTH_SIDES_FREE])
 	var dt: Dictionary = _dict(mv, "difficult_terrain")
 	difficult_multiplier_pct = _int(dt, "multiplier_pct")
 	difficult_extra_ft = _int(dt, "extra_ft_per_cell")

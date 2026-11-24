@@ -12,6 +12,14 @@
 - **Exportación**: plantillas 4.7.2 instaladas en `%APPDATA%\Godot\export_templates\4.7.2.stable` (SHA-512 verificado contra el oficial). `project/export_presets.cfg` con Windows, Linux, macOS, Web y **Web Tests**; iconos copiados en `project/export_icons/`; `include_filter="*.json"` para los perfiles. Las 5 exportaciones salen sin errores.
 - **Tests en web**: `tests/web/web_runner.tscn` (escena principal del preset "Web Tests" vía `run/main_scene.web_tests`) ejecuta GUT y deja el resultado en `document.title` y en consola (`WEB_TESTS_RESULT ...`). Ejecutado en Chrome: **53/53, 7456 asserts**, idéntico a escritorio. El preset exporta scripts como texto y los `*.txt` de GUT.
 - Tests de escritorio: **53/53** (`pwsh tools/run_tests.ps1`).
+- **F1 etapa 1 (`cartografo`): rejilla y modelo.** Sin cambios de generadores ni de `GEN` (aún no hay MAZ/EST); ninguna seed dorada nueva.
+  - `core/grid/`: `GridGeometry` + `SquareGrid` + `HexGrid` (`hex_flat` odd-q, `hex_pointy` odd-r) + `GridFactory` (ADR 017).
+  - `core/model/`: `MapDocument`, `MapLevel`, `MapEdge`, `Terrain`, `MapRoom`, `MapObject`, `MapStair`, `MapTrap`, `MapToken`, `MapDelta`, `CanonicalJson`, `JsonReader`; muros híbridos casilla + arista (ADR 018); JSON canónico y `content_hash()`/`full_hash()` (ADR 019); esquema `data/schemas/map_document.schema.json`.
+  - `core/rules/`: `MovementCost` por tipo de paso (medición, coste de ruta, `find_route` Dijkstra con fase, `cost_field`, `cells_within_ft`, bandas); `SystemProfile` con `hex_step_ft`, `diagonal_corner_rule`, `step_pattern()`, `size_cells()`, `find_by_seed_code()`; perfiles y esquema actualizados (ADR 020).
+  - `core/gen/generator_registry.gd`: código → perfil → generador → `MapDocument` (vacío de generadores hasta la etapa 2).
+  - Seeds doradas: `tests/golden/golden_seeds.txt` (vacío) + `test_golden_seeds.gd` con modo grabación `RPGM_GOLDEN_RECORD=1` que nunca reescribe hashes (ADR 021).
+  - Tests nuevos: `test_grid.gd`, `test_map_document.gd`, ampliado `test_rules.gd` (5e, PF2e y bandas en cuadrada, hex_flat y hex_pointy). **Escritos sin ejecutar** (el subagente solo tenía Git Bash, que falla al hacer fork): pendiente `pwsh tools/run_tests.ps1`.
+  - Documentado en PROYECTO §4.1, §5.4, §6.7, §8, §12 y ADR 017-021.
 
 ### Decisiones de esta sesión (Víctor)
 - PARAMS posicional (ADR 009). Commit tras exportaciones. Remoto: **GitHub público `letzzar/rpg-mapping`, rama `main`**, + **espejo en el NAS** como en sus otros proyectos: clon en `Y:\Mi software\RPG Mapping` (`receive.denyCurrentBranch=updateInstead`), remoto `nas`; Gitea descartado.

@@ -17,6 +17,8 @@
 		"default_speed_ft": 25,
 		"diagonal_ft": [5, 10],
 		"diagonal_variants": {},
+		"diagonal_corner_rule": "any_side_free",
+		"hex_step_ft": [5],
 		"difficult_terrain": {
 			"multiplier_pct": 100,
 			"extra_ft_per_cell": 5,

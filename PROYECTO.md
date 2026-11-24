@@ -72,6 +72,12 @@ Principios:
 3. **Seed + deltas**: un mapa guardado es `seed + parámetros + versión del generador + lista de ediciones manuales`. El mapa completo se puede cachear, pero nunca es la fuente de verdad.
 4. **Autoridad del DM**: en red, el DM valida todo movimiento; los clientes solo proponen.
 
+### 4.1 Rejilla y modelo (F1, ADR 017-019)
+- **`core/grid/`**: `GridGeometry` (interfaz) con `SquareGrid` y `HexGrid` (`hex_flat` odd-q, `hex_pointy` odd-r); se crea con `GridFactory.create(kind, w, h)`. Coordenadas guardadas: `Vector2i(columna, fila)` enteras en el rectángulo `w×h` (offset en hex; cálculos internos en axiales). Vecinos en orden fijo, distancia en pasos, tipo de paso (ortogonal/diagonal/hex), radio, línea entera simétrica, aristas canónicas con id entero y huellas de tokens. La conversión casilla↔píxel usa float y es **solo para las vistas**.
+- **`core/model/`**: `MapDocument` = procedencia (código RPGM1, escala, `GEN`) + rejilla + `levels: Array[MapLevel]` (todas las plantas con la misma rejilla) + sesión (tokens, niebla por nivel, deltas). Cada `MapLevel` tiene capas por casilla (`terrain`, `room_ids`), aristas dispersas (`MapEdge`: muros finos, puertas, vanos), salas (`MapRoom`), objetos (`MapObject`, propiedades de juego copiadas del catálogo), escaleras (`MapStair`) y trampas (`MapTrap`). Ids estables de un contador único del documento.
+- **Serialización canónica** (`CanonicalJson`): claves ordenadas, solo enteros, listas en orden fijo; `content_hash()` = SHA-256 sin sesión (seeds doradas), `full_hash()` con sesión. Esquema en `data/schemas/map_document.schema.json`.
+- **`core/gen/generator_registry.gd`**: código de semilla → perfil (por `SIS`) → generador (por `ESC`+`GEN`) → `MapDocument` sellado con su procedencia.
+
 ## 5. Sistema de semillas (seeds)
 
 ### 5.1 PRNG
@@ -133,6 +139,8 @@ Reglas:
 ### 5.4 Pruebas de determinismo ("seeds doradas")
 `tests/golden/` contiene pares `código de semilla → hash SHA-256 del MapDocument canónico`. CI falla si alguno cambia sin subir `GEN`. Se ejecutan en escritorio y en la exportación web (headless con navegador).
 
+Formato (ADR 021): `project/tests/golden/golden_seeds.txt`, una línea `<código RPGM1 canónico> <sha256>` por seed (`#` = comentario). El hash es `MapDocument.content_hash()` (sin tokens, niebla ni deltas). `test_golden_seeds.gd` genera cada código dos veces (detecta no determinismo) y compara. Para añadir seeds se escribe solo el código y se graba con `RPGM_GOLDEN_RECORD=1` (`$env:RPGM_GOLDEN_RECORD="1"; pwsh tools/run_tests.ps1 -Dir res://tests/golden`): solo se rellenan las líneas sin hash; las existentes nunca se reescriben. Sin la variable, una línea sin hash hace fallar el test.
+
 ## 6. Generación procedural por escala
 
 Cada generador declara: parámetros de entrada (con valores por defecto), salida, algoritmo y versión.
@@ -167,6 +175,8 @@ Cada generador declara: parámetros de entrada (con valores por defecto), salida
 ### 6.7 Edición manual
 El DM puede pintar terreno, mover/añadir/borrar objetos y muros, renombrar lugares. Todo se guarda como **delta** sobre lo generado (ver §5).
 
+Implementación (F1): cada edición es un `MapCommand` (con deshacer) que, al aplicarse, añade un `MapDelta {op, data}` a `MapDocument.deltas`; `data` solo admite valores de `CanonicalJson` (enteros, textos, booleanos, listas, diccionarios). Al cargar un mapa se regenera desde el código y se reaplican los deltas en orden. Los deltas, los tokens y la niebla son **sesión**: no cambian `content_hash()`.
+
 ## 7. Vistas
 
 | Vista | Implementación | Uso |
@@ -196,6 +206,8 @@ Cada sistema es un **perfil de datos** (`data/systems/<id>.json`), no código. L
 | Tamaños | Diminuto 2,5 ft · Pequeño/Mediano 5 · Grande 10 · Enorme 15 · Gargantuesco 20 | Igual que 5e |
 
 **Medida por bandas** (`grid.measure = "bands"`): mecanismo genérico para perfiles propios o de la mesa. Cada banda tiene un máximo en casillas (la última puede ser ilimitada); la regla de medir muestra la **banda** y, opcionalmente, la distancia. El terreno difícil puede ser solo visual (`visual_only`) y los tamaños pueden no ocupar casillas (`sizes_occupy_cells = false`). No se distribuye ningún perfil de terceros con bandas (ADR 011).
+
+**Coste por tipo de paso** (ADR 020): ortogonal = `cell_ft`; diagonal = `movement.diagonal_ft` (o una variante de mesa); hex = `movement.hex_step_ft` (5 ft en 5e y PF2e). Cada tipo lleva su propio contador del patrón cíclico. El terreno difícil se aplica al paso que **entra** en la casilla. En la cuadrada, `movement.diagonal_corner_rule` decide si un paso diagonal junto a una esquina exige uno (`any_side_free`, 5e y PF2e) o los dos rodeos ortogonales libres (`both_sides_free`). Las puertas cerradas sin llave no bloquean el movimiento; con llave, los muros y las secretas sin descubrir, sí.
 
 Cada perfil define además: tipos de movimiento (andar, volar, nadar, trepar, excavar), sentidos (visión en la oscuridad, visión ciega…), condiciones que afectan al movimiento y plantillas de área (cono, línea, esfera, cubo, emanación/explosión).
 
@@ -250,6 +262,8 @@ Cada perfil define además: tipos de movimiento (andar, volar, nadar, trepar, ex
 | `data/systems/*.json` | Perfiles de sistema |
 | `data/styles/*.json` | Estilos arquitectónicos por cultura |
 | `data/packs/<pack>/` | Paquetes de contenido, cada uno con su `LICENSE` y `ATTRIBUTION.md` |
+| `data/schemas/map_document.schema.json` | Forma canónica de `MapDocument` (caché, red, hash); no es el formato de guardado, que es seed + deltas |
+| `tests/golden/golden_seeds.txt` | Seeds doradas: `<código> <sha256>` por línea (§5.4) |
 
 Todos los JSON tienen `schema_version` y esquema en `data/schemas/`. Migraciones de esquema en `core/migrations/`.
 
@@ -312,6 +326,11 @@ Todos los JSON tienen `schema_version` y esquema en `data/schemas/`. Migraciones
 | 014 | Impresión a escala real (PDF por páginas) antes de v1, no en F1; F1 exporta PNG a px/casilla conocidos | Godot no genera PDF de forma nativa; F1 debe centrarse en generadores | Impresión desde F1; solo PNG |
 | 015 | Estilos arquitectónicos como datos (`data/styles/`); v1 con humano, enano y élfico | Lo pide Víctor; como datos, añadir culturas no toca código | Un único estilo genérico en v1 |
 | 016 | Cliente web servido **por la app del DM** (por defecto, mismo origen que el WSS) y **imagen Docker** como alternativa (NAS) | Sin infraestructura obligatoria; Docker para quien ya tiene NAS y certificado propio | Solo NAS; web estática pública (contenido mixto y certificados autofirmados) |
+| 017 | Geometría de rejilla (F1): interfaz `GridGeometry` + `SquareGrid` / `HexGrid`; coordenadas guardadas `(columna, fila)` enteras en el rectángulo `w×h` (hex: offset **odd-q** en `hex_flat`, **odd-r** en `hex_pointy`; cálculos en axiales); vecinos en orden fijo (cuadrada: N, E, S, W, NE, SE, SW, NW; hex: horario desde arriba, opuesta = d+3); línea entera por muestreo del segmento (hex: cúbicas escaladas por 8N con empujón (1, 2, −3), sin empates) y **simétrica** (se calcula desde el extremo menor); tamaño de casilla en píxeles = distancia entre centros (lado plano a lado plano en hex); conversión a píxel en float **solo para vistas** | Mismo almacenamiento rectangular en las tres rejillas (capas como arrays por filas, mismo `TileMapLayer` apilado); axiales simplifican distancia y vecinos; el orden fijo y la aritmética entera hacen deterministas generadores y LoS; la simetría evita que A vea a B y B no vea a A; "1 casilla = 1 pulgada" vale igual en hex | Guardar axiales (el rectángulo deja de ser un rectángulo en memoria); doubled coordinates; Bresenham asimétrico; línea con float y épsilon |
+| 018 | Muros: modelo **híbrido**. Terreno **por casilla** (`VOID`/`WALL` macizos para roca y muros gruesos) + **aristas** para muros finos, **puertas (siempre en arista)** y vanos. Arista = (casilla dueña, lado canónico) con id entero; valor = tipo + banderas (abierta, con llave, descubierta) | Las cuevas por autómatas y la roca de una mazmorra son naturalmente por casilla; los edificios (F3), Universal VTT (segmentos de muro y puertas) y el 3D de F2 (módulos de pared y puerta colocados en el borde) son por arista; en hex las aristas existen igual (6 lados) y en la cuadrada las diagonales no tienen arista (cruzan por vértice, regla de esquina en el perfil). Una puerta en arista se abre/cierra sin ocupar casilla | Solo casillas (la puerta ocupa una casilla; muros finos imposibles; exportar a UVTT exige vectorizar); solo aristas (la roca maciza y las cuevas quedan como miles de aristas; el 3D pierde volúmenes) |
+| 019 | `MapDocument` canónico: procedencia + rejilla + niveles (`MapLevel`, misma rejilla en todas las plantas) + sesión. Objetos con **propiedades de juego copiadas** del catálogo; ids de un contador único del documento. Serialización **JSON canónica propia** (`CanonicalJson`: claves ordenadas, solo enteros, escape fijo) y dos hashes: `content_hash()` (sin sesión; seeds doradas) y `full_hash()` | Las vistas y la red necesitan un único modelo; copiar las propiedades hace el documento autosuficiente y editable por instancia (y un cambio de catálogo se ve en el hash, como debe); tokens, niebla y deltas son estado de partida y no deben romper las seeds doradas; `JSON.stringify` del motor puede cambiar formato de números o escapes entre versiones | Referenciar el catálogo sin copiar; un documento por planta; `JSON.stringify(sort_keys)`; `var_to_bytes` (binario dependiente de la versión) |
+| 020 | Coste de movimiento por **tipo de paso** como datos: ortogonal = `cell_ft`, diagonal = `diagonal_ft`, hex = `movement.hex_step_ft` (nuevo, requerido); contador independiente por tipo; terreno difícil por casilla de **destino**; `movement.diagonal_corner_rule` (nuevo, requerido: `any_side_free` en 5e y PF2e). Búsqueda de ruta Dijkstra con la **fase del patrón** en el estado (exacta con 5/10). Puertas cerradas sin llave no bloquean; con llave, muros y secretas sin descubrir, sí | Reglas como datos sin `if hex` en el coste; las dos SRD no prohíben cortar esquinas, pero muchas mesas sí (dato); con la fase en el estado la ruta más barata es exacta en PF2e; el aviso de velocidad (§10.3) necesita coste fiable | Distancia hex calculada aparte; "no cortar esquinas" fijo en código; A* con heurística (con patrones alternos la admisibilidad es delicada y el mapa táctico es pequeño) |
+| 021 | Seeds doradas en `tests/golden/golden_seeds.txt` (`<código> <sha256>` por línea, comentarios con `#`); modo grabación por variable de entorno `RPGM_GOLDEN_RECORD=1` que **solo rellena líneas sin hash**; sin ella, una línea sin hash falla; cada código se genera dos veces | Texto plano: diff legible, añadir es añadir una línea; la variable de entorno no requiere tocar GUT ni los scripts; nunca se reescribe un hash existente (CLAUDE.md §2) | JSON (diffs ruidosos, reescritura completa); argumento de línea de comandos (GUT no los pasa de forma uniforme); regenerar todo con un flag (permitiría "arreglar" una seed rota sin subir `GEN`) |
 
 ## 18. Riesgos
 

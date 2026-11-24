@@ -34,7 +34,7 @@
 		"movement": {
 			"type": "object",
 			"additionalProperties": false,
-			"required": ["default_speed_ft", "diagonal_ft", "diagonal_variants", "difficult_terrain", "modes"],
+			"required": ["default_speed_ft", "diagonal_ft", "diagonal_variants", "diagonal_corner_rule", "hex_step_ft", "difficult_terrain", "modes"],
 			"properties": {
 				"default_speed_ft": { "type": "integer", "minimum": 0 },
 				"diagonal_ft": { "$ref": "#/$defs/diagonal_pattern" },
@@ -42,6 +42,11 @@
 					"type": "object",
 					"additionalProperties": { "$ref": "#/$defs/diagonal_pattern" }
 				},
+				"diagonal_corner_rule": {
+					"enum": ["any_side_free", "both_sides_free"],
+					"description": "Rejilla cuadrada: un paso diagonal junto a una esquina se permite si al menos uno de los dos rodeos ortogonales está libre (any_side_free) o solo si lo están ambos (both_sides_free)"
+				},
+				"hex_step_ft": { "$ref": "#/$defs/diagonal_pattern" },
 				"difficult_terrain": {
 					"type": "object",
 					"additionalProperties": false,
@@ -89,7 +94,7 @@
 			"type": "array",
 			"minItems": 1,
 			"items": { "type": "integer", "minimum": 1 },
-			"description": "Coste en pies de las diagonales sucesivas; se repite cíclicamente"
+			"description": "Coste en pies de los pasos sucesivos de un tipo (diagonal o hex); se repite cíclicamente"
 		}
 	}
 }

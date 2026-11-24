@@ -19,6 +19,8 @@
 		"diagonal_variants": {
 			"alternate_5_10": [5, 10]
 		},
+		"diagonal_corner_rule": "any_side_free",
+		"hex_step_ft": [5],
 		"difficult_terrain": {
 			"multiplier_pct": 200,
 			"extra_ft_per_cell": 0,

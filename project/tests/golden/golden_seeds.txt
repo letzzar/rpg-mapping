@@ -1,0 +1,15 @@
+# Seeds doradas (PROYECTO §5.4, ADR 021).
+#
+# Una entrada por línea:  <código RPGM1> <SHA-256 de MapDocument.content_hash()>
+# Líneas en blanco y las que empiezan por # se ignoran.
+#
+# Reglas:
+# - NUNCA editar ni borrar una línea con hash. Si un cambio de generador las
+#   rompe, el cambio debe subir GEN (el código antiguo sigue usando legacy/).
+# - Para añadir seeds: escribir solo el código (sin hash) y grabar con
+#     $env:RPGM_GOLDEN_RECORD = "1"; pwsh tools/run_tests.ps1 -Dir res://tests/golden
+#   El modo grabación solo rellena las líneas sin hash; las demás las
+#   comprueba igual que siempre. Sin la variable, una línea sin hash falla.
+# - Códigos en forma canónica (como los escribe SeedCode.encode()).
+#
+# Todavía no hay generadores (F1, etapa 1): la lista está vacía.

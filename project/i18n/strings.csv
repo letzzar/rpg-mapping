@@ -19,3 +19,5 @@ SEED_ERR_SEED,Semilla no válida.,Invalid seed.
 SEED_ERR_CHECK,"El carácter de control no coincide: revisa si hay una errata.","Check character mismatch: look for a typo."
 SYSTEM_DND5E_2024,D&D 5e (2024),D&D 5e (2024)
 SYSTEM_PF2E,Pathfinder 2e,Pathfinder 2e
+CMD_GENERIC,Edición,Edit
+CMD_MOVE_TOKEN,Mover ficha,Move token

@@ -1,0 +1,155 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://rpg-mapping.local/schemas/map_document.schema.json",
+	"title": "MapDocument canónico (RPG Mapping)",
+	"description": "Forma canónica de core/model/map_document.gd (ADR 019). Solo enteros (nada de float), claves ordenadas al serializar, listas en orden fijo. Sin 'session' es el contenido que cubren content_hash() y las seeds doradas.",
+	"type": "object",
+	"additionalProperties": false,
+	"required": ["schema_version", "source", "grid", "next_id", "levels"],
+	"properties": {
+		"schema_version": { "const": 1 },
+		"source": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["seed_code", "scale", "gen"],
+			"properties": {
+				"seed_code": { "type": "string", "description": "Código RPGM1 canónico; vacío si el mapa se creó a mano" },
+				"scale": { "enum": ["", "MUN", "REG", "ALD", "EDI", "EST", "MAZ"] },
+				"gen": { "type": "integer", "minimum": 0 }
+			}
+		},
+		"grid": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["kind", "width", "height"],
+			"properties": {
+				"kind": { "enum": ["square", "hex_flat", "hex_pointy"] },
+				"width": { "type": "integer", "minimum": 1, "maximum": 4096 },
+				"height": { "type": "integer", "minimum": 1, "maximum": 4096 }
+			}
+		},
+		"next_id": { "type": "integer", "minimum": 1 },
+		"levels": { "type": "array", "minItems": 1, "maxItems": 64, "items": { "$ref": "#/$defs/level" } },
+		"session": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["tokens", "fog", "deltas"],
+			"properties": {
+				"tokens": { "type": "array", "items": { "$ref": "#/$defs/token" } },
+				"fog": {
+					"type": "array",
+					"description": "Una entrada por nivel: observador -> 1 valor por casilla (0/1 = explorada)",
+					"items": { "type": "object", "additionalProperties": { "$ref": "#/$defs/cell_layer" } }
+				},
+				"deltas": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"required": ["op", "data"],
+						"properties": { "op": { "type": "string" }, "data": { "type": "object" } }
+					}
+				}
+			}
+		}
+	},
+	"$defs": {
+		"cell": { "type": "array", "items": { "type": "integer" }, "minItems": 2, "maxItems": 2, "description": "[x, y] = [columna, fila] (offset en hex)" },
+		"cell_layer": { "type": "array", "items": { "type": "integer" }, "description": "width*height valores en orden por filas" },
+		"level": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["terrain", "room_ids", "edges", "rooms", "objects", "stairs", "traps"],
+			"properties": {
+				"terrain": { "$ref": "#/$defs/cell_layer", "description": "Terrain.* (0 void, 1 floor, 2 wall, 3 rubble, 4 water_shallow, 5 water_deep, 6 pit)" },
+				"room_ids": { "$ref": "#/$defs/cell_layer", "description": "Id de sala por casilla; 0 = ninguna" },
+				"edges": {
+					"type": "array",
+					"description": "[x, y, lado, valor] con (x, y, lado) canónico (lado < nº de direcciones con arista / 2) y valor MapEdge (tipo | banderas). Ordenadas por id de arista",
+					"items": { "type": "array", "items": { "type": "integer" }, "minItems": 4, "maxItems": 4 }
+				},
+				"rooms": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"required": ["id", "kind", "label"],
+						"properties": {
+							"id": { "type": "integer", "minimum": 1 },
+							"kind": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+							"label": { "type": "string" }
+						}
+					}
+				},
+				"objects": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"required": ["id", "catalog_id", "cell", "size", "facing", "cover", "difficult_terrain", "blocks_movement", "blocks_sight", "light_bright_cells", "light_dim_cells", "interaction", "height_mm"],
+						"properties": {
+							"id": { "type": "integer", "minimum": 1 },
+							"catalog_id": { "type": "string" },
+							"cell": { "$ref": "#/$defs/cell" },
+							"size": { "$ref": "#/$defs/cell" },
+							"facing": { "type": "integer", "minimum": 0, "maximum": 5 },
+							"cover": { "type": "integer", "minimum": 0, "maximum": 3, "description": "0 ninguna, 1 media, 2 tres cuartos, 3 total" },
+							"difficult_terrain": { "type": "boolean" },
+							"blocks_movement": { "type": "boolean" },
+							"blocks_sight": { "type": "boolean" },
+							"light_bright_cells": { "type": "integer", "minimum": 0 },
+							"light_dim_cells": { "type": "integer", "minimum": 0 },
+							"interaction": { "type": "string" },
+							"height_mm": { "type": "integer", "minimum": 0 }
+						}
+					}
+				},
+				"stairs": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"required": ["id", "cell", "to_level", "to_cell", "facing"],
+						"properties": {
+							"id": { "type": "integer", "minimum": 1 },
+							"cell": { "$ref": "#/$defs/cell" },
+							"to_level": { "type": "integer", "minimum": 0 },
+							"to_cell": { "$ref": "#/$defs/cell" },
+							"facing": { "type": "integer", "minimum": 0, "maximum": 5 }
+						}
+					}
+				},
+				"traps": {
+					"type": "array",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"required": ["id", "cell", "trap_id", "hidden", "armed"],
+						"properties": {
+							"id": { "type": "integer", "minimum": 1 },
+							"cell": { "$ref": "#/$defs/cell" },
+							"trap_id": { "type": "string" },
+							"hidden": { "type": "boolean" },
+							"armed": { "type": "boolean" }
+						}
+					}
+				}
+			}
+		},
+		"token": {
+			"type": "object",
+			"additionalProperties": false,
+			"required": ["id", "name", "level", "cell", "size_id", "side", "character_ref", "hidden"],
+			"properties": {
+				"id": { "type": "integer", "minimum": 1 },
+				"name": { "type": "string" },
+				"level": { "type": "integer", "minimum": 0 },
+				"cell": { "$ref": "#/$defs/cell" },
+				"size_id": { "type": "string" },
+				"side": { "enum": ["player", "ally", "neutral", "enemy"] },
+				"character_ref": { "type": "string" },
+				"hidden": { "type": "boolean" }
+			}
+		}
+	}
+}
