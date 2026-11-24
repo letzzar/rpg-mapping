@@ -1,35 +1,51 @@
 # SESSION_HANDOFF — RPG Mapping
 
-## Última sesión: 2026-11-24
-**Fase actual:** antes de F0 (solo especificación e identidad visual).
+## Última sesión: 2026-11-24 (3.ª)
+**Fase actual:** **F0 – Base completada** (tests verdes en escritorio y en web). Siguiente: F1.
 
-### Hecho
-- Especificaciones iniciales en `PROYECTO.md` (visión, objetivos, stack, arquitectura, sistema de seeds, generadores, vistas, perfiles de sistema, unidades, personajes, red, licencias, fases, ADR, riesgos).
-- Instrucciones de trabajo en `CLAUDE.md`.
-- Subagente `cartografo` en `.claude/agents/cartografo.md`.
-- Icono: eliminado el fondo negro de `Icono.jpg` y vectorizado:
-  - `assets/icon/icon-fiel.svg` (trazado multicolor, ~2,5 MB; ~0,95 MB con gzip).
-  - `assets/icon/icon-simple.svg` (redibujo plano, ~4 KB, legible a 16 px).
-  - PNG 16–1024, `app.ico`, `app.icns`, `favicon.ico`, `icon-raster-1024.png`.
-- `LICENSE` con el texto GPL-3.0.
+### Hecho en esta sesión
+- PowerShell actualizado a 7.6.7. Git Bash sigue fallando al hacer fork: **trabajar siempre con PowerShell** (los subagentes que solo tienen Bash no pueden ejecutar tests).
+- Decisiones pendientes resueltas con Víctor una a una (ver abajo y PROYECTO.md §17, ADR 009 y 011-016; §19 queda sin preguntas abiertas).
+- **Licencias** (ADR 011): leídos los textos oficiales ORC final (TX 9-307-067) y DPCGL 2.0 (5-8-2026). **Daggerheart descartado** (`daggerheart.json` borrado, `DPCGL` fuera del esquema, clave i18n eliminada). PF2e se queda: aviso ORC completo en `pf2e.json` (`attribution_verified: true`) y en `NOTICE.md` (nuevo); `pf2e.json` se distribuye bajo ORC, no GPL. Modo `bands` conservado como genérico (test con perfil sintético). README actualizado con aviso de no afiliación.
+- **PARAMS posicional** (subagente `cartografo`, ADR 009 revisado, PROYECTO §5.3): `core/seed/param_schema.gd`, `param_schema_registry.gd` (MAZ G1 **provisional**, se congela con la primera seed dorada), `SeedCode` adaptado, 5 claves `SEED_ERR_*` nuevas. Ejemplo con 4 parámetros: `RPGM1-DND5-MAZ-G1-FA8-0000000000016-<CRC>` (37 car.).
+- **Exportación**: plantillas 4.7.2 instaladas en `%APPDATA%\Godot\export_templates\4.7.2.stable` (SHA-512 verificado contra el oficial). `project/export_presets.cfg` con Windows, Linux, macOS, Web y **Web Tests**; iconos copiados en `project/export_icons/`; `include_filter="*.json"` para los perfiles. Las 5 exportaciones salen sin errores.
+- **Tests en web**: `tests/web/web_runner.tscn` (escena principal del preset "Web Tests" vía `run/main_scene.web_tests`) ejecuta GUT y deja el resultado en `document.title` y en consola (`WEB_TESTS_RESULT ...`). Ejecutado en Chrome: **53/53, 7456 asserts**, idéntico a escritorio. El preset exporta scripts como texto y los `*.txt` de GUT.
+- Tests de escritorio: **53/53** (`pwsh tools/run_tests.ps1`).
 
-### Decisiones tomadas con Víctor
-- Motor Godot 4 (GDScript). Plataformas: Windows/macOS/Linux + Web.
-- Partida DM + jugadores en LAN/online; jugadores por navegador.
-- Nombre "RPG Mapping", licencia GPL-3.0.
-- Solo contenido de reglas abierto (SRD 5.2 CC-BY-4.0, ORC, DPCGL).
-- Personajes: token 2D + modelo 3D modular.
-- Icono: versión fiel + versión simplificada.
+### Decisiones de esta sesión (Víctor)
+- PARAMS posicional (ADR 009). Commit tras exportaciones. Remoto: **GitHub público `letzzar/rpg-mapping`, rama `main`**, + **espejo pull en Gitea** (lo configura Víctor en la web de Gitea: Nuevo repositorio → Migración → GitHub → marcar "Espejo").
+- Licencias: Daggerheart fuera (ADR 011). Hex opcional en todas las escalas (012). Universal VTT en F3, Foundry tras v1 (013). Impresión a escala antes de v1, no en F1 (014). Estilos humano/enano/élfico en v1 como datos (015). Cliente web servido por la app del DM + imagen Docker alternativa (016).
 
-### Siguiente paso (F0)
-1. Crear `project/` con Godot 4.7.x, `icon.svg` = `assets/icon/icon-simple.svg`, iconos de exportación (`app.ico`, `app.icns`, PNG 192/512 para la web).
-2. Instalar GUT y configurar CI headless.
-3. Implementar `core/rng` (PCG32 + SplitMix64) y `core/seed` (código RPGM1) con tests.
-4. Implementar `core/units` y los tres perfiles de `data/systems/`.
+### Para validar con Víctor (propuestas del `cartografo`)
+1. Al analizar un código se comprueba el control antes que el contenido (una errata da `SEED_ERR_CHECK`).
+2. Enumerados con `capacity` (huecos reservados para añadir estilos/tipos sin cambiar códigos emitidos); estilos de usuario fuera de la lista no caben en el código.
+3. Campos, rangos y defectos del esquema MAZ G1 provisional.
+4. SEED es ahora lo más largo (13 car. fijos); se podría acortar con semillas de longitud variable.
+5. El carácter de control puede salir O/I/L/U (MOD 37,36 usa 0-9A-Z) y confundirse al dictar: mostrarlo inequívoco en la UI o cambiar de alfabeto.
 
-### Pendiente de decidir
-Ver `PROYECTO.md` §19 (hex táctico, alojamiento del cliente web, importadores, impresión a escala, estilos culturales) y la verificación de la DPCGL (§13).
+### Siguiente paso
+1. Commit F0 + crear repo GitHub y subir (si no se hizo al cierre de esta sesión: ver `git log`/`git remote -v`); comprobar que el workflow de CI pasa.
+2. F1: interfaz de rejilla (cuadrada/hex, ADR 012), `MapDocument` (core/model), generadores `MAZ`/`EST`, vista 2D, exportación PNG. Consultar al `cartografo`.
+
+### Pendiente / riesgos
+- Uso nominativo de "Pathfinder" en el selector (ORC no cubre marcas); con aviso de no afiliación.
+- Pantalla de créditos (futura) debe mostrar `content.attribution` de cada perfil (ORC III, CC-BY).
+- Las builds normales aún no tienen escena principal (no hay UI todavía).
+- macOS: build sin firmar ni notarizar.
+
+### Comandos para retomar
+```powershell
+pwsh tools/run_tests.ps1        # importa + tests; debe dar 53/53
+$g = "$env:LOCALAPPDATA\Programs\Godot\Godot_v4.7.2-stable_win64_console.exe"
+& $g --path project -e          # abrir editor
+# Tests en web: exportar, servir y abrir http://127.0.0.1:8765 (el título muestra WEB_TESTS_RESULT)
+& $g --headless --path project --export-release "Web Tests" ../build/web-tests/index.html
+python -m http.server 8765 --bind 127.0.0.1 --directory build/web-tests
+```
 
 ### Notas
-- El icono fiel pierde algo del brillo difuso del original al vectorizar; se añadió un degradado de luz central y viñeta para compensar. Si se quiere más fidelidad a tamaños grandes, usar `icon-raster-1024.png`.
-- Claude Code no admite imagen propia para un subagente; el `cartografo` usa el color ámbar del latón del icono.
+- Tras crear un script con `class_name` nuevo hay que reimportar (`--import`); `run_tests` ya lo hace.
+- Godot no admite el carácter NUL dentro de `String`.
+- Godot portable 4.7.2 en `%LOCALAPPDATA%\Programs\Godot\` (fuera del repo, no está en el PATH).
+- En `web_runner.gd`, `int(Variant)` dispara un aviso de tipado tratado como error: asignar a variable tipada.
+- Icono: el fiel pierde algo de brillo difuso al vectorizar; para tamaños grandes, `icon-raster-1024.png`.

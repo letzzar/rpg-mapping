@@ -1,0 +1,39 @@
+{
+	"schema_version": 1,
+	"id": "pf2e",
+	"seed_code": "PF2E",
+	"name_key": "SYSTEM_PF2E",
+	"content": {
+		"source": "Pathfinder Player Core (Paizo Inc.)",
+		"license": "ORC",
+		"attribution": "ORC Notice: This product is licensed under the ORC License located at the Library of Congress at TX 9-307-067 and available online at various locations including paizo.com/orclicense, azoralaw.com/orclicense, and others. All warranties are disclaimed as set forth therein. Attribution: This product is based on the following Licensed Material: Pathfinder Player Core © 2023 Paizo Inc., Designed by Logan Bonner, Jason Bulmahn, Stephen Radney-MacFarland, and Mark Seifter. Authors: Alexander Augunas, Kate Baker, Logan Bonner, Jason Bulmahn, Carlos Cabrera, Calder CaDavid, James Case, Eleanor Ferron, Steven Hammond, Joan Hong, Vanessa Hoskins, James Jacobs, Jenny Jarzabski, Erik Keith, Dustin Knight, Lyz Liddell, Luis Loza, Patchen Mortimer, Dennis Muldoon, Stephen Radney-MacFarland, Mikhail Rekun, David N. Ross, Michael Sayre, Mark Seifter, Kendra Leigh Speedling, Mark Thompson, Clark Valentine, Andrew White, Landon Winkler, and Linda Zayas-Palmer. If you use our Licensed Material in your own published works, please credit us as follows: RPG Mapping, system profile pf2e.json, © 2026 RPG Mapping contributors. Reserved Material: Reserved Material elements in this product include the name RPG Mapping, its logo and icon, and all elements designated as Reserved Material under the ORC License. Expressly Designated Licensed Material: This product contains no Expressly Designated Licensed Material. Pathfinder and Paizo are trademarks of Paizo Inc.; RPG Mapping is not affiliated with or endorsed by Paizo Inc.",
+		"attribution_verified": true
+	},
+	"grid": {
+		"cell_ft": 5,
+		"measure": "grid"
+	},
+	"movement": {
+		"default_speed_ft": 25,
+		"diagonal_ft": [5, 10],
+		"diagonal_variants": {},
+		"difficult_terrain": {
+			"multiplier_pct": 100,
+			"extra_ft_per_cell": 5,
+			"visual_only": false
+		},
+		"modes": ["walk", "fly", "swim", "climb", "burrow"]
+	},
+	"sizes_occupy_cells": true,
+	"sizes": [
+		{ "id": "tiny", "space_ft_x10": 25 },
+		{ "id": "small", "space_ft_x10": 50 },
+		{ "id": "medium", "space_ft_x10": 50 },
+		{ "id": "large", "space_ft_x10": 100 },
+		{ "id": "huge", "space_ft_x10": 150 },
+		{ "id": "gargantuan", "space_ft_x10": 200 }
+	],
+	"range_bands": [],
+	"senses": ["darkvision", "greater_darkvision", "low_light_vision", "scent", "tremorsense"],
+	"area_templates": ["burst", "cone", "emanation", "line"]
+}

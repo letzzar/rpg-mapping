@@ -44,16 +44,16 @@ RPG Mapping/
 │  ├─ views/           # view2d, view3d, first_person
 │  ├─ net/             # servidor WSS (DM), cliente, protocolo
 │  ├─ ui/
-│  └─ i18n/
-├─ data/
-│  ├─ schemas/         # JSON Schema de todos los formatos
-│  ├─ systems/         # dnd5e_2024.json, pf2e.json, daggerheart.json
-│  ├─ objects/
-│  └─ packs/<pack>/    # contenido con su LICENSE y ATTRIBUTION.md
-├─ tests/
-│  ├─ unit/
-│  └─ golden/          # código de semilla → SHA-256 del modelo canónico
-└─ tools/              # scripts de build, exportación e icono
+│  ├─ i18n/            # strings.csv (claves, es, en)
+│  ├─ data/            # dentro de project/ para que res:// lo cargue y exporte (ADR 008)
+│  │  ├─ schemas/      # JSON Schema de todos los formatos
+│  │  ├─ systems/      # dnd5e_2024.json (CC-BY-4.0), pf2e.json (ORC, no GPL)
+│  │  ├─ objects/
+│  │  └─ packs/<pack>/ # contenido con su LICENSE y ATTRIBUTION.md
+│  └─ tests/           # dentro de project/: GUT no carga fuera de res:// (ADR 008)
+│     ├─ unit/
+│     └─ golden/       # código de semilla → SHA-256 del modelo canónico
+└─ tools/              # scripts de tests, build, exportación e icono
 ```
 
 ## 6. Reglas de oro
@@ -63,22 +63,31 @@ RPG Mapping/
 4. **Distancias**: siempre en casillas o mm enteros internamente; para mostrarlas, `Units.format_distance()`.
 5. **Reglas como datos**: nada de `if system == "dnd5e"` en lógica; se lee del perfil.
 6. **Red**: el DM es la autoridad; la niebla de guerra se filtra en el servidor. Solo WSS.
-7. **Licencias**: no añadir contenido de reglas que no sea SRD 5.2 (CC-BY-4.0), ORC o DPCGL, y siempre en `data/packs/` con atribución. Todo asset 3D/2D nuevo se registra en `assets/LICENSES.md`.
+7. **Licencias**: no añadir contenido de reglas que no sea SRD 5.2 (CC-BY-4.0) u ORC (la DPCGL/Daggerheart está descartada, ADR 011), y siempre en `project/data/packs/` con atribución (los perfiles de `project/data/systems/` llevan su bloque `content` con licencia y atribución). Todo asset 3D/2D nuevo se registra en `assets/LICENSES.md`.
 8. **Archivos del usuario**: no borrar ni sobrescribir `Icono.jpg` ni nada en `assets/` sin pedirlo.
 
 ## 7. Comandos habituales
 ```bash
-# Tests (headless)
-godot --headless --path project -s addons/gut/gut_cmdln.gd -gdir=res://../tests -gexit
+# Tests (headless). Usar SIEMPRE el script: importa antes (registra class_name
+# nuevos) y falla si GUT ignora un test que no compila (GUT da 0 en ese caso).
+pwsh tools/run_tests.ps1                      # Windows ($env:GODOT opcional)
+GODOT=/ruta/godot sh tools/run_tests.sh       # Linux/macOS/CI
 
 # Solo seeds doradas
-godot --headless --path project -s addons/gut/gut_cmdln.gd -gdir=res://../tests/golden -gexit
+pwsh tools/run_tests.ps1 -Dir res://tests/golden
+
+# Llamada directa a GUT (sin la comprobación extra)
+godot --headless --path project -s addons/gut/gut_cmdln.gd -gdir=res://tests -ginclude_subdirs -gexit
 
 # Exportaciones (presets definidos en project/export_presets.cfg)
 godot --headless --path project --export-release "Windows Desktop" ../build/win/RPGMapping.exe
 godot --headless --path project --export-release "Linux"           ../build/linux/RPGMapping.x86_64
 godot --headless --path project --export-release "macOS"           ../build/mac/RPGMapping.zip
 godot --headless --path project --export-release "Web"             ../build/web/index.html
+
+# Tests en navegador (preset "Web Tests"; el título de la página muestra WEB_TESTS_RESULT)
+godot --headless --path project --export-release "Web Tests" ../build/web-tests/index.html
+python -m http.server 8765 --bind 127.0.0.1 --directory build/web-tests
 
 # Regenerar PNG del icono desde los SVG
 rsvg-convert -w 256 assets/icon/icon-fiel.svg -o assets/icon/png/icon-256.png

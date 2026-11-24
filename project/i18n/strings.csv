@@ -1,0 +1,21 @@
+keys,es,en
+UNIT_DECIMAL_SEP,",",.
+UNIT_FMT_M,{value} m,{value} m
+UNIT_FMT_KM,{value} km,{value} km
+UNIT_FMT_FT,{value} ft,{value} ft
+UNIT_FMT_MI,{value} mi,{value} mi
+SEED_ERR_FORMAT,El código no tiene el formato RPGM1-SIS-ESC-GEN-PARAMS-SEED-CRC.,The code does not match RPGM1-SIS-ESC-GEN-PARAMS-SEED-CRC.
+SEED_ERR_VERSION,Versión de código de semilla no admitida.,Unsupported seed code version.
+SEED_ERR_SYSTEM,Código de sistema de juego no válido.,Invalid game system code.
+SEED_ERR_SCALE,"Escala no válida (MUN, REG, ALD, EDI, EST o MAZ).","Invalid scale (MUN, REG, ALD, EDI, EST or MAZ)."
+SEED_ERR_GEN,Versión de generador no válida.,Invalid generator version.
+SEED_ERR_PARAMS,Parámetros del código no válidos.,Invalid code parameters.
+SEED_ERR_SCHEMA,"Esta versión no conoce ese generador o su versión (GEN); puede que el código sea de una versión más nueva.","This version does not know that generator or its version (GEN); the code may come from a newer version."
+SEED_ERR_PARAM_UNKNOWN,El generador no tiene el parámetro {param}.,The generator has no parameter {param}.
+SEED_ERR_PARAM_TYPE,El parámetro {param} tiene un tipo de valor incorrecto.,Parameter {param} has the wrong value type.
+SEED_ERR_PARAM_RANGE,El parámetro {param} está fuera de su rango.,Parameter {param} is out of range.
+SEED_ERR_PARAM_ENUM,"El parámetro {param} tiene una opción desconocida.","Parameter {param} has an unknown option."
+SEED_ERR_SEED,Semilla no válida.,Invalid seed.
+SEED_ERR_CHECK,"El carácter de control no coincide: revisa si hay una errata.","Check character mismatch: look for a typo."
+SYSTEM_DND5E_2024,D&D 5e (2024),D&D 5e (2024)
+SYSTEM_PF2E,Pathfinder 2e,Pathfinder 2e

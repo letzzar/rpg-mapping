@@ -2,3 +2,5 @@
 build/
 *.tmp
 .claude/settings.local.json
+# Generados al importar el CSV de traducciones
+project/i18n/*.translation

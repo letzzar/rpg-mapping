@@ -1,0 +1,2 @@
+# Scripts de shell con LF: la CI de Linux los ejecuta directamente.
+*.sh text eol=lf

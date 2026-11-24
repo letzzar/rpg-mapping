@@ -1,0 +1,29 @@
+# Tests headless con GUT (PROYECTO.md §3, CI).
+# Pendiente: exportación de las 4 plataformas y seeds doradas en la build web.
+name: tests
+
+on:
+  push:
+  pull_request:
+
+env:
+  GODOT_VERSION: "4.7.2"
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Descargar Godot ${{ env.GODOT_VERSION }}
+        run: |
+          set -eu
+          base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
+          file="Godot_v${GODOT_VERSION}-stable_linux.x86_64"
+          curl -fsSL -o godot.zip "$base/$file.zip"
+          unzip -q godot.zip
+          chmod +x "$file"
+          echo "GODOT=$PWD/$file" >> "$GITHUB_ENV"
+
+      - name: Tests
+        run: sh tools/run_tests.sh

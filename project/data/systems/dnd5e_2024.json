@@ -1,0 +1,41 @@
+{
+	"schema_version": 1,
+	"id": "dnd5e_2024",
+	"seed_code": "DND5",
+	"name_key": "SYSTEM_DND5E_2024",
+	"content": {
+		"source": "System Reference Document 5.2 (SRD 5.2)",
+		"license": "CC-BY-4.0",
+		"attribution": "This work includes material from the System Reference Document 5.2 (\"SRD 5.2\") by Wizards of the Coast LLC, available at https://www.dndbeyond.com/srd. The SRD 5.2 is licensed under the Creative Commons Attribution 4.0 International License, available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+		"attribution_verified": true
+	},
+	"grid": {
+		"cell_ft": 5,
+		"measure": "grid"
+	},
+	"movement": {
+		"default_speed_ft": 30,
+		"diagonal_ft": [5],
+		"diagonal_variants": {
+			"alternate_5_10": [5, 10]
+		},
+		"difficult_terrain": {
+			"multiplier_pct": 200,
+			"extra_ft_per_cell": 0,
+			"visual_only": false
+		},
+		"modes": ["walk", "fly", "swim", "climb", "burrow"]
+	},
+	"sizes_occupy_cells": true,
+	"sizes": [
+		{ "id": "tiny", "space_ft_x10": 25 },
+		{ "id": "small", "space_ft_x10": 50 },
+		{ "id": "medium", "space_ft_x10": 50 },
+		{ "id": "large", "space_ft_x10": 100 },
+		{ "id": "huge", "space_ft_x10": 150 },
+		{ "id": "gargantuan", "space_ft_x10": 200 }
+	],
+	"range_bands": [],
+	"senses": ["darkvision", "blindsight", "tremorsense", "truesight"],
+	"area_templates": ["cone", "cube", "cylinder", "emanation", "line", "sphere"]
+}

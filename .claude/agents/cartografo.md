@@ -1,6 +1,6 @@
 ---
 name: cartografo
-description: Especialista en generación procedural determinista de RPG Mapping. Úsalo para diseñar, implementar o revisar generadores (mundo, región, asentamiento, edificio, estancia, mazmorra), el PRNG, el ruido, el código de semilla RPGM1, las seeds doradas, las unidades métrico/imperial y los perfiles de reglas (D&D 5e 2024, Pathfinder 2e, Daggerheart). Úsalo PROACTIVAMENTE antes de tocar core/gen, core/rng, core/noise, core/seed, core/units o data/systems.
+description: Especialista en generación procedural determinista de RPG Mapping. Úsalo para diseñar, implementar o revisar generadores (mundo, región, asentamiento, edificio, estancia, mazmorra), el PRNG, el ruido, el código de semilla RPGM1, las seeds doradas, las unidades métrico/imperial y los perfiles de reglas (D&D 5e 2024, Pathfinder 2e; más el modo genérico de bandas de alcance). Úsalo PROACTIVAMENTE antes de tocar core/gen, core/rng, core/noise, core/seed, core/units o data/systems.
 tools: Read, Grep, Glob, Edit, Write, Bash
 model: inherit
 color: yellow

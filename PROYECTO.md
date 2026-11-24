@@ -9,7 +9,7 @@
 
 Aplicación de escritorio y web para **generar y usar en mesa** mapas de rol: mundos, regiones, asentamientos, edificios, estancias con su mobiliario y mazmorras. Todo lo generado es **reproducible a partir de una semilla (seed)** más los parámetros iniciales y el sistema de juego. El DM prepara y dirige desde escritorio; los jugadores se conectan desde el navegador y mueven su ficha.
 
-Sistemas soportados de serie: **D&D 5e (reglas 2024, SRD 5.2)**, **Pathfinder 2e (Remaster, ORC)** y **Daggerheart (SRD 1.0)**.
+Sistemas soportados de serie: **D&D 5e (reglas 2024, SRD 5.2)**, **Pathfinder 2e (Remaster, ORC)**. Daggerheart quedó descartado por licencia (ADR 011); el modo de medida por **bandas de alcance** se conserva para perfiles propios.
 
 ## 2. Objetivos y no-objetivos
 
@@ -91,15 +91,28 @@ Formato legible, copiable y validable:
 
 ```
 RPGM1-<SIS>-<ESC>-<GEN>-<PARAMS>-<SEED>-<CRC>
-ej.: RPGM1-DND5-ALD-G3-7KQ2M9-0F3XH8WZ1T4P-K
+ej.: RPGM1-PF2E-ALD-G3-0-000000000001A-<CRC>   (todo por defecto, semilla 42)
+ej.: RPGM1-DND5-MAZ-G1-FA8-0000000000016-<CRC> (rooms=20, layout=cave, grid=hex_flat, corridor_pct=45; 37 caracteres)
 ```
+Detalles fijados en F0 (ADR 009): `SEED` ocupa siempre 13 caracteres (64 bits); `CRC` = ISO/IEC 7064 MOD 37,36 (carácter 0-9A-Z) sobre el cuerpo sin guiones.
+
+**`PARAMS` posicional por esquema** (`core/seed/param_schema.gd`, registro en `param_schema_registry.gd`):
+- Cada generador declara, ligado a su `GEN`, una lista **ordenada** de campos: entero `[min, max]`, booleano o enumerado (lista cerrada de ids, con `capacity` opcional ≥ nº de ids), cada uno con su valor por defecto. El esquema depende de (`ESC`, `GEN`), no del sistema.
+- Cada valor se convierte en un dígito relativo a su defecto: `d = (valor − defecto) mod radix` (radix: `max − min + 1`, 2 o `capacity`); el defecto es siempre 0.
+- Los dígitos forman un entero de base mixta con el **primer campo como dígito menos significativo**: `N = d0 + r0·(d1 + r1·(d2 + …))`, escrito en Base32 Crockford **sin ceros a la izquierda**; `0` si todo vale su defecto. Por eso los campos del final que valen su defecto no ocupan nada: hay que ordenar los campos de más a menos usados.
+- `N` puede superar 64 bits: se calcula por trozos (dígitos base 32, radix ≤ 2³¹), solo con enteros. Máximo 64 caracteres por esquema.
+- Un único texto por conjunto de valores (se rechazan ceros a la izquierda). Con 4 parámetros típicos, `PARAMS` ocupa 3 caracteres y el código entero 37 (antes, solo `PARAMS` ~70).
+- Compatibilidad: añadir un campo **al final** con su defecto, o un id de enumerado **dentro de su `capacity`**, no cambia ningún código ya emitido. Cualquier otro cambio del esquema (orden, rangos, defectos, ids existentes) exige `GEN` nuevo.
+- Errores (claves i18n): `SEED_ERR_SCHEMA` (no hay esquema para ese `ESC`/`GEN`), `SEED_ERR_PARAMS` (texto mal formado o que no cabe en el esquema), `SEED_ERR_PARAM_UNKNOWN`, `SEED_ERR_PARAM_TYPE`, `SEED_ERR_PARAM_RANGE`, `SEED_ERR_PARAM_ENUM` (con `{param}`).
+- Al analizar, el control se comprueba **antes** que el contenido: si no cuadra, lo probable es una errata (`SEED_ERR_CHECK`); si cuadra y falla el contenido, el código es de otra versión.
+
 | Campo | Contenido |
 |-------|-----------|
 | `RPGM1` | Versión del formato de código |
 | `SIS` | Sistema: `DND5`, `PF2E`, `DGHT`, `GEN` (genérico) |
 | `ESC` | Escala: `MUN`, `REG`, `ALD` (asentamiento), `EDI`, `EST`, `MAZ` |
 | `GEN` | Versión del algoritmo del generador de esa escala (`G1`, `G2`…) |
-| `PARAMS` | Parámetros iniciales serializados de forma canónica, comprimidos y en **Base32 Crockford** |
+| `PARAMS` | Parámetros iniciales con codificación **posicional por esquema del generador** (base mixta) en **Base32 Crockford**; `0` = todo por defecto |
 | `SEED` | 64 bits en Base32 Crockford |
 | `CRC` | Carácter de control (mod 37) para detectar erratas |
 
@@ -126,6 +139,7 @@ Cada generador declara: parámetros de entrada (con valores por defecto), salida
 - Parámetros: tamaño (caserío, aldea, pueblo, ciudad), población, cultura/estilo arquitectónico, muralla sí/no, río/costa, prosperidad.
 - Algoritmo: trazado de calles por crecimiento orgánico (o retícula para ciudades planificadas); parcelación; asignación de edificios por tipo (taberna, herrería, templo, mercado…) con pesos según tamaño y prosperidad.
 - Cada edificio queda como hijo con su propia semilla derivada.
+- **Estilos culturales** (ADR 015): datos en `data/styles/<id>.json` (materiales, formas de planta, tejados, mobiliario y pesos de tipos de edificio). La v1 incluye **humano, enano y élfico**; añadir otro es solo añadir datos. El estilo es un parámetro del código de semilla de `ALD`, `EDI` y `EST`.
 
 ### 6.4 Edificio (`EDI`)
 - Planta(s) por **BSP + grafo de adyacencias** según tipo (una taberna exige sala común ↔ cocina ↔ almacén, habitaciones arriba).
@@ -155,21 +169,23 @@ Requisitos comunes:
 - Niebla de guerra y **línea de visión** calculadas en el modelo (no en la vista), con visión en la oscuridad y fuentes de luz.
 - Varias plantas: selector de planta; en 3D, corte de techo y plantas superiores.
 - Rendimiento objetivo: 60 fps en mapas de 100×100 casillas en escritorio; 30 fps en web.
-- Exportación: PNG a resolución de impresión (≥ 150 ppp, 1 casilla = 1 pulgada / 2,54 cm) y PDF por páginas.
+- **Rejilla hexagonal en todas las escalas** (ADR 012): opcional también en mapas tácticos (estancia, mazmorra, edificio), además de región y mundo. La geometría (vecinos, distancias, diagonales, plantillas de área, tamaños de token, línea de visión) se abstrae tras una interfaz de rejilla con implementaciones cuadrada y hexagonal; los perfiles indican el coste por paso en cada tipo de rejilla.
+- Exportación: PNG con rejilla a resolución conocida (px por casilla) desde F1. **Impresión a escala real** (1 casilla = 1 pulgada / 25 mm, PDF por páginas A4/Carta con marcas de unión) antes de la v1, no en F1 (ADR 014).
+- Intercambio con otras mesas virtuales (ADR 013): importar/exportar **Universal VTT** (`.uvtt` / `.dd2vtt`: imagen, rejilla, muros, puertas, luces) en F3. Foundry VTT y otros, después de la v1.
 
 ## 8. Perfiles de sistema de juego
 
 Cada sistema es un **perfil de datos** (`data/systems/<id>.json`), no código. La lógica común lee el perfil.
 
-| Concepto | D&D 5e (2024) | Pathfinder 2e | Daggerheart |
-|----------|---------------|---------------|-------------|
-| Casilla | 5 ft | 5 ft | Abstracto: bandas de alcance (se puede usar rejilla) |
-| Diagonal | 5 ft por casilla (opción: alterna 5/10) | Alterna 5/10 | No aplica; se mide la banda |
-| Velocidad típica | 30 ft | 25 ft | Movimiento por bandas (Cerca como parte de una acción) |
-| Terreno difícil | Coste ×2 | Coste +5 ft por casilla | Narrativo; marca visual |
-| Tamaños | Diminuto 2,5 ft · Pequeño/Mediano 5 · Grande 10 · Enorme 15 · Gargantuesco 20 | Igual que 5e | Sin casillas por tamaño; tamaño visual del token |
+| Concepto | D&D 5e (2024) | Pathfinder 2e |
+|----------|---------------|---------------|
+| Casilla | 5 ft | 5 ft |
+| Diagonal | 5 ft por casilla (opción: alterna 5/10) | Alterna 5/10 |
+| Velocidad típica | 30 ft | 25 ft |
+| Terreno difícil | Coste ×2 | Coste +5 ft por casilla |
+| Tamaños | Diminuto 2,5 ft · Pequeño/Mediano 5 · Grande 10 · Enorme 15 · Gargantuesco 20 | Igual que 5e |
 
-**Bandas de Daggerheart** (en rejilla, configurables por mesa): Cuerpo a cuerpo = adyacente · Muy cerca ≈ 3 casillas · Cerca ≈ 6 · Lejos ≈ 12 · Muy lejos ≥ 13 · Fuera de alcance = fuera del mapa. La regla de medir muestra la **banda** y, opcionalmente, la distancia.
+**Medida por bandas** (`grid.measure = "bands"`): mecanismo genérico para perfiles propios o de la mesa. Cada banda tiene un máximo en casillas (la última puede ser ilimitada); la regla de medir muestra la **banda** y, opcionalmente, la distancia. El terreno difícil puede ser solo visual (`visual_only`) y los tamaños pueden no ocupar casillas (`sizes_occupy_cells = false`). No se distribuye ningún perfil de terceros con bandas (ADR 011).
 
 Cada perfil define además: tipos de movimiento (andar, volar, nadar, trepar, excavar), sentidos (visión en la oscuridad, visión ciega…), condiciones que afectan al movimiento y plantillas de área (cono, línea, esfera, cubo, emanación/explosión).
 
@@ -205,7 +221,8 @@ Cada perfil define además: tipos de movimiento (andar, volar, nadar, trepar, ex
 | Aspecto | Especificación |
 |---------|----------------|
 | Topología | El **DM aloja** la partida (servidor WSS en la app de escritorio). Jugadores conectan desde el **cliente web** |
-| LAN | Conexión directa `wss://<ip-o-nombre>:<puerto>`. El cliente web lo sirve la propia infraestructura (p. ej. contenedor estático en el NAS) en el **mismo origen** que el WSS mediante proxy inverso, para evitar problemas de certificados y contenido mixto |
+| Cliente web (ADR 016) | **Por defecto lo sirve la app del DM** por HTTPS en el mismo puerto y origen que el WSS (sin infraestructura extra; certificado autofirmado o del usuario). **Alternativa: imagen Docker** (p. ej. en el NAS) que sirve el cliente estático y hace de proxy inverso hacia el WSS del DM, con certificado propio. En ambos casos, mismo origen para evitar problemas de certificados y contenido mixto |
+| LAN | Conexión directa `wss://<ip-o-nombre>:<puerto>` |
 | Online | Opción A: túnel/proxy inverso propio del usuario. Opción B (fase posterior): **servidor de relevo** headless (export Linux de Godot en Docker) |
 | Seguridad | Solo WSS (TLS). Acceso por **código de sala + token por jugador** (QR generado por el DM). Nada de HTTP plano |
 | Autoridad | El DM valida movimientos; los clientes reciben solo lo que su personaje ve (la niebla se filtra en el servidor, no en el cliente) |
@@ -219,7 +236,9 @@ Cada perfil define además: tipos de movimiento (andar, volar, nadar, trepar, ex
 | `*.rpgm` | Campaña: ZIP con `manifest.json`, mapas (seed + params + `GEN` + deltas), personajes, recursos del usuario |
 | `*.rpgm-map.json` | Un mapa suelto exportable |
 | `*.rpgm-char.json` | Un personaje |
+| `*.uvtt` / `*.dd2vtt` | Universal VTT: importación y exportación (F3) |
 | `data/systems/*.json` | Perfiles de sistema |
+| `data/styles/*.json` | Estilos arquitectónicos por cultura |
 | `data/packs/<pack>/` | Paquetes de contenido, cada uno con su `LICENSE` y `ATTRIBUTION.md` |
 
 Todos los JSON tienen `schema_version` y esquema en `data/schemas/`. Migraciones de esquema en `core/migrations/`.
@@ -229,10 +248,10 @@ Todos los JSON tienen `schema_version` y esquema en `data/schemas/`. Migraciones
 - **Código**: GPL-3.0-or-later (`LICENSE`).
 - **Contenido de reglas**, solo abierto y en paquetes separados del código:
   - D&D: **SRD 5.2.x** bajo **CC-BY-4.0**, con la atribución exigida.
-  - Pathfinder 2e: material del Remaster bajo **ORC License**.
-  - Daggerheart: **SRD 1.0** bajo **DPCGL** (Darrington Press Community Gaming License), con su texto de atribución.
-- Marcas: no usar logotipos ni nombres comerciales como marca del producto; usar fórmulas tipo "compatible con 5e (SRD 5.2)". Revisar las condiciones de marca de cada licencia antes de publicar.
-- **Pendiente de verificar**: compatibilidad de la DPCGL con distribuir el paquete junto a software GPL (si hay duda, el paquete Daggerheart se descarga aparte).
+  - Pathfinder 2e: mecánicas de *Pathfinder Player Core* bajo **ORC License** (texto final registrado TX 9-307-067; irrevocable, cualquier medio y formato, software incluido). El **aviso ORC** completo (ORC Notice, Attribution con diseñadores y autores tal como Paizo pide, Reserved Material, Expressly Designated Licensed Material) va en `content.attribution` de `pf2e.json` y debe mostrarse en la pantalla de créditos y en `NOTICE.md`.
+  - Convivencia ORC + GPL: la ORC obliga a ofrecer bajo ORC el *Adapted Licensed Material*, que se limita a las expresiones de mecánicas de juego (definición I.a y I.e.2); el código no lo es. Por eso `pf2e.json` se distribuye **bajo ORC, no bajo GPL**, y no se le puede imponer ninguna condición extra (II.b). Lo mismo aplica a cualquier perfil derivado de él.
+  - Daggerheart: **descartado** (ADR 011). La DPCGL 2.0 (5-8-2026) solo permite impresión, streaming, pódcast y VTT de una lista blanca sin monetizar; excluye expresamente los videojuegos y "cualquier otro medio audiovisual no permitido expresamente", Darrington puede modificarla unilateralmente y exige indemnización y renuncia de reclamaciones. Un software GPL descargable no encaja.
+- Marcas: ninguna licencia de contenido cubre marcas (ORC: Reserved Material; SRD 5.2: no licencia "Dungeons & Dragons"). No usar logotipos ni nombres comerciales como marca del producto; solo uso descriptivo tipo "compatible con 5e (SRD 5.2)" / "compatible con Pathfinder 2e", con aviso de no afiliación.
 
 ## 14. Interfaz y estilo
 
@@ -255,12 +274,12 @@ Todos los JSON tienen `schema_version` y esquema en `data/schemas/`. Migraciones
 | Fase | Contenido | Criterio de aceptación |
 |------|-----------|------------------------|
 | **F0 – Base** | Proyecto Godot, estructura de carpetas, CI, PRNG + hash + código de semilla, unidades, perfiles de sistema | Tests verdes en escritorio y web; código de semilla ida y vuelta |
-| **F1 – Mazmorra y estancia 2D** | Generadores `MAZ` y `EST`, vista 2D, tokens 2D, movimiento con coste, medición | 20 seeds doradas estables; movimiento correcto en los 3 sistemas |
+| **F1 – Mazmorra y estancia 2D** | Generadores `MAZ` y `EST`, vista 2D (rejilla cuadrada y hexagonal), tokens 2D, movimiento con coste, medición, exportación PNG | 20 seeds doradas estables; movimiento correcto en los 2 sistemas y en un perfil de bandas, en ambas rejillas |
 | **F2 – Vista 3D y 1ª persona** | Renderizado 3D cenital y 1ª persona del mismo modelo; línea de visión y luces | Cambio de vista < 500 ms; FoW coherente entre vistas |
-| **F3 – Edificio y asentamiento** | `EDI`, `ALD`, varias plantas, navegación jerárquica (aldea → edificio → estancia) | Regenerar una estancia aislada desde su código da el mismo resultado que dentro de la aldea |
+| **F3 – Edificio y asentamiento** | `EDI`, `ALD`, varias plantas, navegación jerárquica (aldea → edificio → estancia), estilos humano/enano/élfico, Universal VTT | Regenerar una estancia aislada desde su código da el mismo resultado que dentro de la aldea |
 | **F4 – Red** | Servidor WSS en DM, cliente web, permisos, FoW filtrada | 8 clientes en LAN, latencia < 150 ms |
 | **F5 – Personajes** | Diseñador 2D/3D modular, importación CSV/JSON | Crear un personaje y verlo en las 3 vistas |
-| **F6 – Mundo y región** | `MUN`, `REG`, hexcrawl, exportación a impresión | Mundo 2048×1024 en < 10 s |
+| **F6 – Mundo y región** | `MUN`, `REG`, hexcrawl, impresión a escala real (PDF por páginas) | Mundo 2048×1024 en < 10 s |
 | **F7 – Pulido y publicación** | Traducciones, accesibilidad, paquetes de contenido, empaquetado | Builds firmadas de las 4 plataformas |
 
 ## 17. Registro de decisiones (ADR)
@@ -274,6 +293,15 @@ Todos los JSON tienen `schema_version` y esquema en `data/schemas/`. Migraciones
 | 005 | DM como servidor, jugadores en web | Sin infraestructura obligatoria; jugadores sin instalar nada | Servidor central obligatorio |
 | 006 | Reglas como datos | Añadir sistemas sin tocar código | Lógica por sistema en código |
 | 007 | GPL-3.0 + contenido abierto separado | Software libre sin mezclar licencias de contenido | Licencia privativa |
+| 008 | `tests/` y `data/` dentro de `project/` | Godot no carga ni exporta nada fuera de `res://` (`res://../tests` falla en GUT); los perfiles deben ir en la build | Mantenerlos en la raíz con enlaces simbólicos (frágil en Windows y CI) |
+| 009 | Formato RPGM1 (implementado): `SEED` de 13 caracteres fijos; `PARAMS` **posicional por esquema del generador** (`ParamSchema` por `ESC`+`GEN`: campos ordenados entero `[min,max]` / booleano / enumerado cerrado con `capacity`, cada uno con defecto), codificado como entero de base mixta de dígitos relativos al defecto, primer campo menos significativo, en Base32 Crockford sin ceros a la izquierda (`0` = todo por defecto); control ISO/IEC 7064 MOD 37,36 sobre el cuerpo, comprobado antes que el contenido. Detalle en §5.3 | Corto y fácil de dictar (decisión de Víctor, 2026-11-24): 4 parámetros = 3 caracteres, código de 37; los defectos del final no ocupan nada sin necesidad de marcas; texto único por valores; añadir campos al final o ids dentro de `capacity` no rompe códigos; 64 bits no caben en 12 caracteres; MOD 37,36 detecta toda sustitución simple y transposición adyacente sin símbolos raros | Texto canónico `clave=<i\|b\|s><valor>` en Base32 (primera versión de F0: ~70 car. solo `PARAMS` con 4 parámetros); compresión deflate; marcas de presencia por campo; suma mod 37 con alfabeto de Crockford extendido |
+| 010 | Unidades: mm enteros; convención 1 ft = 300 mm y 1 mi = 10/6 km; exacta 1 ft = 304,8 mm. Tamaños en décimas de pie (`space_ft_x10`) | Sin floats en el modelo; 2,5 ft no es entero en pies | Guardar floats en metros |
+| 011 | Licencias de reglas: se **descarta Daggerheart** (DPCGL); PF2e se mantiene bajo ORC con `pf2e.json` licenciado ORC (no GPL) y aviso ORC completo; el modo `bands` queda como mecanismo genérico | DPCGL 2.0 no permite software/videojuegos fuera de VTT de lista blanca no comerciales y es revocable/modificable; ORC es irrevocable, cubre todo medio y su copyleft se limita a las mecánicas | Pedir permiso a Darrington Press; perfil Daggerheart descargable aparte (sigue sin ser un formato permitido) |
+| 012 | Rejilla hexagonal opcional **en todas las escalas**, también táctica; geometría tras una interfaz de rejilla (cuadrada/hex) | Lo pide Víctor; muchas mesas juegan en hex | Hex solo en región/mundo |
+| 013 | Intercambio con otras VTT: **Universal VTT** (`.uvtt`/`.dd2vtt`) en F3; Foundry y otros después de v1 | Formato abierto, sencillo y muy extendido; el de Foundry cambia entre versiones mayores | Foundry en v1; solo exportar |
+| 014 | Impresión a escala real (PDF por páginas) antes de v1, no en F1; F1 exporta PNG a px/casilla conocidos | Godot no genera PDF de forma nativa; F1 debe centrarse en generadores | Impresión desde F1; solo PNG |
+| 015 | Estilos arquitectónicos como datos (`data/styles/`); v1 con humano, enano y élfico | Lo pide Víctor; como datos, añadir culturas no toca código | Un único estilo genérico en v1 |
+| 016 | Cliente web servido **por la app del DM** (por defecto, mismo origen que el WSS) y **imagen Docker** como alternativa (NAS) | Sin infraestructura obligatoria; Docker para quien ya tiene NAS y certificado propio | Solo NAS; web estática pública (contenido mixto y certificados autofirmados) |
 
 ## 18. Riesgos
 
@@ -287,8 +315,4 @@ Todos los JSON tienen `schema_version` y esquema en `data/schemas/`. Migraciones
 
 ## 19. Preguntas abiertas
 
-1. ¿Rejilla hexagonal también en mapas tácticos o solo en región?
-2. ¿Dónde se aloja el cliente web por defecto (NAS en Docker como Surimapa, u otro)?
-3. ¿Importadores concretos de otras herramientas (Foundry VTT, Universal VTT/`.dd2vtt`) y en qué fase?
-4. ¿Se necesita impresión a escala real (1 pulgada por casilla) desde la F1?
-5. ¿Plantillas de estilo arquitectónico por cultura (élfica, enana…) en v1 o después?
+Ninguna por ahora. Resueltas el 2026-11-24: hex táctico (ADR 012), cliente web (ADR 016), importadores (ADR 013), impresión a escala (ADR 014), estilos culturales (ADR 015).
