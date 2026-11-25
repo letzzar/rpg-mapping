@@ -170,3 +170,41 @@ UI_UVTT_DROPPED,"{n} casillas de muro diagonal o curvo aproximadas en escalera",
 UVTT_ERR_JSON,El fichero no es un Universal VTT válido (JSON),The file is not a valid Universal VTT (JSON)
 UVTT_ERR_RESOLUTION,"Al fichero le falta ""resolution""","The file has no ""resolution"""
 UVTT_ERR_SIZE,"Tamaño de mapa no válido (de 1 a 512 casillas por lado)","Invalid map size (1 to 512 squares per side)"
+CMD_SET_TOKEN_CHARACTER,Dar ficha a jugador,Give token to player
+UI_NET_HOST,Partida en red,Network game
+UI_NET_PORT,Puerto,Port
+UI_NET_START,Abrir partida,Open game
+UI_NET_STOP,Cerrar partida,Close game
+UI_NET_STOPPED,"Partida cerrada. Ábrela para que los jugadores se conecten desde el navegador.","Game closed. Open it so players can connect from their browser."
+UI_NET_LISTENING,"Partida abierta · sala {room}","Game open · room {room}"
+UI_NET_ADDRESSES,"Direcciones: {urls}","Addresses: {urls}"
+UI_NET_NO_WEB,"No se encontró el cliente web (carpeta «web» junto al ejecutable con la exportación Web): los jugadores no podrán abrir la página.","Web client not found (a ""web"" folder next to the executable with the Web export): players will not be able to open the page."
+UI_NET_CERT,"Huella del certificado: {fp}","Certificate fingerprint: {fp}"
+UI_NET_START_FAILED,"No se pudo abrir la partida: {error}","Could not open the game: {error}"
+UI_NET_PLAYER_NAME,Nombre del jugador,Player name
+UI_NET_ADD_PLAYER,Añadir jugador,Add player
+UI_NET_PLAYERS,"Jugadores ({connected} de {total} conectados)","Players ({connected} of {total} connected)"
+UI_NET_CONNECTED,conectado,connected
+UI_NET_OFFLINE,sin conectar,not connected
+UI_NET_TOKENS,"{n} fichas","{n} tokens"
+UI_NET_COPY_LINK,Copiar enlace,Copy link
+UI_NET_ASSIGN,Darle la ficha seleccionada,Give selected token
+UI_NET_REMOVE,Quitar,Remove
+UI_NET_LINK_COPIED,"Enlace de {name} copiado: envíaselo.","{name}'s link copied: send it to them."
+UI_NET_ASSIGNED,"{token} es ahora de {name}.","{token} now belongs to {name}."
+UI_NET_SELECT_TOKEN,"Selecciona antes una ficha (clic sobre ella).","Select a token first (click on it)."
+UI_NET_HELP,"Envía a cada jugador su enlace. La primera vez su navegador avisará de que el certificado no es de confianza: hay que aceptarlo (es el de esta partida; la huella está arriba).","Send each player their link. The first time, their browser will warn that the certificate is not trusted: they must accept it (it is this game's; the fingerprint is above)."
+UI_NET_PING,{name} señala aquí,{name} points here
+NET_CONNECTING,Conectando con la partida…,Connecting to the game…
+NET_WELCOME,"Conectado como {name} · {title}. Arrastra tu ficha para moverla; doble clic para señalar una casilla.","Connected as {name} · {title}. Drag your token to move it; double-click to point at a square."
+NET_CLOSED,"Se perdió la conexión con la partida. Recarga la página para volver.","Lost connection to the game. Reload the page to rejoin."
+NET_ERR_ROOM,"El enlace no es de esta partida (sala distinta). Pide uno nuevo al DM.","The link is not for this game (different room). Ask the DM for a new one."
+NET_ERR_TOKEN,"Ese enlace de jugador no existe (el DM lo quitó o abrió otra partida).","That player link does not exist (the DM removed it or opened another game)."
+NET_ERR_PROTOCOL,Mensaje no válido: conexión cerrada.,Invalid message: connection closed.
+NET_ERR_KICKED,El DM te ha quitado de la partida.,The DM removed you from the game.
+NET_MOVE_NOT_YOURS,Esa ficha no es tuya.,That token is not yours.
+NET_MOVE_UNKNOWN_CELL,No sabes qué hay ahí (sin explorar).,You do not know what is there (unexplored).
+NET_MOVE_OCCUPIED,Esa casilla está ocupada.,That square is occupied.
+NET_MOVE_NO_ROUTE,No hay camino hasta ahí.,There is no path there.
+NET_MOVE_INVALID,Movimiento no válido.,Invalid move.
+NET_MOVE_NO_MAP,El DM aún no ha abierto un mapa.,The DM has not opened a map yet.

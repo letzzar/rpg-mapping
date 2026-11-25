@@ -1,6 +1,31 @@
 # SESSION_HANDOFF — RPG Mapping
 
-## Última sesión: 2026-11-25 (10.ª) — F3: Universal VTT (último punto de F3)
+## Última sesión: 2026-11-25 (11.ª) — F4: partida en red (primera entrega)
+Tests: **239/239 en escritorio (32514 asserts) y 239/239 en el navegador** (18 nuevos: `test_net_protocol.gd`, `test_net_session.gd`, `test_net_wss.gd`; los 3 de sockets quedan pendientes en web porque allí no hay servidor TCP). 45 seeds doradas sin cambios. **Criterio de F4 medido**: 8 clientes WSS reales en 127.0.0.1, peor latencia de propuesta → los 8 ven la ficha movida = **76 ms** (< 150 ms).
+
+Probado con la app y Chrome: la app del DM (script con `main.tscn`) abre la partida, sirve la exportación Web por HTTPS y Chrome entra con el enlace `https://127.0.0.1:47830/?sala=…&t=…`: "Conectado como Ana · Mazmorra", ve solo lo explorado y encuadrado. **No probado** en el navegador: arrastrar y señalar (Chrome sin ventana no pasa los clics sintéticos a Godot y el navegador integrado rechaza el certificado autofirmado); esa ruta sí la cubren las pruebas con sockets reales.
+
+### Hecho (ADR 031; detalle en PROYECTO §11)
+- `net/`: `WsCodec`, `WssServer` (HTTPS + WSS en un puerto, gzip, `Origin`), `NetCertificate` (autofirmado en `user://net/server.key|crt`, sustituible), `NetMessage`, `PlayerView` (niebla filtrada en el servidor), `GameSession` (sala + códigos, validación de movimientos, señales, solo cambios), `NetClient`, `ProposalStack`.
+- Modelo: `SetTokenCharacterCommand` (dar ficha a un jugador, `character_ref = player:<id>`), `MapLevel.load_explored`.
+- Vista 2D: señales (`show_ping`, anillos 2,5 s con el nombre) y `fit_region`.
+- UI: botón "Partida en red" (solo escritorio) con panel lateral; modo jugador en web con `?sala=&t=`; textos `UI_NET_*`, `NET_*`, `CMD_SET_TOKEN_CHARACTER`.
+- Error encontrado y corregido: con escrituras TLS de 64 KB Chrome recibía el `.wasm` con 16 379 bytes de menos (ERR_CONTENT_DECODING_FAILED); ahora 4 KB por escritura y reintento idéntico (comentado en `WssServer._flush`).
+
+### Cómo probarla (Víctor)
+1. Exportar Web (`godot --headless --path project --export-release "Web" ../build/web/index.html`); al ejecutar desde el proyecto se sirve `build/web`; en una build, copiar esa carpeta como `web/` junto al ejecutable.
+2. En la app: generar mapa, añadir fichas, "Partida en red" → "Abrir partida" → nombre → "Añadir jugador" → clic en una ficha → "Darle la ficha seleccionada" → "Copiar enlace".
+3. Abrir el enlace en otro equipo de la red (aceptar el aviso del certificado; Windows puede pedir permiso de cortafuegos para Godot/la app).
+
+### Siguiente paso
+1. Prueba manual de Víctor con 2-3 navegadores reales (y de F3, pendiente).
+2. Pendiente de F4: QR del enlace; vista del jugador en 3D/1.ª persona con la niebla del servidor (hoy usa la misma ruta, sin probar a fondo); señal del DM; opción de que los jugadores abran puertas; imagen Docker (ADR 016, alternativa).
+
+### Limitaciones conocidas (F4)
+- Visión compartida por el grupo (no por personaje); puertas y escaleras solo las maneja el DM; el movimiento no cambia de nivel.
+- Los jugadores de una partida anterior se conservan al reabrir, con enlaces nuevos (sala nueva).
+- El servidor HTTP es mínimo: GET, sin keep-alive ni rangos; carga los ficheros web en memoria (~40 MB + ~10 MB comprimido).
+## Sesión anterior: 2026-11-25 (10.ª) — F3: Universal VTT (último punto de F3)
 Tests: **221/221, 31691 asserts, idénticos en escritorio y navegador** (10 nuevos en `tests/unit/test_uvtt.gd`); 45 seeds doradas sin cambios; `play_f2.gd` 0 fallos. Probado en la app real: exportar con imagen la mazmorra de ejemplo (48×36, 4800×3600 px, 110 tramos, 19 puertas), la sala común EST G2 (2 luces) y el pueblo amurallado (192×142 a 42 px/casilla = 8064 px, ~2 s) y reimportarlos (los muros y puertas coinciden con la imagen).
 
 **Con esto F3 tiene todo su contenido** (EDI, ALD, plantas, navegación aldea → edificio → estancia, estilos, Universal VTT) y cumple su criterio (estancia aislada = dentro de la aldea, EST G2). Falta la prueba manual de Víctor.

@@ -399,6 +399,20 @@ func set_explored(viewer: String, cell: Vector2i, value: bool) -> bool:
 	return old
 
 
+## Sustituye la niebla de `viewer` (1 byte por casilla, distinto de 0 =
+## explorada). La usa el cliente de red, que recibe la niebla ya calculada.
+## false (y no cambia nada) si el tamaño no es el del mapa.
+func load_explored(viewer: String, bytes: PackedByteArray) -> bool:
+	if bytes.size() != grid.cell_count():
+		return false
+	var fb: PackedByteArray = PackedByteArray()
+	fb.resize(bytes.size())
+	for i: int in bytes.size():
+		fb[i] = 1 if bytes[i] != 0 else 0
+	_fog[viewer] = fb
+	return true
+
+
 func clear_fog(viewer: String) -> void:
 	_fog.erase(viewer)
 

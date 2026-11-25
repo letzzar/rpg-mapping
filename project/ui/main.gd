@@ -1,7 +1,10 @@
 extends Control
 ## Pantalla principal: generar un mapa desde un código de semilla, verlo en
 ## 2D, 3D cenital o 1ª persona (F2), mover fichas, medir, explorar con
-## niebla de guerra y exportar a PNG.
+## niebla de guerra y exportar a PNG. Partida en red (F4, ADR 031): el DM la
+## abre con el panel "Partida en red"; en el navegador, una URL con ?sala=…&t=…
+## abre el modo jugador (solo ve lo que el servidor le envía y propone
+## movimientos).
 ##
 ## La interfaz se construye por código para mantener la escena mínima. Todos
 ## los textos salen de i18n/strings.csv.
@@ -49,6 +52,15 @@ var _nav: MapNavigator = MapNavigator.new()
 var _back_btn: Button
 var _profiles: Array[SystemProfile] = []
 var _token_counter: int = 0
+## Controles que solo tiene el DM (se ocultan en modo jugador).
+var _dm_only: Array[Control] = []
+## Partida en red: panel del DM (escritorio) y cliente (modo jugador).
+var _net_panel: NetHostPanel = null
+var _net_btn: Button = null
+var _client: NetClient = null
+var _proposals: ProposalStack = null
+## Última ficha seleccionada en las vistas (para dársela a un jugador).
+var _selected_token: int = -1
 
 
 func _ready() -> void:
@@ -56,6 +68,11 @@ func _ready() -> void:
 	_load_profiles()
 	_build_ui()
 	_status.text = tr("UI_HELP")
+	var params: Dictionary = _join_params()
+	if not params.is_empty():
+		var room: String = params["room"]
+		var token: String = params["token"]
+		_start_client(room, token)
 
 
 func _load_profiles() -> void:
@@ -85,12 +102,16 @@ func _build_ui() -> void:
 	_code_edit.custom_minimum_size = Vector2(340, 0)
 	_code_edit.text_submitted.connect(func(_t: String) -> void: _generate_from_text())
 	bar.add_child(_code_edit)
-	bar.add_child(_button("UI_GENERATE", _generate_from_text))
+	var gen_btn: Button = _button("UI_GENERATE", _generate_from_text)
+	bar.add_child(gen_btn)
+	_dm_only.append_array([_code_edit, gen_btn])
 	_scale_opt = OptionButton.new()
 	for sc_id: String in SCALES:
 		_scale_opt.add_item(tr("UI_SCALE_" + sc_id))
 	bar.add_child(_scale_opt)
-	bar.add_child(_button("UI_RANDOM", _generate_random))
+	var rnd_btn: Button = _button("UI_RANDOM", _generate_random)
+	bar.add_child(rnd_btn)
+	_dm_only.append_array([_scale_opt, rnd_btn])
 	_back_btn = _button("UI_NAV_BACK", _go_back)
 	_back_btn.visible = false
 	bar.add_child(_back_btn)
@@ -105,6 +126,7 @@ func _build_ui() -> void:
 	for g: String in GRID_OPTIONS:
 		_grid_opt.add_item(tr("UI_GRID_" + g.to_upper()))
 	bar.add_child(_grid_opt)
+	_dm_only.append_array([_system_opt, _grid_opt])
 
 	_units_opt = OptionButton.new()
 	for k: String in UNIT_OPTIONS:
@@ -116,18 +138,25 @@ func _build_ui() -> void:
 	_level_opt.item_selected.connect(_on_level_selected)
 	bar.add_child(_level_opt)
 
-	bar.add_child(_button("UI_ADD_TOKEN", _add_token))
+	var add_btn: Button = _button("UI_ADD_TOKEN", _add_token)
+	bar.add_child(add_btn)
 	_undo_btn = _button("UI_UNDO", _undo)
 	_redo_btn = _button("UI_REDO", _redo)
 	bar.add_child(_undo_btn)
 	bar.add_child(_redo_btn)
 	bar.add_child(_button("UI_FIT", _fit))
 	bar.add_child(_button("UI_EXPORT_PNG", _export_png))
-	bar.add_child(_button("UI_EXPORT_UVTT", _export_uvtt))
+	var uvtt_btn: Button = _button("UI_EXPORT_UVTT", _export_uvtt)
+	bar.add_child(uvtt_btn)
+	_dm_only.append_array([add_btn, _undo_btn, _redo_btn, uvtt_btn])
 	# En web no hay diálogo para abrir ficheros locales (de momento solo se
 	# exporta, con descarga).
 	if not OS.has_feature("web"):
 		bar.add_child(_button("UI_IMPORT_UVTT", _import_uvtt))
+		# Partida en red: el servidor solo puede abrirlo la app de escritorio.
+		_net_btn = _button("UI_NET_HOST", _toggle_net_panel)
+		_net_btn.toggle_mode = true
+		bar.add_child(_net_btn)
 
 	_view_opt = OptionButton.new()
 	for k: String in VIEW_OPTIONS:
@@ -148,15 +177,28 @@ func _build_ui() -> void:
 	_torch_chk.button_pressed = true
 	_torch_chk.toggled.connect(func(_b: bool) -> void: _refresh_vision())
 	bar.add_child(_torch_chk)
+	_dm_only.append_array([_audience_opt, _ambient_chk, _torch_chk])
 	_load_carried_light()
 
+	var middle: HBoxContainer = HBoxContainer.new()
+	middle.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root.add_child(middle)
 	_map_area = Control.new()
 	_map_area.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_map_area.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_map_area.clip_contents = true
 	# El área del mapa recoge el ratón y se lo pasa a la vista: con PASS el
 	# evento subía hasta este Control raíz (STOP) y la vista no lo recibía.
 	_map_area.mouse_filter = Control.MOUSE_FILTER_STOP
-	root.add_child(_map_area)
+	middle.add_child(_map_area)
+	if not OS.has_feature("web"):
+		_net_panel = NetHostPanel.new()
+		_net_panel.visible = false
+		middle.add_child(_net_panel)
+		_net_panel.move_approved.connect(_on_net_move_approved)
+		_net_panel.pinged.connect(func(li: int, cell: Vector2i, who: String) -> void: _view.show_ping(li, cell, who))
+		_net_panel.assign_requested.connect(_assign_token_to_player)
+		_net_panel.status.connect(func(text: String) -> void: _status.text = text)
 
 	_view = MapView2D.new()
 	_view.status_changed.connect(func(t: String) -> void: _status.text = t)
@@ -164,7 +206,9 @@ func _build_ui() -> void:
 	_map_area.add_child(_view)
 	_map_area.gui_input.connect(_view.process_input)
 	_view.user_command_done.connect(_on_user_command)
-	_view.token_selected.connect(func(id: int) -> void: _view3d.selected_token = id)
+	_view.token_selected.connect(func(id: int) -> void:
+		_view3d.selected_token = id
+		_selected_token = id)
 	_view.cell_activated.connect(_on_cell_activated)
 
 	# Vista 3D en su propio SubViewport (mundo 3D propio). El contenedor
@@ -190,7 +234,9 @@ func _build_ui() -> void:
 	_view3d.status_changed.connect(func(t: String) -> void: _status.text = t)
 	_view3d.user_command_done.connect(_on_user_command)
 	_view3d.cell_activated.connect(_on_cell_activated)
-	_view3d.token_selected.connect(func(id: int) -> void: _status.text = tr("UI_TOKEN_SELECTED").replace("{name}", _doc.token(id).name))
+	_view3d.token_selected.connect(func(id: int) -> void:
+		_selected_token = id
+		_status.text = tr("UI_TOKEN_SELECTED").replace("{name}", _doc.token(id).name))
 
 	_status = Label.new()
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -345,11 +391,16 @@ func _set_document(doc: MapDocument, stack: CommandStack, level: int) -> void:
 	_fit.call_deferred()
 	_refresh_buttons()
 	_refresh_vision()
+	_share_document()
 
 
 func _on_doc_changed(_level: int, layer: String) -> void:
 	if layer != MapDocument.LAYER_FOG:
 		_queue_vision()
+	if _net_panel != null:
+		_net_panel.mark_dirty()
+		if layer == MapDocument.LAYER_TOKENS:
+			_net_panel.refresh()
 
 
 # --- Navegación aldea → edificio (F3) -----------------------------------------
@@ -358,6 +409,10 @@ func _on_doc_changed(_level: int, layer: String) -> void:
 ## las fichas del grupo de este nivel.
 func _on_cell_activated(cell: Vector2i) -> void:
 	if _doc == null:
+		return
+	if _client != null:
+		# Modo jugador: doble clic = señalar la casilla a todos.
+		_client.send_ping(_view.level_index, cell)
 		return
 	var child: MapChild = _doc.level(_view.level_index).child_at(cell)
 	# Estancia de un edificio (EST G2, ADR 029): se calcula al vuelo, el
@@ -420,6 +475,7 @@ func _entrance_level(doc: MapDocument) -> int:
 
 
 func _apply_profile() -> void:
+	_share_document()
 	_view.profile = _current_profile()
 	_view.queue_redraw()
 	if _view3d != null:
@@ -454,6 +510,13 @@ func _on_level_selected(i: int) -> void:
 
 
 func _fit() -> void:
+	if _client != null and _doc != null:
+		# Modo jugador: el mapa entero es casi todo desconocido; se encuadra
+		# lo explorado en el nivel mostrado.
+		var known: Rect2i = _explored_bounds(_view.level_index)
+		if known.size.x > 0:
+			_view.fit_region(known, Rect2(Vector2.ZERO, _map_area.size))
+			return
 	_view.fit_to(Rect2(Vector2.ZERO, _map_area.size))
 	if _view3d != null and _view_opt.selected == VIEW_3D:
 		_view3d.fit()
@@ -536,6 +599,21 @@ func _refresh_vision() -> void:
 	if _doc == null:
 		return
 	var lvl_i: int = _view.level_index
+	if _client != null:
+		# Modo jugador: lo visible lo calcula el servidor (niebla filtrada en
+		# el servidor, ADR 031) y la niebla viene en la copia del mapa.
+		var seen: PackedByteArray = _client.visible_of(lvl_i)
+		if seen.is_empty():
+			seen.resize(_doc.grid.cell_count())
+			seen.fill(0)
+		var known: PackedByteArray = _doc.level(lvl_i).explored(PartyVision.VIEWER_PARTY)
+		_view.dm_view = false
+		_view.set_fog(true, seen, known)
+		_view3d.dm_view = false
+		_view3d.set_fog(true, seen, known)
+		return
+	if _net_panel != null:
+		_net_panel.set_vision_options(_vision_options())
 	var players: bool = _players_view()
 	var r: PartyVision.Result = PartyVision.compute(_doc, lvl_i, _current_profile(), _vision_options())
 	var explored: PackedByteArray = _doc.level(lvl_i).explored(PartyVision.VIEWER_PARTY)
@@ -548,7 +626,7 @@ func _refresh_vision() -> void:
 ## Tras mover una ficha, abrir una puerta o añadir una ficha: explora lo que
 ## ve ahora el grupo, unido al mismo paso de deshacer.
 func _on_user_command() -> void:
-	if _doc == null or _stack == null:
+	if _doc == null or _stack == null or _client != null:
 		return
 	var lvl_i: int = _view.level_index
 	var r: PartyVision.Result = PartyVision.compute(_doc, lvl_i, _current_profile(), _vision_options())
@@ -768,3 +846,151 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	elif k.keycode == KEY_Y or (k.keycode == KEY_Z and k.shift_pressed):
 		_redo()
 		get_viewport().set_input_as_handled()
+
+
+# --- Partida en red (F4, ADR 031) ---------------------------------------------
+
+func _toggle_net_panel() -> void:
+	_net_panel.visible = _net_btn.button_pressed
+	_fit.call_deferred()
+
+
+## El panel del DM comparte el mapa mostrado (y su sistema) con los jugadores.
+func _share_document() -> void:
+	if _net_panel == null or _doc == null:
+		return
+	var f: MapNavigator.Frame = _nav.current()
+	_net_panel.set_document(_doc, _current_profile(), _frame_name(f) if f != null and f.doc == _doc else "")
+
+
+## Movimiento de un jugador ya validado por la sesión: se ejecuta en el
+## historial del DM (puede deshacerlo) y explora como cualquier otro.
+func _on_net_move_approved(cmd: MoveTokenCommand) -> void:
+	if _stack == null or _doc == null or _doc.token(cmd.token_id) == null:
+		return
+	if _stack.execute(cmd):
+		_on_user_command()
+
+
+func _assign_token_to_player(player_ref: String, player_name: String) -> void:
+	var t: MapToken = _doc.token(_selected_token) if _doc != null else null
+	if t == null:
+		_status.text = tr("UI_NET_SELECT_TOKEN")
+		return
+	_stack.execute(SetTokenCharacterCommand.new(t.id, player_ref))
+	_status.text = tr("UI_NET_ASSIGNED").replace("{token}", t.name).replace("{name}", player_name)
+
+
+## Parámetros de invitación de la URL de la página (?sala=…&t=…) en web; {}
+## si no los hay (app normal).
+func _join_params() -> Dictionary:
+	if not OS.has_feature("web"):
+		return {}
+	var search: Variant = JavaScriptBridge.eval("window.location.search")
+	if typeof(search) != TYPE_STRING:
+		return {}
+	var query: String = search
+	var room: String = ""
+	var token: String = ""
+	for part: String in query.trim_prefix("?").split("&"):
+		var kv: PackedStringArray = part.split("=")
+		if kv.size() != 2:
+			continue
+		if kv[0] == "sala":
+			room = kv[1].uri_decode()
+		elif kv[0] == "t":
+			token = kv[1].uri_decode()
+	if room.is_empty() or token.is_empty():
+		return {}
+	return {"room": room, "token": token}
+
+
+## Modo jugador: se conecta al WSS del mismo origen que la página.
+func _start_client(room: String, token: String) -> void:
+	for c: Control in _dm_only:
+		c.visible = false
+	_audience_opt.select(1)
+	_proposals = ProposalStack.new()
+	_proposals.accept = _propose
+	_client = NetClient.new()
+	_client.map_reset.connect(_on_client_map)
+	_client.vision_changed.connect(func(_i: int) -> void: _queue_vision())
+	_client.pinged.connect(func(li: int, cell: Vector2i, who: String) -> void: _view.show_ping(li, cell, who))
+	_client.notice.connect(func(key: String) -> void: _status.text = tr(key))
+	_client.denied.connect(func(key: String) -> void: _status.text = tr(key))
+	_client.closed.connect(func() -> void: _status.text = tr("NET_CLOSED"))
+	_client.welcomed.connect(func(_n: String) -> void: _status.text = _client_welcome())
+	var host: Variant = JavaScriptBridge.eval("window.location.host")
+	var url: String = "wss://%s/ws" % str(host)
+	if _client.connect_to(url, room, token) != OK:
+		_status.text = tr("NET_CLOSED")
+		return
+	_status.text = tr("NET_CONNECTING")
+
+
+func _client_welcome() -> String:
+	return tr("NET_WELCOME").replace("{name}", _client.player_name).replace("{title}", _client.title)
+
+
+func _process(_delta: float) -> void:
+	if _client != null:
+		_client.poll()
+
+
+## Mapa nuevo del servidor: se muestra en el nivel de la ficha propia.
+func _on_client_map() -> void:
+	for i: int in _profiles.size():
+		if _profiles[i].seed_code == _client.system_code:
+			_system_opt.select(i)
+	_view.profile = _current_profile()
+	_view3d.profile = _current_profile()
+	_set_document(_client.document, _proposals, 0)
+	_status.text = _client_welcome()
+	# Las fichas llegan después del mapa: al llegar, se va al nivel de la propia.
+	if not _client.document.changed.is_connected(_follow_own_token):
+		_client.document.changed.connect(_follow_own_token)
+
+
+## La primera vez que llegan las fichas (después de los niveles), muestra el
+## nivel de la propia y encuadra lo explorado.
+func _follow_own_token(_level: int, layer: String) -> void:
+	if layer != MapDocument.LAYER_TOKENS or _client == null:
+		return
+	_client.document.changed.disconnect(_follow_own_token)
+	for t: MapToken in _client.document.tokens:
+		if _client.owns(t) and t.level != _view.level_index:
+			_level_opt.select(t.level)
+			_on_level_selected(t.level)
+			break
+	_fit.call_deferred()
+
+
+## Rectángulo de casillas exploradas del nivel (vacío si no hay ninguna).
+func _explored_bounds(level: int) -> Rect2i:
+	var lvl: MapLevel = _doc.level(level)
+	if lvl == null:
+		return Rect2i()
+	var known: PackedByteArray = lvl.explored(PartyVision.VIEWER_PARTY)
+	var lo: Vector2i = Vector2i(1 << 30, 1 << 30)
+	var hi: Vector2i = Vector2i(-1, -1)
+	for i: int in known.size():
+		if known[i] != 0:
+			var c: Vector2i = _doc.grid.cell_at(i)
+			lo = Vector2i(mini(lo.x, c.x), mini(lo.y, c.y))
+			hi = Vector2i(maxi(hi.x, c.x), maxi(hi.y, c.y))
+	if hi.x < 0:
+		return Rect2i()
+	return Rect2i(lo, hi - lo + Vector2i.ONE)
+
+
+## Lo que una vista "ejecuta" en modo jugador: solo mover fichas propias, que
+## se envía como propuesta; el resto (puertas…) lo hace el DM.
+func _propose(cmd: MapCommand) -> bool:
+	var mv: MoveTokenCommand = cmd as MoveTokenCommand
+	if mv == null or _client == null:
+		return false
+	if not _client.owns(_client.document.token(mv.token_id)):
+		_status.text = tr("NET_MOVE_NOT_YOURS")
+		return false
+	_client.propose_move(mv.token_id, mv.to_level, mv.to_cell)
+	return true

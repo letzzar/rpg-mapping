@@ -42,6 +42,10 @@ const COL_ROOF: Color = Color("b9785a")
 const COL_PATH_OK: Color = Color(0.11, 0.31, 0.49, 0.9)
 const COL_PATH_FAR: Color = Color(0.70, 0.15, 0.10, 0.9)
 const COL_RULER: Color = Color(0.55, 0.37, 0.12, 0.95)
+const COL_PING: Color = Color("5fb4d6")
+const COL_PING_TEXT: Color = Color("1d4f7c")
+## Duración de una señal en pantalla.
+const PING_MS: int = 2500
 const TERRAIN_COLORS: Array[Color] = [
 	Color("2b1d14"),  # void
 	Color("fbf0d2"),  # floor
@@ -95,6 +99,8 @@ var _bg_source: Image = null
 var _bg_texture: ImageTexture = null
 ## Fichas en el dibujo (PngExporter las quita para exportar a otra mesa).
 var show_tokens: bool = true
+## Señales activas: {level, cell, who, start (ms)}.
+var _pings: Array[Dictionary] = []
 ## Posición del puntero del último evento, local a la vista y global (canvas).
 var _pointer_local: Vector2 = Vector2.ZERO
 var _pointer_global: Vector2 = Vector2.ZERO
@@ -125,6 +131,20 @@ func fit_to(rect: Rect2) -> void:
 	var z: float = clampf(minf(rect.size.x / size.x, rect.size.y / size.y) * 0.95, ZOOM_MIN, ZOOM_MAX)
 	scale = Vector2(z, z)
 	position = rect.position + (rect.size - size * z) * 0.5
+
+
+## Centra en la pantalla las casillas `cells` (p. ej. lo explorado por un
+## jugador en red) con un margen de una casilla.
+func fit_region(cells: Rect2i, rect: Rect2) -> void:
+	if document == null or cells.size.x <= 0 or cells.size.y <= 0:
+		return
+	var g: GridGeometry = document.grid
+	var a: Vector2 = g.cell_to_pixel(cells.position, cell_px) - Vector2(cell_px, cell_px) * 1.5
+	var b: Vector2 = g.cell_to_pixel(cells.end - Vector2i.ONE, cell_px) + Vector2(cell_px, cell_px) * 1.5
+	var size: Vector2 = b - a
+	var z: float = clampf(minf(rect.size.x / size.x, rect.size.y / size.y), ZOOM_MIN, ZOOM_MAX)
+	scale = Vector2(z, z)
+	position = rect.position + rect.size * 0.5 - (a + size * 0.5) * z
 
 
 # --- Dibujo -------------------------------------------------------------------
@@ -171,6 +191,50 @@ func _draw() -> void:
 	_draw_overlays(g)
 	if show_tokens:
 		_draw_tokens(g)
+	_draw_pings(g)
+
+
+## Señala una casilla unos segundos (partida en red, F4): anillo que se
+## expande con el nombre de quien la señaló.
+func show_ping(p_level: int, cell: Vector2i, who: String) -> void:
+	_pings.append({"level": p_level, "cell": cell, "who": who, "start": Time.get_ticks_msec()})
+	set_process(true)
+	queue_redraw()
+
+
+func _process(_delta: float) -> void:
+	var now: int = Time.get_ticks_msec()
+	var k: int = 0
+	while k < _pings.size():
+		var start: int = _pings[k]["start"]
+		if now - start > PING_MS:
+			_pings.remove_at(k)
+		else:
+			k += 1
+	if _pings.is_empty():
+		set_process(false)
+	queue_redraw()
+
+
+func _draw_pings(g: GridGeometry) -> void:
+	var font: Font = ThemeDB.fallback_font
+	var now: int = Time.get_ticks_msec()
+	for p: Dictionary in _pings:
+		var li: int = p["level"]
+		if li != level_index:
+			continue
+		var cell: Vector2i = p["cell"]
+		var start: int = p["start"]
+		var who: String = p["who"]
+		var f: float = clampf(float(now - start) / float(PING_MS), 0.0, 1.0)
+		var center: Vector2 = g.cell_to_pixel(cell, cell_px)
+		var col: Color = Color(COL_PING, 1.0 - f)
+		for ring: int in 2:
+			var r: float = cell_px * (0.3 + 1.2 * fmod(f * 2.0 + ring * 0.5, 1.0))
+			draw_arc(center, r, 0.0, TAU, 40, col, maxf(2.0, cell_px * 0.08))
+		draw_circle(center, cell_px * 0.12, col)
+		if not who.is_empty():
+			_draw_label(font, center + Vector2(cell_px * 0.4, -cell_px * 0.4), who, COL_PING_TEXT)
 
 
 ## Textura de MapDocument.background_image (se crea una vez por imagen).
