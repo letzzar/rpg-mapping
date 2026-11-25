@@ -64,3 +64,18 @@ RPGM1-PF2E-ALD-G1-28GH-Y619795N-G ae85b3c583efe97af7a5fc426125bb92f2d311acd08b88
 # Edificio hijo (la taberna de la primera aldea): fija que el código EDI que
 # guarda ALD siga regenerando el mismo edificio (criterio de F3).
 RPGM1-DND5-EDI-G1-Y00-BC23VGX8-T b6972f34258f2a3aecc0e100c05477b419a39023c0bc28187d7ce5529ae543c7
+# EST G2 (código de estancia de edificio): esquema aprobado por Víctor
+# (2026-11-25): 7 campos de EDI G1 + level + room, SEED = la del edificio,
+# anillo de 1 casilla copiado del edificio, un nivel (ADR 029). Congelado:
+# cualquier cambio que altere estos hashes exige G3.
+# (sala común, dormitorio y sótano de la taberna de la aldea de ejemplo;
+#  forja hex plana, cripta hex punta en sótano, cocina de 3.ª planta,
+#  dormitorio de posada hex y pasillo del sótano de un cuartel)
+RPGM1-DND5-EST-G2-1QY00-BC23VGX8-9 de9d9172c01a639e64865af605a1bd8d74d24176be27d46f7518473ff90a7c05
+RPGM1-DND5-EST-G2-H6Y00-BC23VGX8-5 f9bceb95527caf703c834d522ef6abba65992b8317e2a0de0ba9881431171406
+RPGM1-DND5-EST-G2-Y00-BC23VGX8-E 7aa4d9b91226964574daa5b01513eefc2f553b90bada0aa11d33d81c24c6dfbd
+RPGM1-PF2E-EST-G2-52-NGYMWQV0-S efa46a234682958bf6a620e89e3fe1dfb08e5faae382191748408bd4a44eae90
+RPGM1-DND5-EST-G2-AA3-QN75YR3H-Y 4b266b3687950252841b7feec54b686ce6a93fa2769075a9e274e088f8af507f
+RPGM1-DND5-EST-G2-1CQE04-SSFP0WC2-N 44326561df7383b38d0e1f3dd7efa819e779c03f249e18f206e71b8833343ebd
+RPGM1-PF2E-EST-G2-2MP015-VXG730MK-X 9a4a7a009fcc7728f1344c4e8c568955a9f05ea38d9cb27bd04b32c9646c3bc5
+RPGM1-DND5-EST-G2-A46-W1RR54X4-J 5fd9e6d05ee53e4e08163ea19da71382b58705a1be1428d4db6671af8542109d

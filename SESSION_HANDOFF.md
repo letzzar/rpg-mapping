@@ -14,14 +14,12 @@ Tests: **211/211, 28324 asserts, idénticos en escritorio y navegador** (10 nuev
 - Detalle conocido: `content_hash()` incluye `next_id`, que avanza al añadir una ficha (sesión). No se cambia (alteraría todas las seeds doradas); para comparar contenido con fichas, comparar los niveles.
 - Medido: estancia 8-13 ms de media (peor 21) frente a 31-48 ms del edificio; posada hex 33 ms frente a 154 ms; `rooms_of` 6-35 ms. PNG de revisión en el scratchpad de la sesión (`est_g2_png`).
 
-### Pendiente de Víctor
-- **Aprobar el esquema EST G2** (tabla en §6.5). Después, grabar seeds doradas EST G2 (p. ej. las 3 de abajo + estancias de las seeds doradas EDI en hex y con sótano) con `RPGM_GOLDEN_RECORD=1`.
-- (La navegación edificio → estancia ya está hecha, ver arriba.)
+### Aprobado (2026-11-25)
+- **EST G2 aprobado por Víctor y congelado** con 8 seeds doradas (45 en total): sala común, dormitorio y sótano de la taberna de la aldea de ejemplo; forja hex plana; cripta hex punta en sótano; cocina de 3.ª planta; dormitorio de posada hex; pasillo del sótano de un cuartel. 211/211 en escritorio y navegador.
 
 ### Siguiente paso
-1. Tras aprobar EST G2: seeds doradas EST G2 en su propio commit.
-2. Universal VTT (F3), último punto de F3.
-3. Escaleras de una estancia sola (−1/+1): hoy no llevan a ningún sitio; podrían "salir al edificio" en el nivel de destino.
+1. Universal VTT (F3), último punto de F3.
+2. Escaleras de una estancia sola (−1/+1): hoy no llevan a ningún sitio; podrían "salir al edificio" en el nivel de destino.
 
 ### Códigos EST G2 para probar (taberna `RPGM1-DND5-EDI-G1-Y00-BC23VGX8-T` de la aldea `RPGM1-DND5-ALD-G1-0-H8DJRFAE-W`)
 `RPGM1-DND5-EST-G2-1QY00-BC23VGX8-9` (sala común, nivel 1) · `RPGM1-DND5-EST-G2-FFY00-BC23VGX8-P` (cocina) · `RPGM1-DND5-EST-G2-X7Y00-BC23VGX8-H` (almacén) · `RPGM1-DND5-EST-G2-Y00-BC23VGX8-E` (almacén del sótano, nivel 0) · `RPGM1-DND5-EST-G2-H6Y00-BC23VGX8-5` (dormitorio, nivel 2) · `RPGM1-DND5-EST-G2-3EY00-BC23VGX8-2` (pasillo, hub).
