@@ -65,6 +65,10 @@ extends RefCounted
 ## 6. Amueblado de cada estancia con EstFurnisherG1 (entradas = casillas de
 ##    sus puertas y escaleras, que quedan libres y conectadas).
 ##
+## Otras entradas que NO cambian la salida (las vigilan las seeds doradas):
+## plan_ground_floor() (ALD G1, ADR 027) y plan_building() + furnish_room()
+## (EST G2, código de estancia de edificio, ADR 029).
+##
 ## Garantías por construcción: toda estancia queda unida a la raíz de su planta
 ## por puertas (paso 3; la partición del rectángulo es conexa) y las plantas
 ## por escaleras, así que toda casilla transitable se alcanza desde la entrada
@@ -212,8 +216,27 @@ static func footprint_size(bt: EdiData.BuildingType, sb: EdiData.StyleBuilding, 
 
 
 ## Edificio completo a partir de sus parámetros y su Rng (puro). null si el
-## tipo, el estilo o la rejilla no existen.
+## tipo, el estilo o la rejilla no existen. Es plan_building() + el amueblado
+## de cada estancia, planta a planta y en orden de slot (el orden de las
+## llamadas a allocate_id() es el de siempre: la salida de G1 no cambia).
 static func generate_building(p: Params, rng: Rng) -> Result:
+	var res: Result = plan_building(p, rng)
+	if res == null:
+		return null
+	for f2: Floor in res.floors:
+		_furnish_floor(res.doc, f2, p, rng.seed_value)
+	return res
+
+
+## Edificio SIN amueblar: plantas, estancias, puertas, ventanas y escaleras ya
+## volcadas al documento, exactamente como las deja generate_building() antes
+## de amueblar (el amueblado es el último paso y no toca terreno, zonas,
+## aristas ni escaleras). Lo usa EST G2 (código de estancia de edificio, ADR
+## 029): amueblar después UNA estancia con furnish_room() da los mismos objetos
+## que en el edificio completo, porque EstFurnisherG1 solo lee las casillas de
+## su estancia y las aristas entre ellas (no los objetos de otras estancias);
+## solo cambian los ids. Coste: la distribución, sin el amueblado que domina.
+static func plan_building(p: Params, rng: Rng) -> Result:
 	var data: EdiData = EdiData.load_default()
 	if not data.is_valid():
 		return null
@@ -264,8 +287,6 @@ static func generate_building(p: Params, rng: Rng) -> Result:
 		_commit_floor(doc, cf)
 		_add_stair_pair(doc, 0, cellar_n, sd)
 		res.floors[0] = cf
-	for f2: Floor in res.floors:
-		_furnish_floor(doc, f2, p, rng.seed_value)
 	return res
 
 
@@ -942,14 +963,21 @@ static func _commit_floor(doc: MapDocument, f: Floor) -> void:
 
 ## Amuebla cada estancia de la planta con su semilla hija (room_seed).
 static func _furnish_floor(doc: MapDocument, f: Floor, p: Params, building_seed: int) -> void:
-	var grid: GridGeometry = doc.grid
 	for i: int in f.slots.size():
-		var sl: Slot = f.slots[i]
-		if not sl.placed():
-			continue
-		var entries: Array[Vector2i] = room_entries(grid, f, i)
-		var rng: Rng = Rng.new(room_seed(building_seed, f.level_index, sl.order)).fork("furnish", 0)
-		EstFurnisherG1.furnish(doc, f.level_index, rect_cells(sl.rect), entries, sl.kind, p.style, p.clutter, rng)
+		furnish_room(doc, f, i, p, building_seed)
+
+
+## Amuebla la estancia `slot` de la planta `f` (ya volcada en `doc`) con su
+## semilla hija room_seed(). Devuelve el nº de objetos (-1 si el slot no se
+## colocó o el tipo/estilo no existen). generate_building() la llama para
+## todas; EST G2 solo para la que extrae.
+static func furnish_room(doc: MapDocument, f: Floor, slot: int, p: Params, building_seed: int) -> int:
+	if slot < 0 or slot >= f.slots.size() or not f.slots[slot].placed():
+		return -1
+	var sl: Slot = f.slots[slot]
+	var entries: Array[Vector2i] = room_entries(doc.grid, f, slot)
+	var rng: Rng = Rng.new(room_seed(building_seed, f.level_index, sl.order)).fork("furnish", 0)
+	return EstFurnisherG1.furnish(doc, f.level_index, rect_cells(sl.rect), entries, sl.kind, p.style, p.clutter, rng)
 
 
 ## Casillas de la estancia `slot` junto a sus puertas y sus escaleras (las

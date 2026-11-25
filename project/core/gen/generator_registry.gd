@@ -10,7 +10,8 @@ extends RefCounted
 ## El registro sella la procedencia (seed_code, scale, gen_version) en el
 ## documento devuelto, así que el generador no tiene que hacerlo.
 ##
-## Incorporados: MAZ G1 y EST G1 (F1, etapas 2 y 3), EDI G1 y ALD G1 (F3). Los tests
+## Incorporados: MAZ G1 y EST G1 (F1, etapas 2 y 3), EDI G1, ALD G1 y EST G2
+## (estancia de edificio, ADR 029) (F3). Los tests
 ## registran generadores de prueba y llaman a reset().
 
 ## Resultado de generate().
@@ -23,17 +24,27 @@ class Result:
 
 
 static var _generators: Dictionary = {}
+## Opcional por (ESC, GEN): func(code: SeedCode) -> String que explica con una
+## clave i18n por qué el generador devolvió null con un código bien formado
+## (p. ej. EST G2: el edificio no tiene ese nivel o esa estancia). Solo se
+## llama si falla, así que no encarece la generación correcta.
+static var _explainers: Dictionary = {}
 static var _loaded: bool = false
 
 
-static func register(scale: String, gen: int, fn: Callable) -> String:
+## `explain` (opcional): ver _explainers.
+static func register(scale: String, gen: int, fn: Callable, explain: Callable = Callable()) -> String:
 	_ensure_builtins()
-	return _add(scale, gen, fn)
+	var problem: String = _add(scale, gen, fn)
+	if problem.is_empty() and not explain.is_null():
+		_explainers[_key(scale, gen)] = explain
+	return problem
 
 
 static func unregister(scale: String, gen: int) -> void:
 	_ensure_builtins()
 	_generators.erase(_key(scale, gen))
+	_explainers.erase(_key(scale, gen))
 
 
 static func has_generator(scale: String, gen: int) -> bool:
@@ -44,6 +55,7 @@ static func has_generator(scale: String, gen: int) -> bool:
 ## Deja solo los generadores incorporados (after_each de los tests).
 static func reset() -> void:
 	_generators.clear()
+	_explainers.clear()
 	_loaded = false
 	_ensure_builtins()
 
@@ -69,6 +81,11 @@ static func generate(code_text: String) -> Result:
 	var doc: MapDocument = fn.call(sc, profile, Rng.new(sc.seed_value))
 	if doc == null:
 		res.error = "el generador %s no devolvió documento" % k
+		if _explainers.has(k):
+			var explain: Callable = _explainers[k]
+			var why: String = explain.call(sc)
+			if not why.is_empty():
+				res.error = why
 		return res
 	doc.seed_code = sc.encode()
 	doc.scale = sc.scale
@@ -109,3 +126,7 @@ static func _ensure_builtins() -> void:
 	assert(problem.is_empty(), "GeneratorRegistry: " + problem)
 	problem = _add(AldGeneratorG1.SCALE, AldGeneratorG1.GEN, Callable(AldGeneratorG1, "generate"))
 	assert(problem.is_empty(), "GeneratorRegistry: " + problem)
+	# EST G2 (estancia de un edificio, ADR 029) convive con EST G1: otra clave.
+	problem = _add(EstGeneratorG2.SCALE, EstGeneratorG2.GEN, Callable(EstGeneratorG2, "generate"))
+	assert(problem.is_empty(), "GeneratorRegistry: " + problem)
+	_explainers[_key(EstGeneratorG2.SCALE, EstGeneratorG2.GEN)] = Callable(EstGeneratorG2, "explain")

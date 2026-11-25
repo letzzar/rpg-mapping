@@ -5,7 +5,10 @@ extends RefCounted
 
 var id: int = 0
 var cell: Vector2i = Vector2i.ZERO
-## Índice del nivel de destino en MapDocument.levels.
+## Índice del nivel de destino en MapDocument.levels. Fuera de [0, niveles)
+## la escalera sale de este mapa: en una estancia de edificio (EST G2, ADR
+## 029, un solo nivel) es el nivel del edificio menos el de la estancia
+## (−1 baja, +1 sube). Connectivity ignora esas escaleras.
 var to_level: int = 0
 var to_cell: Vector2i = Vector2i.ZERO
 ## Dirección con arista hacia la que se sube (para dibujarla).

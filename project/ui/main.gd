@@ -256,6 +256,8 @@ func _map_summary(doc: MapDocument) -> String:
 			.replace("{buildings}", str(doc.level(0).children.size())) \
 			.replace("{population}", str(AldGeneratorG1.population_of(doc))).replace("{code}", doc.seed_code) \
 			+ " · " + tr("UI_NAV_HINT")
+	if parsed.is_valid() and parsed.scale == EstGeneratorG2.EDI_SCALE and parsed.gen_version == EstGeneratorG2.EDI_GEN:
+		return tr("UI_GENERATED").replace("{code}", doc.seed_code) + " · " + tr("UI_NAV_HINT_ROOM")
 	return tr("UI_GENERATED").replace("{code}", doc.seed_code)
 
 
@@ -263,11 +265,15 @@ func _map_summary(doc: MapDocument) -> String:
 ## en la raíz, el tamaño del asentamiento o la escala.
 func _frame_name(f: MapNavigator.Frame) -> String:
 	if f.child != null:
-		return tr("BUILDING_" + f.child.kind.to_upper())
+		# Estancia de edificio (paso "misma casilla") o edificio de una aldea.
+		return tr(("ROOM_KIND_" if f.keep_positions else "BUILDING_") + f.child.kind.to_upper())
 	var parsed: SeedCode = SeedCode.parse(f.doc.seed_code)
 	if parsed.is_valid() and parsed.scale == AldGeneratorG1.SCALE:
 		var size_id: String = parsed.params.get("size", "")
 		return tr("SETTLEMENT_" + size_id.to_upper())
+	if parsed.is_valid() and parsed.scale == EstGeneratorG2.EDI_SCALE:
+		var type_id: String = parsed.params.get("building_type", "")
+		return tr("BUILDING_" + type_id.to_upper())
 	return tr("UI_SCALE_" + parsed.scale) if parsed.is_valid() else ""
 
 
@@ -342,26 +348,47 @@ func _on_cell_activated(cell: Vector2i) -> void:
 	if _doc == null:
 		return
 	var child: MapChild = _doc.level(_view.level_index).child_at(cell)
+	# Estancia de un edificio (EST G2, ADR 029): se calcula al vuelo, el
+	# documento EDI no guarda hijos. Es el mismo sitio a la misma escala, así
+	# que las fichas que ya están en ella pasan a su misma casilla.
+	var room: bool = false
+	if child == null:
+		var ref: EstGeneratorG2.RoomRef = _room_ref_at(_view.level_index, cell)
+		if ref != null:
+			child = ref.to_map_child()
+			room = true
 	if child == null:
 		return
-	var f: MapNavigator.Frame = _nav.enter(child, _view.level_index, _current_profile())
+	var f: MapNavigator.Frame = _nav.enter(child, _view.level_index, _current_profile(), room)
 	if f == null:
 		_status.text = tr(_nav.error)
 		return
 	_show_frame(f, f.level_index)
 	_explore_after_navigation()
-	_status.text = tr("UI_NAV_ENTERED").replace("{name}", _frame_name(f)).replace("{code}", f.doc.seed_code)
+	var key: String = "UI_NAV_ENTERED_ROOM" if room else "UI_NAV_ENTERED"
+	_status.text = tr(key).replace("{name}", _frame_name(f)).replace("{code}", f.doc.seed_code)
+
+
+## Estancia del edificio mostrado (si es EDI G1) que contiene la casilla.
+func _room_ref_at(level: int, cell: Vector2i) -> EstGeneratorG2.RoomRef:
+	var sc: SeedCode = SeedCode.parse(_doc.seed_code)
+	if not sc.is_valid() or sc.scale != EstGeneratorG2.EDI_SCALE or sc.gen_version != EstGeneratorG2.EDI_GEN:
+		return null
+	return EstGeneratorG2.room_at(_doc.seed_code, level, cell)
 
 
 ## Vuelve al mapa padre sacando al grupo por la puerta.
 func _go_back() -> void:
+	var here: MapNavigator.Frame = _nav.current()
+	var kept: bool = here != null and here.keep_positions
 	var f: MapNavigator.Frame = _nav.back(_current_profile())
 	if f == null:
 		_status.text = tr(_nav.error)
 		return
 	_show_frame(f, f.level_index)
 	_explore_after_navigation()
-	_status.text = tr("UI_NAV_RETURNED").replace("{name}", _frame_name(f))
+	var key: String = "UI_NAV_RETURNED_ROOM" if kept else "UI_NAV_RETURNED"
+	_status.text = tr(key).replace("{name}", _frame_name(f))
 
 
 ## Explora lo que ve el grupo al llegar. No se puede deshacer: el paso de un

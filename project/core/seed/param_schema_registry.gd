@@ -76,6 +76,8 @@ static func _ensure_builtins() -> void:
 	assert(problem.is_empty(), "ParamSchemaRegistry: EDI G1 no válido: " + problem)
 	problem = _add(ald_g1())
 	assert(problem.is_empty(), "ParamSchemaRegistry: ALD G1 no válido: " + problem)
+	problem = _add(est_g2())
+	assert(problem.is_empty(), "ParamSchemaRegistry: EST G2 no válido: " + problem)
 
 
 ## MAZ G1 — PROPUESTA DEFINITIVA, PENDIENTE DE APROBAR (F1, etapa 2). Se
@@ -186,3 +188,32 @@ static func ald_g1() -> ParamSchema:
 		ParamSchema.enum_field("layout", PackedStringArray(["organic", "grid"]), "organic", 4),
 	]
 	return ParamSchema.new("ALD", 1, fields)
+
+
+## EST G2 — PROPUESTA, PENDIENTE DE APROBAR (F3, ADR 029): código de ESTANCIA
+## DE UN EDIFICIO. No sustituye a EST G1 (estancia aislada, que sigue igual):
+## es otro generador de la misma escala. SEED = la semilla del edificio.
+## - Campos 0-6: los de EDI G1, en el mismo orden, con los mismos rangos, ids,
+##   capacity y defectos (copiados aquí, no leídos de edi_g1(): si EDI G1
+##   añadiera un campo al final, este esquema no debe cambiar en medio; el
+##   test test_est_g2 comprueba que coinciden). Con ellos y SEED, el código
+##   EDI G1 del edificio es el mismo PARAMS sin los dos últimos campos.
+## - level: índice del nivel en el documento EDI (0 = sótano si lo hay; si no,
+##   planta baja). Rango 0-7 (EDI G1 tiene como mucho 5 niveles).
+## - room: orden de la estancia en la lista de su planta (el de room_seed:
+##   id = level × 256 + room). Rango 0-63.
+## Un nivel o estancia que el edificio no tiene da SEED_ERR_ROOM_LEVEL o
+## SEED_ERR_ROOM al generar (el esquema no conoce el edificio).
+static func est_g2() -> ParamSchema:
+	var fields: Array[ParamSchema.Field] = [
+		ParamSchema.enum_field("building_type", PackedStringArray(["tavern", "house", "smithy", "temple", "shop", "inn", "guardhouse"]), "tavern", 32),
+		ParamSchema.enum_field("grid", PackedStringArray(["square", "hex_flat", "hex_pointy"]), "square", 4),
+		ParamSchema.enum_field("style", PackedStringArray(["human", "dwarf", "elf"]), "human", 16),
+		ParamSchema.int_field("floors", 0, 4, 0),
+		ParamSchema.bool_field("cellar", false),
+		ParamSchema.enum_field("size", PackedStringArray(["auto", "small", "medium", "large"]), "auto", 8),
+		ParamSchema.int_field("clutter", 0, 10, 5),
+		ParamSchema.int_field("level", 0, 7, 0),
+		ParamSchema.int_field("room", 0, 63, 0),
+	]
+	return ParamSchema.new("EST", 2, fields)

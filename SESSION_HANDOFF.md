@@ -1,6 +1,38 @@
 # SESSION_HANDOFF — RPG Mapping
 
-## Última sesión: 2026-11-25 (8.ª) — F3 etapa 3: navegación aldea → edificio
+## Última sesión: 2026-11-25 (9.ª) — F3: código de estancia de edificio, EST G2 (`cartografo`)
+Tests: **211/211, 28324 asserts, idénticos en escritorio y navegador** (10 nuevos en `tests/unit/test_est_g2.gd` y 2 más en `test_map_navigation.gd`); **37 seeds doradas sin cambios** (EDI G1 y ALD G1 intactos); `play_f2.gd` 0 fallos. Revisado por el coordinador y probado en la app con ventana real: aldea → doble clic en la taberna → doble clic en la sala común (`RPGM1-DND5-EST-G2-1QY00-BC23VGX8-9`, idéntica a la del edificio) → "← Volver a: Taberna" → "← Volver a: Aldea".
+
+### Hecho
+- **EST G2** (`core/gen/est/est_generator_g2.gd`; PROYECTO §6.5, **ADR 029**): código `RPGM1-<SIS>-EST-G2-<PARAMS>-<SEED>-<CRC>` con PARAMS = 7 campos de EDI G1 + `level` (0-7) + `room` (0-63) y SEED = la del edificio. Planifica el edificio sin muebles, amuebla solo esa estancia y la extrae por traslación (anillo de 1 casilla copiado del edificio; paridad hex; 1 nivel; escaleras con `to_level` relativo −1/+1). EST G1 no cambia y convive (registro con G1 y G2).
+- **EDI G1 sin cambio de salida**: `generate_building()` = `plan_building()` (nuevo, público) + `furnish_room()` (nuevo, público) por estancia, mismo orden de llamadas.
+- **`GeneratorRegistry`**: "explicador" opcional por (ESC, GEN) (`register(..., explain)`) que da la clave i18n cuando el generador devuelve null: `SEED_ERR_ROOM_LEVEL`, `SEED_ERR_ROOM` (nuevas en `strings.csv`).
+- **`ParamSchemaRegistry.est_g2()`** (campos de EDI copiados, no leídos de `edi_g1()`; el test comprueba que coinciden).
+- `MapStair.to_level` y `map_document.schema.json`: documentado que fuera de [0, niveles) la escalera sale del mapa (sin `minimum: 0`).
+- **API para la UI** (sin tocar `main.gd` ni `MapNavigator`): `EstGeneratorG2.rooms_of(edi_code)`, `room_at(edi_code, nivel, casilla)`, `room_code(edi_code, nivel, orden)`, `building_code(est_code)`, `ref_of(est_code)`; `RoomRef` (`level`, `order`, `kind`, `hub`, `rect`, `offset`, `map_size`, `entry`, `contains`, `to_room_cell`, `to_building_cell`, `to_map_child`).
+- **Navegación edificio → estancia en la UI** (coordinador): en un edificio EDI G1, doble clic en una estancia la abre sola con su código EST G2 (`_room_ref_at` → `RoomRef.to_map_child()`). `MapNavigator.enter(..., keep_positions = true)`: modo "misma casilla" (acercamiento 1:1): pasan solo las fichas del grupo que están dentro de la estancia, a su casilla equivalente, y al salir vuelven a la misma casilla y nivel del edificio (`Frame.keep_positions`, `Frame.parent_level`). Aldea → edificio sigue "por la puerta". Botón "← Volver a: Taberna", textos `UI_NAV_ENTERED_ROOM`, `UI_NAV_RETURNED_ROOM`, `UI_NAV_HINT_ROOM`; `_frame_name` usa `ROOM_KIND_` en estancias y el tipo de edificio en un EDI raíz.
+- Detalle conocido: `content_hash()` incluye `next_id`, que avanza al añadir una ficha (sesión). No se cambia (alteraría todas las seeds doradas); para comparar contenido con fichas, comparar los niveles.
+- Medido: estancia 8-13 ms de media (peor 21) frente a 31-48 ms del edificio; posada hex 33 ms frente a 154 ms; `rooms_of` 6-35 ms. PNG de revisión en el scratchpad de la sesión (`est_g2_png`).
+
+### Pendiente de Víctor
+- **Aprobar el esquema EST G2** (tabla en §6.5). Después, grabar seeds doradas EST G2 (p. ej. las 3 de abajo + estancias de las seeds doradas EDI en hex y con sótano) con `RPGM_GOLDEN_RECORD=1`.
+- (La navegación edificio → estancia ya está hecha, ver arriba.)
+
+### Siguiente paso
+1. Tras aprobar EST G2: seeds doradas EST G2 en su propio commit.
+2. Universal VTT (F3), último punto de F3.
+3. Escaleras de una estancia sola (−1/+1): hoy no llevan a ningún sitio; podrían "salir al edificio" en el nivel de destino.
+
+### Códigos EST G2 para probar (taberna `RPGM1-DND5-EDI-G1-Y00-BC23VGX8-T` de la aldea `RPGM1-DND5-ALD-G1-0-H8DJRFAE-W`)
+`RPGM1-DND5-EST-G2-1QY00-BC23VGX8-9` (sala común, nivel 1) · `RPGM1-DND5-EST-G2-FFY00-BC23VGX8-P` (cocina) · `RPGM1-DND5-EST-G2-X7Y00-BC23VGX8-H` (almacén) · `RPGM1-DND5-EST-G2-Y00-BC23VGX8-E` (almacén del sótano, nivel 0) · `RPGM1-DND5-EST-G2-H6Y00-BC23VGX8-5` (dormitorio, nivel 2) · `RPGM1-DND5-EST-G2-3EY00-BC23VGX8-2` (pasillo, hub).
+
+### Limitaciones conocidas (EST G2)
+- Ligado a EDI G1: si EDI G1 pasa a `legacy/`, EST G2 debe seguir usando esa versión; un EDI G2 necesitaría EST G3 (o un campo `edi_gen` al final).
+- Si EDI G1 gana un campo al final, EST G2 no puede insertarlo en medio: iría tras `room`.
+- El anillo no lleva objetos ni escaleras de las vecinas (contexto mínimo). Las escaleras de la estancia apuntan fuera del documento (−1/+1): la UI debe tratarlas como "salir al edificio".
+- `room_at` distribuye el edificio en cada llamada (6-35 ms): la UI puede llamar una vez a `rooms_of` y cachear.
+
+## Sesión anterior: 2026-11-25 (8.ª) — F3 etapa 3: navegación aldea → edificio
 Tests: **199/199, 24568 asserts, idénticos en escritorio y navegador** (5 nuevos en `tests/unit/test_map_navigation.gd`); 37 seeds doradas sin cambios. `play_f2.gd` sigue con 0 fallos. Probado en la app con ventana real (eventos inyectados): doble clic en la taberna de `RPGM1-DND5-ALD-G1-0-H8DJRFAE-W` → entra con las 2 fichas en la puerta, nivel 2 (tiene sótano), 1ª persona mirando a la puerta; "← Volver a: Aldea" → fichas delante de la puerta.
 
 ### Hecho
@@ -11,7 +43,7 @@ Tests: **199/199, 24568 asserts, idénticos en escritorio y navegador** (5 nuevo
 - **1ª persona**: si la ficha tiene una puerta al lado, mira hacia ella (`_door_direction`); si no, como antes.
 
 ### Siguiente paso
-1. Criterio de F3 a nivel estancia (EST G2 o código de estancia de edificio: decidir con Víctor).
+1. ~~Criterio de F3 a nivel estancia~~ (EST G2 en la 9.ª sesión, pendiente de aprobar).
 2. Universal VTT (F3).
 
 ### Limitaciones conocidas (navegación)
@@ -187,7 +219,7 @@ Víctor cerró la sesión de terminal para reabrir en **Claude Code desktop** co
 
 ### Comandos para retomar
 ```powershell
-pwsh tools/run_tests.ps1        # importa + tests; debe dar 194/194
+pwsh tools/run_tests.ps1        # importa + tests; debe dar 209/209
 $g = "$env:LOCALAPPDATA\Programs\Godot\Godot_v4.7.2-stable_win64_console.exe"
 & $g --path project             # ejecutar la app
 & $g --path project -e          # abrir editor

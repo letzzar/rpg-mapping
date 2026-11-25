@@ -229,3 +229,119 @@ func test_double_click_enters_building_and_back_returns() -> void:
 	assert_false(back_btn.visible)
 	assert_eq(_party(outer).size(), 1)
 	assert_eq(_party(outer)[0].cell, ch.entrance)
+
+
+# --- Edificio → estancia (EST G2, ADR 029) ------------------------------------
+
+const CODE_TAVERN: String = "RPGM1-DND5-EDI-G1-Y00-BC23VGX8-T"
+
+
+## Entrar en una estancia es un acercamiento 1:1: solo pasan las fichas del
+## grupo que están dentro de ella, a su casilla equivalente; las demás se
+## quedan. Al salir vuelven a la misma casilla del edificio y nivel.
+func test_room_keeps_token_positions() -> void:
+	var prof: SystemProfile = _profile("DND5")
+	var doc: MapDocument = _settlement(CODE_TAVERN)
+	var refs: Array[EstGeneratorG2.RoomRef] = EstGeneratorG2.rooms_of(CODE_TAVERN)
+	assert_gt(refs.size(), 3)
+	var ref: EstGeneratorG2.RoomRef = null
+	for r: EstGeneratorG2.RoomRef in refs:
+		if r.kind == "tavern":
+			ref = r
+	assert_not_null(ref)
+	var nav: MapNavigator = MapNavigator.new()
+	var root: MapNavigator.Frame = nav.open_root(doc)
+	var inside: MapToken = _token(doc, ref.level, ref.entry, MapToken.SIDE_PLAYER, "Dentro")
+	var outside_cell: Vector2i = Vector2i(-1, -1)
+	for c: Vector2i in MapNavigator.free_cells_near(doc, ref.level, ref.entry, prof, 400):
+		if not ref.rect.has_point(c):
+			outside_cell = c
+			break
+	assert_ne(outside_cell, Vector2i(-1, -1))
+	var outside: MapToken = _token(doc, ref.level, outside_cell, MapToken.SIDE_PLAYER, "Fuera")
+	var f: MapNavigator.Frame = nav.enter(ref.to_map_child(), ref.level, prof, true)
+	assert_not_null(f)
+	if f == null:
+		return
+	# El mapa es exactamente el que da su código EST G2 (criterio de F3).
+	# (Se compara el nivel: content_hash() incluye next_id, que la ficha que
+	# entra hace avanzar aunque las fichas sean sesión.)
+	var alone: GeneratorRegistry.Result = GeneratorRegistry.generate(ref.code)
+	assert_eq(CanonicalJson.stringify(f.doc.level(0).content_to_dict()),
+		CanonicalJson.stringify(alone.doc.level(0).content_to_dict()))
+	assert_eq(f.doc.seed_code, alone.doc.seed_code)
+	var party: Array[MapToken] = _party(f.doc)
+	assert_eq(party.size(), 1, "solo la que estaba dentro")
+	assert_eq(party[0].cell, ref.to_room_cell(ref.entry))
+	assert_eq(party[0].level, 0)
+	assert_not_null(doc.token(outside.id), "la de fuera se queda")
+	assert_null(doc.token(inside.id))
+	# Se mueve dentro y sale: misma casilla del edificio, mismo nivel.
+	var lvl: MapLevel = f.doc.level(0)
+	var target: Vector2i = party[0].cell
+	for c: Vector2i in MapNavigator.free_cells_near(f.doc, 0, party[0].cell, prof, 20):
+		if ref.rect.has_point(ref.to_building_cell(c)) and c != party[0].cell:
+			target = c
+	party[0].cell = target
+	nav.back(prof)
+	var back_party: Array[MapToken] = _party(doc)
+	assert_eq(back_party.size(), 2)
+	var found: bool = false
+	for t: MapToken in back_party:
+		if t.name == "Dentro":
+			found = true
+			assert_eq(t.cell, ref.to_building_cell(target))
+			assert_eq(t.level, ref.level)
+	assert_true(found)
+	assert_eq(root.level_index, ref.level)
+	assert_eq(lvl, f.doc.level(0))
+
+
+## Cadena completa en la pantalla principal: aldea → taberna → sala común →
+## volver dos veces. Los botones y la barra nombran cada sitio.
+func test_settlement_building_room_chain_in_ui() -> void:
+	var vp: SubViewport = SubViewport.new()
+	vp.size = Vector2i(1280, 800)
+	add_child_autofree(vp)
+	var main: Control = (load("res://ui/main.tscn") as PackedScene).instantiate()
+	vp.add_child(main)
+	await wait_process_frames(2)
+	var edit: LineEdit = main.get("_code_edit")
+	edit.text = CODE_VILLAGE
+	main.call("_generate_from_text")
+	await wait_process_frames(2)
+	var doc: MapDocument = main.get("_doc")
+	var tavern: MapChild = null
+	for c: MapChild in doc.level(0).children:
+		if c.kind == "tavern":
+			tavern = c
+	assert_eq(tavern.seed_code, CODE_TAVERN)
+	main.call("_on_cell_activated", tavern.rect.position + Vector2i(1, 1))
+	await wait_process_frames(2)
+	var status: Label = main.get("_status")
+	var view: MapView2D = main.get("_view")
+	var bdoc: MapDocument = main.get("_doc")
+	assert_eq(bdoc.seed_code, CODE_TAVERN)
+	var ref: EstGeneratorG2.RoomRef = null
+	for r: EstGeneratorG2.RoomRef in EstGeneratorG2.rooms_of(CODE_TAVERN):
+		if r.kind == "tavern":
+			ref = r
+	view.level_index = ref.level
+	main.call("_on_cell_activated", ref.entry)
+	await wait_process_frames(2)
+	var nav: MapNavigator = main.get("_nav")
+	assert_eq(nav.depth(), 3)
+	assert_eq(edit.text, ref.code)
+	assert_string_contains(status.text, tr("ROOM_KIND_TAVERN"))
+	var back_btn: Button = main.get("_back_btn")
+	assert_string_contains(back_btn.text, tr("BUILDING_TAVERN"))
+	main.call("_go_back")
+	await wait_process_frames(2)
+	assert_eq(nav.depth(), 2)
+	assert_eq(edit.text, CODE_TAVERN)
+	assert_eq(view.level_index, ref.level, "vuelve al nivel de la estancia")
+	assert_string_contains(back_btn.text, tr("SETTLEMENT_VILLAGE"))
+	main.call("_go_back")
+	await wait_process_frames(2)
+	assert_eq(nav.depth(), 1)
+	assert_eq(edit.text, CODE_VILLAGE)

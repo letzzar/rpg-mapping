@@ -10,7 +10,9 @@ extends RefCounted
 ##
 ## Al entrar o salir pasa las fichas del grupo (PartyVision.SIDES_IN_PARTY)
 ## por la puerta: dentro aparecen en la casilla del hijo que corresponde a la
-## entrada (MapChild.entrance, ADR 027) y fuera, otra vez delante de ella. El
+## entrada (MapChild.entrance, ADR 027) y fuera, otra vez delante de ella (o,
+## en modo `keep_positions`, edificio → estancia, cada una en su misma
+## casilla: ver Frame.keep_positions). El
 ## paso se hace con comandos (RemoveTokenCommand / AddTokenCommand) en la
 ## pila de cada mapa y después se vacían las dos historias: deshacer no puede
 ## devolver una ficha a un mapa que ya no se está mirando.
@@ -27,6 +29,14 @@ class Frame:
 	var child: MapChild = null
 	## Hijos ya generados de este mapa, por MapChild.id.
 	var visited: Dictionary[int, Frame] = {}
+	## Modo de paso de fichas con el padre: false = "por la puerta" (todo el
+	## grupo del nivel entra por MapChild.entrance; aldea → edificio); true =
+	## "misma casilla" (solo las fichas del grupo que ya están dentro de la
+	## huella pasan, cada una a su casilla equivalente; edificio → estancia,
+	## que es un acercamiento 1:1 del mismo sitio).
+	var keep_positions: bool = false
+	## Nivel del padre desde el que se entró (destino al salir).
+	var parent_level: int = 0
 
 
 var frames: Array[Frame] = []
@@ -63,7 +73,8 @@ func parent() -> Frame:
 
 ## Entra en `child` (de `current()`, nivel `from_level`). Genera el hijo desde
 ## su código la primera vez. Devuelve el nuevo mapa actual o null con `error`.
-func enter(child: MapChild, from_level: int, profile: SystemProfile) -> Frame:
+## `keep_positions`: ver Frame.keep_positions.
+func enter(child: MapChild, from_level: int, profile: SystemProfile, keep_positions: bool = false) -> Frame:
 	error = ""
 	var here: Frame = current()
 	if here == null or child == null:
@@ -82,7 +93,16 @@ func enter(child: MapChild, from_level: int, profile: SystemProfile) -> Frame:
 		f.level_index = child.child_level
 		here.visited[child.id] = f
 	here.level_index = from_level
-	_move_party(here, from_level, f, child.child_level, child.to_child_cell(child.entrance), profile)
+	f.keep_positions = keep_positions
+	f.parent_level = from_level
+	var moving: Array[MapToken] = []
+	var targets: Array[Vector2i] = []
+	for t: MapToken in _party_of(here.doc, from_level):
+		if keep_positions and not child.rect.has_point(t.cell):
+			continue
+		moving.append(t)
+		targets.append(child.to_child_cell(t.cell) if keep_positions else child.to_child_cell(child.entrance))
+	_transfer(here, moving, f, child.child_level, targets, profile)
 	f.level_index = child.child_level
 	frames.append(f)
 	return f
@@ -96,30 +116,40 @@ func back(profile: SystemProfile) -> Frame:
 		return null
 	var inner: Frame = frames.pop_back()
 	var outer: Frame = current()
-	_move_party(inner, -1, outer, outer.level_index, inner.child.entrance, profile)
+	outer.level_index = inner.parent_level
+	var moving: Array[MapToken] = _party_of(inner.doc, -1)
+	var targets: Array[Vector2i] = []
+	for t: MapToken in moving:
+		targets.append(t.cell + inner.child.offset if inner.keep_positions else inner.child.entrance)
+	_transfer(inner, moving, outer, inner.parent_level, targets, profile)
 	return outer
 
 
-## Fichas del grupo de `src` (en `src_level`, o en todos si es -1) a `dst`,
-## en las casillas libres más cercanas a `start` (nivel `dst_level`).
-func _move_party(src: Frame, src_level: int, dst: Frame, dst_level: int, start: Vector2i, profile: SystemProfile) -> void:
+## Fichas del grupo de `doc` en `level` (todas si es -1), en orden de la lista.
+static func _party_of(doc: MapDocument, level: int) -> Array[MapToken]:
 	var party: Array[MapToken] = []
-	for t: MapToken in src.doc.tokens:
-		if PartyVision.SIDES_IN_PARTY.has(t.side) and (src_level < 0 or t.level == src_level):
+	for t: MapToken in doc.tokens:
+		if PartyVision.SIDES_IN_PARTY.has(t.side) and (level < 0 or t.level == level):
 			party.append(t)
-	if party.is_empty():
+	return party
+
+
+## Pasa `tokens` de `src` a `dst` (nivel `dst_level`): cada una a su casilla
+## de `targets` si está libre y es transitable; si no, a la libre más cercana.
+## Después vacía la historia de los dos mapas (cruzar no se deshace).
+func _transfer(src: Frame, tokens: Array[MapToken], dst: Frame, dst_level: int, targets: Array[Vector2i], profile: SystemProfile) -> void:
+	if tokens.is_empty():
 		return
-	var cells: Array[Vector2i] = free_cells_near(dst.doc, dst_level, start, profile, party.size())
-	var k: int = 0
-	for t: MapToken in party:
-		if k >= cells.size():
-			break  # No caben: se quedan fuera (no ocurre con un grupo normal).
+	for i: int in tokens.size():
+		var t: MapToken = tokens[i]
+		var cells: Array[Vector2i] = free_cells_near(dst.doc, dst_level, targets[i], profile, 1)
+		if cells.is_empty():
+			continue  # No cabe: se queda donde estaba (no ocurre con un grupo normal).
 		var moved: MapToken = t.copy()
 		src.stack.execute(RemoveTokenCommand.new(t.id))
 		moved.id = dst.doc.allocate_id()
 		moved.level = dst_level
-		moved.cell = cells[k]
-		k += 1
+		moved.cell = cells[0]
 		dst.stack.execute(AddTokenCommand.new(moved))
 	src.stack.clear()
 	dst.stack.clear()

@@ -114,7 +114,7 @@
 						"properties": {
 							"id": { "type": "integer", "minimum": 1 },
 							"cell": { "$ref": "#/$defs/cell" },
-							"to_level": { "type": "integer", "minimum": 0 },
+							"to_level": { "type": "integer", "description": "Nivel de destino. Fuera de [0, niveles) = sale de este mapa: en una estancia de edificio (EST G2, ADR 029) es relativo al nivel del edificio (-1 baja, +1 sube)." },
 							"to_cell": { "$ref": "#/$defs/cell" },
 							"facing": { "type": "integer", "minimum": 0, "maximum": 5 }
 						}

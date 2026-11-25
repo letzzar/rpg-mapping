@@ -17,6 +17,8 @@ SEED_ERR_PARAM_RANGE,El parámetro {param} está fuera de su rango.,Parameter {p
 SEED_ERR_PARAM_ENUM,"El parámetro {param} tiene una opción desconocida.","Parameter {param} has an unknown option."
 SEED_ERR_SEED,Semilla no válida.,Invalid seed.
 SEED_ERR_CHECK,"El carácter de control no coincide: revisa si hay una errata.","Check character mismatch: look for a typo."
+SEED_ERR_ROOM_LEVEL,"Ese edificio no tiene el nivel que indica el código de estancia.","That building does not have the level given by the room code."
+SEED_ERR_ROOM,"Ese edificio no tiene la estancia que indica el código en ese nivel.","That building does not have the room given by the code on that level."
 SYSTEM_DND5E_2024,D&D 5e (2024),D&D 5e (2024)
 SYSTEM_PF2E,Pathfinder 2e,Pathfinder 2e
 CMD_GENERIC,Edición,Edit
@@ -158,3 +160,6 @@ UI_NAV_RETURNED,"De vuelta en: {name} · fichas del grupo delante de la puerta",
 UI_NAV_HINT,"Doble clic en un edificio para entrar en él","Double-click a building to go inside"
 UI_NAV_NO_CHILD,No hay nada en lo que entrar ahí,There is nothing to enter there
 UI_NAV_NO_PARENT,Ya estás en el mapa principal,You are already on the main map
+UI_NAV_ENTERED_ROOM,"Estancia sola: {name} · las fichas del grupo que estaban en ella siguen en su casilla · {code}","Room on its own: {name} · party tokens that were in it keep their square · {code}"
+UI_NAV_RETURNED_ROOM,"De vuelta en: {name} · fichas en la misma casilla del edificio","Back in: {name} · tokens on the same building square"
+UI_NAV_HINT_ROOM,"Doble clic en una estancia para verla sola (con su código)","Double-click a room to view it on its own (with its code)"
