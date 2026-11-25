@@ -15,7 +15,7 @@ const MARGIN_PX: int = 0
 ## Renderiza y devuelve la imagen (null si no se pudo). `host` es cualquier
 ## nodo dentro del árbol, que hace de padre temporal del SubViewport.
 static func render(host: Node, doc: MapDocument, level_index: int, profile: SystemProfile,
-		px_per_cell: int = DEFAULT_PX_PER_CELL, dm_view: bool = false, show_grid: bool = true) -> Image:
+		px_per_cell: int = DEFAULT_PX_PER_CELL, dm_view: bool = false, show_grid: bool = true, show_tokens: bool = true) -> Image:
 	if host == null or not host.is_inside_tree() or doc == null:
 		return null
 	var view: MapView2D = MapView2D.new()
@@ -24,6 +24,7 @@ static func render(host: Node, doc: MapDocument, level_index: int, profile: Syst
 	view.profile = profile
 	view.dm_view = dm_view
 	view.show_grid = show_grid
+	view.show_tokens = show_tokens
 	view.document = doc
 	view.level_index = level_index
 	var size: Vector2 = doc.grid.map_pixel_size(view.cell_px)

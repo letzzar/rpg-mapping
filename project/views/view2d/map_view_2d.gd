@@ -91,6 +91,10 @@ var _drag_target: Vector2i = Vector2i(-1, -1)
 var _ruler_from: Vector2i = Vector2i(-1, -1)
 var _ruler_to: Vector2i = Vector2i(-1, -1)
 var _panning: bool = false
+var _bg_source: Image = null
+var _bg_texture: ImageTexture = null
+## Fichas en el dibujo (PngExporter las quita para exportar a otra mesa).
+var show_tokens: bool = true
 ## Posición del puntero del último evento, local a la vista y global (canvas).
 var _pointer_local: Vector2 = Vector2.ZERO
 var _pointer_global: Vector2 = Vector2.ZERO
@@ -131,6 +135,10 @@ func _draw() -> void:
 	var g: GridGeometry = document.grid
 	var lvl: MapLevel = document.level(level_index)
 	draw_rect(Rect2(Vector2.ZERO, g.map_pixel_size(cell_px)), COL_BG)
+	# Mapa importado (UVTT): su imagen de fondo sustituye al color del suelo.
+	var bg: Texture2D = _background_texture() if level_index == 0 else null
+	if bg != null:
+		draw_texture_rect(bg, Rect2(Vector2.ZERO, g.map_pixel_size(cell_px)), false)
 	var outdoor: PackedByteArray = MapMeshBuilder.outdoor_mask(lvl)
 	var zone_cols: Dictionary[int, Color] = MapMeshBuilder.zone_colors_by_room(lvl)
 	# En 2D la huella de los edificios de un asentamiento se pinta como tejado.
@@ -146,7 +154,8 @@ func _draw() -> void:
 			fill = MapMeshBuilder.COL_OUTDOOR
 		if t == Terrain.FLOOR and zone_cols.has(lvl.room_ids[i]):
 			fill = zone_cols[lvl.room_ids[i]]
-		draw_colored_polygon(poly, fill)
+		if bg == null or t != Terrain.FLOOR:
+			draw_colored_polygon(poly, fill)
 		if show_grid and Terrain.is_passable(t):
 			# Ancho negativo = línea fina de 1 px de pantalla a cualquier zoom;
 			# con 1.0 en coordenadas locales, al alejar quedaba < 1 px y las
@@ -160,7 +169,19 @@ func _draw() -> void:
 	if fog:
 		_draw_fog(g)
 	_draw_overlays(g)
-	_draw_tokens(g)
+	if show_tokens:
+		_draw_tokens(g)
+
+
+## Textura de MapDocument.background_image (se crea una vez por imagen).
+func _background_texture() -> Texture2D:
+	var img: Image = document.background_image
+	if img == null or img.is_empty():
+		return null
+	if _bg_source != img:
+		_bg_source = img
+		_bg_texture = ImageTexture.create_from_image(img)
+	return _bg_texture
 
 
 func set_fog(enabled: bool, visible_map: PackedByteArray, explored: PackedByteArray) -> void:
@@ -304,7 +325,14 @@ func _draw_features(g: GridGeometry, lvl: MapLevel) -> void:
 
 func _draw_objects(g: GridGeometry, lvl: MapLevel) -> void:
 	var font: Font = ThemeDB.fallback_font
+	# Con imagen de fondo (UVTT importado) el dibujo ya está en la imagen: de
+	# los objetos (las luces importadas) solo se pinta el círculo de luz.
+	var art: bool = level_index == 0 and _background_texture() != null
 	for o: MapObject in lvl.objects:
+		if art:
+			if o.light_bright_cells > 0:
+				draw_arc(g.cell_to_pixel(o.cell, cell_px), o.light_bright_cells * cell_px, 0.0, TAU, 48, Color(0.97, 0.86, 0.56, 0.5), 2.0)
+			continue
 		var cells: Array[Vector2i] = lvl.object_cells(o)
 		var col: Color = Color("8a5f1f") if o.blocks_movement else Color("c9a46a")
 		for c: Vector2i in cells:

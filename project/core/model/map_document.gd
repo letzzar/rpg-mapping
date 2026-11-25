@@ -50,6 +50,10 @@ var tokens: Array[MapToken] = []
 var deltas: Array[MapDelta] = []
 ## Incrementa en cada notify_changed() (las vistas pueden compararlo).
 var revision: int = 0
+## Imagen de fondo del nivel 0 de un mapa importado (Universal VTT, ADR 030),
+## del tamaño del mapa. No es contenido generado ni sesión: no se serializa
+## ni entra en ningún hash. null en los mapas generados.
+var background_image: Image = null
 
 var _next_id: int = 1
 

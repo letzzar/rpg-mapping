@@ -1,6 +1,27 @@
 # SESSION_HANDOFF — RPG Mapping
 
-## Última sesión: 2026-11-25 (9.ª) — F3: código de estancia de edificio, EST G2 (`cartografo`)
+## Última sesión: 2026-11-25 (10.ª) — F3: Universal VTT (último punto de F3)
+Tests: **221/221, 31691 asserts, idénticos en escritorio y navegador** (10 nuevos en `tests/unit/test_uvtt.gd`); 45 seeds doradas sin cambios; `play_f2.gd` 0 fallos. Probado en la app real: exportar con imagen la mazmorra de ejemplo (48×36, 4800×3600 px, 110 tramos, 19 puertas), la sala común EST G2 (2 luces) y el pueblo amurallado (192×142 a 42 px/casilla = 8064 px, ~2 s) y reimportarlos (los muros y puertas coinciden con la imagen).
+
+**Con esto F3 tiene todo su contenido** (EDI, ALD, plantas, navegación aldea → edificio → estancia, estilos, Universal VTT) y cumple su criterio (estancia aislada = dentro de la aldea, EST G2). Falta la prueba manual de Víctor.
+
+### Hecho
+- **`core/io/uvtt_codec.gd`** (`UvttCodec`, ADR 030; carpeta `core/io/` nueva): `export_level(doc, nivel, png, px_por_casilla, dm)`, `to_json`, `merge_segments`, `import_text(texto) -> ImportResult` (doc, image, error, walls, doors, lights, approximated_length). Detalle en PROYECTO §7.
+- **`MapDocument.background_image`** (solo vista; ni se serializa ni entra en hashes). La vista 2D la pinta de fondo en el nivel 0 (en vez del color del suelo) y, con fondo, de los objetos solo dibuja el círculo de luz. `MapView2D.show_tokens` y `PngExporter.render(..., show_tokens)`.
+- **UI**: botones "Exportar UVTT" (diálogo nativo; en web, descarga) e "Importar UVTT" (solo escritorio); `open_uvtt_text(texto, nombre)` abre el mapa como raíz nueva; la barra resume casillas, muros, puertas, luces y lo aproximado en escalera. Textos `UI_*UVTT*`, `UVTT_ERR_*`.
+
+### Siguiente paso
+1. Prueba manual de F3 por Víctor (aldea → edificio → estancia, exportar UVTT y abrirlo en otra mesa, p. ej. Foundry con el módulo de importación UVTT).
+2. F4 – Red.
+
+### Limitaciones conocidas (UVTT)
+- Importar solo en escritorio (en web no hay diálogo para abrir ficheros locales).
+- Importa siempre un mapa cuadrado de una planta; sin terreno (todo suelo), sin estancias ni entrada (la ficha nueva sale en la primera casilla libre).
+- Ventanas y vanos no se exportan; las luces importadas usan el objeto `torch_sconce` (en 3D se ven como antorchas).
+- En el selector de escala queda la última elegida al importar (el mapa no tiene código).
+- No probado aún contra un programa real (Foundry, Dungeondraft); el formato sigue la especificación 0.3.
+
+## Sesión anterior: 2026-11-25 (9.ª) — F3: código de estancia de edificio, EST G2 (`cartografo`)
 Tests: **211/211, 28324 asserts, idénticos en escritorio y navegador** (10 nuevos en `tests/unit/test_est_g2.gd` y 2 más en `test_map_navigation.gd`); **37 seeds doradas sin cambios** (EDI G1 y ALD G1 intactos); `play_f2.gd` 0 fallos. Revisado por el coordinador y probado en la app con ventana real: aldea → doble clic en la taberna → doble clic en la sala común (`RPGM1-DND5-EST-G2-1QY00-BC23VGX8-9`, idéntica a la del edificio) → "← Volver a: Taberna" → "← Volver a: Aldea".
 
 ### Hecho

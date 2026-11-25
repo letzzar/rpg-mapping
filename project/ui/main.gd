@@ -39,6 +39,8 @@ var _undo_btn: Button
 var _redo_btn: Button
 var _status: Label
 var _save_dialog: FileDialog
+var _uvtt_save_dialog: FileDialog
+var _uvtt_open_dialog: FileDialog
 
 var _doc: MapDocument = null
 var _stack: CommandStack = null
@@ -121,6 +123,11 @@ func _build_ui() -> void:
 	bar.add_child(_redo_btn)
 	bar.add_child(_button("UI_FIT", _fit))
 	bar.add_child(_button("UI_EXPORT_PNG", _export_png))
+	bar.add_child(_button("UI_EXPORT_UVTT", _export_uvtt))
+	# En web no hay diálogo para abrir ficheros locales (de momento solo se
+	# exporta, con descarga).
+	if not OS.has_feature("web"):
+		bar.add_child(_button("UI_IMPORT_UVTT", _import_uvtt))
 
 	_view_opt = OptionButton.new()
 	for k: String in VIEW_OPTIONS:
@@ -201,6 +208,11 @@ func _build_ui() -> void:
 	_save_dialog.current_dir = OS.get_system_dir(OS.SYSTEM_DIR_PICTURES)
 	_save_dialog.file_selected.connect(_save_png_to)
 	add_child(_save_dialog)
+
+	_uvtt_save_dialog = _file_dialog(FileDialog.FILE_MODE_SAVE_FILE, "UI_EXPORT_UVTT", OS.SYSTEM_DIR_DOCUMENTS)
+	_uvtt_save_dialog.file_selected.connect(_save_uvtt_to)
+	_uvtt_open_dialog = _file_dialog(FileDialog.FILE_MODE_OPEN_FILE, "UI_IMPORT_UVTT", OS.SYSTEM_DIR_DOCUMENTS)
+	_uvtt_open_dialog.file_selected.connect(_load_uvtt_from)
 
 	_apply_profile()
 	_apply_units()
@@ -648,6 +660,91 @@ func _export_png() -> void:
 		return
 	_save_dialog.current_file = file_name
 	_save_dialog.popup_centered_ratio(0.6)
+
+
+## Diálogo nativo de ficheros Universal VTT.
+func _file_dialog(mode: FileDialog.FileMode, title_key: String, start_dir: OS.SystemDir) -> FileDialog:
+	var dlg: FileDialog = FileDialog.new()
+	dlg.file_mode = mode
+	dlg.access = FileDialog.ACCESS_FILESYSTEM
+	dlg.filters = PackedStringArray(["*.uvtt, *.dd2vtt ; Universal VTT"])
+	dlg.use_native_dialog = true
+	dlg.title = tr(title_key)
+	dlg.current_dir = OS.get_system_dir(start_dir)
+	add_child(dlg)
+	return dlg
+
+
+# --- Universal VTT (F3, ADR 030) ------------------------------------------------
+
+## Píxeles por casilla de la imagen exportada: 100 como el PNG, menos en mapas
+## grandes para no pasar de 8192 px (límite seguro de textura; una ciudad de
+## 212 casillas a 100 px daba 21 200 px).
+func _uvtt_px_per_cell() -> int:
+	var size: Vector2 = _doc.grid.map_pixel_size(1.0)
+	return clampi(floori(8192.0 / maxf(size.x, size.y)), 16, PngExporter.DEFAULT_PX_PER_CELL)
+
+
+## Texto UVTT del nivel mostrado: imagen sin rejilla ni fichas (la otra mesa
+## pone las suyas) y lo que ven los jugadores (secretas sin descubrir = muro).
+func _uvtt_text() -> String:
+	var ppc: int = _uvtt_px_per_cell()
+	var img: Image = await PngExporter.render(self, _doc, _view.level_index, _current_profile(), ppc, false, false, false)
+	var png: PackedByteArray = img.save_png_to_buffer() if img != null and not img.is_empty() else PackedByteArray()
+	return UvttCodec.to_json(UvttCodec.export_level(_doc, _view.level_index, png, ppc, false))
+
+
+func _export_uvtt() -> void:
+	if _doc == null:
+		return
+	var file_name: String = (_doc.seed_code if not _doc.seed_code.is_empty() else "mapa") + ".uvtt"
+	if OS.has_feature("web"):
+		var text: String = await _uvtt_text()
+		JavaScriptBridge.download_buffer(text.to_utf8_buffer(), file_name, "application/json")
+		_status.text = tr("UI_EXPORTED").replace("{path}", file_name)
+		return
+	_uvtt_save_dialog.current_file = file_name
+	_uvtt_save_dialog.popup_centered_ratio(0.6)
+
+
+func _save_uvtt_to(path: String) -> void:
+	var text: String = await _uvtt_text()
+	var f: FileAccess = FileAccess.open(path, FileAccess.WRITE)
+	if f == null:
+		_status.text = tr("UI_EXPORT_FAILED")
+		return
+	f.store_string(text)
+	f.close()
+	_status.text = tr("UI_EXPORTED").replace("{path}", path)
+
+
+func _import_uvtt() -> void:
+	_uvtt_open_dialog.popup_centered_ratio(0.6)
+
+
+func _load_uvtt_from(path: String) -> void:
+	if not FileAccess.file_exists(path):
+		_status.text = tr("UVTT_ERR_JSON")
+		return
+	open_uvtt_text(FileAccess.get_file_as_string(path), path.get_file())
+
+
+## Abre un mapa importado como raíz de una ruta nueva (también lo usan los
+## tests). Devuelve false si el fichero no era válido.
+func open_uvtt_text(text: String, file_name: String) -> bool:
+	var res: UvttCodec.ImportResult = UvttCodec.import_text(text)
+	if res.doc == null:
+		_status.text = tr(res.error)
+		return false
+	_token_counter = 0
+	_show_frame(_nav.open_root(res.doc), 0)
+	var msg: String = tr("UI_UVTT_IMPORTED").replace("{file}", file_name) \
+		.replace("{w}", str(res.doc.grid.width)).replace("{h}", str(res.doc.grid.height)) \
+		.replace("{walls}", str(res.walls)).replace("{doors}", str(res.doors)).replace("{lights}", str(res.lights))
+	if res.approximated_length >= 0.5:
+		msg += " · " + tr("UI_UVTT_DROPPED").replace("{n}", str(roundi(res.approximated_length)))
+	_status.text = msg
+	return true
 
 
 func _save_png_to(path: String) -> void:

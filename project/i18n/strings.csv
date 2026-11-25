@@ -163,3 +163,10 @@ UI_NAV_NO_PARENT,Ya estás en el mapa principal,You are already on the main map
 UI_NAV_ENTERED_ROOM,"Estancia sola: {name} · las fichas del grupo que estaban en ella siguen en su casilla · {code}","Room on its own: {name} · party tokens that were in it keep their square · {code}"
 UI_NAV_RETURNED_ROOM,"De vuelta en: {name} · fichas en la misma casilla del edificio","Back in: {name} · tokens on the same building square"
 UI_NAV_HINT_ROOM,"Doble clic en una estancia para verla sola (con su código)","Double-click a room to view it on its own (with its code)"
+UI_EXPORT_UVTT,Exportar UVTT,Export UVTT
+UI_IMPORT_UVTT,Importar UVTT,Import UVTT
+UI_UVTT_IMPORTED,"Importado {file}: {w}×{h} casillas, {walls} muros, {doors} puertas, {lights} luces","Imported {file}: {w}×{h} squares, {walls} walls, {doors} doors, {lights} lights"
+UI_UVTT_DROPPED,"{n} casillas de muro diagonal o curvo aproximadas en escalera","{n} squares of diagonal or curved wall approximated as steps"
+UVTT_ERR_JSON,El fichero no es un Universal VTT válido (JSON),The file is not a valid Universal VTT (JSON)
+UVTT_ERR_RESOLUTION,"Al fichero le falta ""resolution""","The file has no ""resolution"""
+UVTT_ERR_SIZE,"Tamaño de mapa no válido (de 1 a 512 casillas por lado)","Invalid map size (1 to 512 squares per side)"
