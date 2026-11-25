@@ -1,0 +1,80 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://rpg-mapping.local/schemas/ald_settlement_types.schema.json",
+	"title": "Tamaños, tipos de edificio y prosperidad del generador ALD (data/settlements/ald_settlement_types.json)",
+	"description": "ADR 027, PROYECTO §6.3. Los ids de 'sizes' y 'prosperity' deben coincidir (en el mismo orden) con los enumerados size y prosperity del esquema de parámetros ALD G1; los de 'building_types' son tipos de data/buildings/edi_building_types.json (EDI G1). Cambiar esta tabla cambia la salida de ALD: exige subir GEN. Reglas que comprueba AldData al cargar: cada tamaño tiene algún peso > 0 y sus tipos (pesos y obligatorios) existen; la plaza cabe en el mapa; buildings y los intervalos [mín, máx] están ordenados.",
+	"type": "object",
+	"additionalProperties": false,
+	"required": ["schema_version", "building_types", "sizes", "prosperity"],
+	"properties": {
+		"schema_version": { "const": 1 },
+		"building_types": {
+			"type": "array",
+			"description": "Tipos de edificio que puede poner ALD (deben existir en EDI)",
+			"items": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": ["id", "residents"],
+				"properties": {
+					"id": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+					"residents": { "type": "integer", "minimum": 0, "description": "Habitantes que aporta a la población derivada" }
+				}
+			}
+		},
+		"sizes": {
+			"type": "array",
+			"items": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": ["id", "map", "buildings", "main_width", "street_width", "lane_width", "crossroads_permille", "branch_every",
+					"branch_length", "branch_levels", "grid_block", "plaza", "yard", "river_width", "extra_floor_permille", "required", "type_weights"],
+				"properties": {
+					"id": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+					"map": { "$ref": "#/$defs/pair", "description": "Ancho y alto del mapa en casillas (1 casilla = la del sistema, 5 ft)" },
+					"buildings": { "$ref": "#/$defs/range", "description": "Edificios que se intentan colocar [mín, máx]" },
+					"main_width": { "type": "integer", "minimum": 1, "maximum": 6, "description": "Ancho de las calles principales" },
+					"street_width": { "type": "integer", "minimum": 1, "maximum": 6, "description": "Ancho de las calles que salen de las principales" },
+					"lane_width": { "type": "integer", "minimum": 1, "maximum": 6, "description": "Ancho de los callejones (segundo nivel de ramas)" },
+					"crossroads_permille": { "type": "integer", "minimum": 0, "maximum": 1000, "description": "Probabilidad (‰) de una segunda calle principal perpendicular (en retícula, siempre)" },
+					"branch_every": { "$ref": "#/$defs/range", "description": "Casillas entre dos ramas sobre la misma calle" },
+					"branch_length": { "$ref": "#/$defs/range", "description": "Largo de cada rama" },
+					"branch_levels": { "type": "integer", "minimum": 0, "maximum": 3, "description": "Niveles de ramas (1 = calles; 2 = también callejones)" },
+					"grid_block": { "$ref": "#/$defs/pair", "description": "Retícula: separación entre calles [en x, en y]" },
+					"plaza": { "$ref": "#/$defs/pair", "description": "Plaza central [ancho, alto]" },
+					"yard": { "type": "integer", "minimum": 0, "maximum": 4, "description": "Patio extra de cada parcela por detrás y a los lados" },
+					"river_width": { "type": "integer", "minimum": 2, "maximum": 9 },
+					"extra_floor_permille": { "type": "integer", "minimum": 0, "maximum": 1000, "description": "Probabilidad (‰) de que un edificio tenga una planta más que las de su tipo" },
+					"required": { "type": "array", "items": { "type": "string" }, "description": "Tipos de los primeros edificios (los de más prioridad, junto a la plaza)" },
+					"type_weights": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0 }, "description": "Peso de cada tipo para el resto de edificios" }
+				}
+			}
+		},
+		"prosperity": {
+			"type": "array",
+			"items": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": ["id", "type_weight_pct", "edi_size_weights", "cellar_permille", "clutter"],
+				"properties": {
+					"id": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+					"type_weight_pct": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0 }, "description": "% del peso de cada tipo (100 si no aparece)" },
+					"edi_size_weights": {
+						"type": "object",
+						"additionalProperties": false,
+						"required": ["small", "medium", "large"],
+						"description": "Pesos del tamaño EDI de cada edificio",
+						"properties": {
+							"small": { "type": "integer", "minimum": 0 }, "medium": { "type": "integer", "minimum": 0 }, "large": { "type": "integer", "minimum": 0 }
+						}
+					},
+					"cellar_permille": { "type": "integer", "minimum": 0, "maximum": 1000 },
+					"clutter": { "type": "integer", "minimum": 0, "maximum": 10, "description": "clutter del código EDI de cada edificio" }
+				}
+			}
+		}
+	},
+	"$defs": {
+		"pair": { "type": "array", "items": { "type": "integer", "minimum": 1, "maximum": 1024 }, "minItems": 2, "maxItems": 2 },
+		"range": { "type": "array", "items": { "type": "integer", "minimum": 0, "maximum": 1024 }, "minItems": 2, "maxItems": 2 }
+	}
+}

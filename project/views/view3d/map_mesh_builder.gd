@@ -28,6 +28,18 @@ const COL_WALL_TOP: Color = Color("3a2a1e")
 const COL_CEILING: Color = Color("2e231b")
 ## Suelo exterior de un edificio (calle o patio): más gris que el de dentro.
 const COL_OUTDOOR: Color = Color("c9c3a6")
+## Suelo de las zonas de un asentamiento (ALD, ADR 027) por MapRoom.kind. Las
+## que no aparecen (salas, estancias, la huella de un edificio) usan el color
+## del terreno. MAZ, EST y EDI no usan estas zonas: no cambian.
+const ZONE_COLORS: Dictionary[String, Color] = {
+	"street": Color("cdbb94"),
+	"plaza": Color("e2d2a4"),
+	"bridge": Color("9a7452"),
+	"gate": Color("a89276"),
+	"yard": Color("d6cf9f"),
+	"garden": Color("a9bf7c"),
+	"field": Color("bccb8c"),
+}
 const COL_EDGE_WALL: Color = Color("6e5a46")
 const COL_DOOR: Color = Color("8a5f1f")
 const COL_SECRET: Color = Color("5fb4d6")
@@ -186,6 +198,7 @@ static func _build_cells(g: GridGeometry, lvl: MapLevel, opts: Options, factor: 
 	var h: float = opts.wall_h
 	var caps: Dictionary[int, float] = {}
 	var outdoor: PackedByteArray = outdoor_mask(lvl)
+	var zone_cols: Dictionary[int, Color] = zone_colors_by_room(lvl)
 	for i: int in g.cell_count():
 		var f: float = factor[i]
 		if f <= 0.0:
@@ -199,6 +212,8 @@ static func _build_cells(g: GridGeometry, lvl: MapLevel, opts: Options, factor: 
 		var col: Color = TERRAIN_COLORS[t] if t < TERRAIN_COLORS.size() else TERRAIN_COLORS[0]
 		if outdoor[i] != 0 and t == Terrain.FLOOR:
 			col = COL_OUTDOOR
+		if t == Terrain.FLOOR and zone_cols.has(lvl.room_ids[i]):
+			col = zone_cols[lvl.room_ids[i]]
 		var y_floor: float = -0.6 if t == Terrain.PIT else (-0.15 if t == Terrain.WATER_DEEP else 0.0)
 		# Junta de rejilla: casilla oscura debajo y la casilla algo menor
 		# encima (las líneas son el hueco entre las dos).
@@ -238,9 +253,28 @@ static func _build_cells(g: GridGeometry, lvl: MapLevel, opts: Options, factor: 
 		_fan(wall_geo, g.cell_to_pixel(c2, cm), g.cell_polygon(c2, cm), h, COL_WALL_TOP * cf, true)
 
 
-## 1 por casilla al aire libre: zona "outside" de un edificio y, si el nivel
-## la tiene, también sus zonas de entrada/salida (el rellano de la calle). En
-## una mazmorra la entrada está bajo tierra: sin zona "outside" no cuenta.
+## Color de suelo de una zona (alfa 0 = la zona no tiene color propio).
+static func zone_color(kind: String) -> Color:
+	if ZONE_COLORS.has(kind):
+		var c: Color = ZONE_COLORS[kind]
+		return c
+	return Color(0, 0, 0, 0)
+
+
+## Id de sala -> color de suelo, para las zonas con color propio.
+static func zone_colors_by_room(lvl: MapLevel) -> Dictionary[int, Color]:
+	var out: Dictionary[int, Color] = {}
+	for r: MapRoom in lvl.rooms:
+		if ZONE_COLORS.has(r.kind):
+			out[r.id] = ZONE_COLORS[r.kind]
+	return out
+
+
+## 1 por casilla al aire libre: zonas de MapRoom.OUTDOOR_KINDS (el exterior de
+## un edificio, las calles, parcelas y campos de un asentamiento) y, si el
+## nivel tiene alguna, también sus zonas de entrada/salida (el rellano de la
+## calle). En una mazmorra la entrada está bajo tierra: sin zonas al aire
+## libre no cuenta.
 static func outdoor_mask(lvl: MapLevel) -> PackedByteArray:
 	var g: GridGeometry = lvl.grid
 	var m: PackedByteArray = PackedByteArray()
@@ -248,12 +282,12 @@ static func outdoor_mask(lvl: MapLevel) -> PackedByteArray:
 	var ids: Dictionary[int, bool] = {}
 	var has_outside: bool = false
 	for r: MapRoom in lvl.rooms:
-		if r.kind == MapRoom.KIND_OUTSIDE:
+		if MapRoom.OUTDOOR_KINDS.has(r.kind):
 			has_outside = true
 	if not has_outside:
 		return m
 	for r: MapRoom in lvl.rooms:
-		if r.kind == MapRoom.KIND_OUTSIDE or r.kind == MapRoom.KIND_ENTRANCE or r.kind == MapRoom.KIND_EXIT:
+		if MapRoom.OUTDOOR_KINDS.has(r.kind) or r.kind == MapRoom.KIND_ENTRANCE or r.kind == MapRoom.KIND_EXIT:
 			ids[r.id] = true
 	for i: int in g.cell_count():
 		if ids.has(lvl.room_ids[i]):

@@ -1,6 +1,37 @@
 # SESSION_HANDOFF — RPG Mapping
 
-## Última sesión: 2026-11-24 (6.ª) — F3 etapa 1: generador de edificios EDI G1 (`cartografo`)
+## Última sesión: 2026-11-25 (7.ª) — F3 etapa 2: generador de asentamientos ALD G1 (`cartografo`)
+Tests: **194/194, 24251 asserts** en escritorio (16 nuevos en `tests/unit/test_ald_generator.gd`); las 28 seeds doradas MAZ/EST/EDI siguen iguales. **Idénticos en navegador** (preset "Web Tests" en Chrome sin ventana: 194/194, 24251 asserts). Revisado por el coordinador y probado en la app: los 4 códigos de ejemplo y la taberna hija se generan y se ven en 2D, 3D cenital y 1ª persona sin errores. **Sin seeds doradas de ALD**: el esquema está pendiente de aprobar por Víctor.
+
+### Hecho
+- **ALD G1** (`core/gen/ald/ald_generator_g1.gd`, `ald_data.gd`; PROYECTO §6.3, **ADR 027**): escala 1 casilla = 5 ft (la de EDI); calles orgánicas (caminantes + ramas en niveles) o retícula; plaza; muralla con puertas; río con puente o costa; parcelas = huella EDI + anillo + patio; población derivada. Mapa ampliado con muralla/agua para no perder suelo edificable.
+- **Cada edificio es un hijo EDI G1**: parámetros de `fork("building", k)`, semilla `hash64(semilla, "EDI", k) & (2⁴⁰−1)`, código guardado en `MapLevel.children` (**`MapChild`** nuevo: código, zona, `offset`, `child_level`, huella, entrada; se serializa solo si hay hijos). `EdiGeneratorG1.plan_ground_floor()` (nuevo, no cambia la salida de EDI) da puertas y ventanas sin amueblar. Test del criterio de F3: el código hijo regenera exactamente huella, tipo, muros, puertas, ventanas y entrada.
+- **Esquema ALD G1** en `ParamSchemaRegistry.ald_g1()`: `size, grid, style, wall, water, prosperity, layout`. Registrado en `GeneratorRegistry`.
+- **Datos**: `data/settlements/ald_settlement_types.json` (+ esquema); bloque `settlement` opcional en `data/styles/*.json` (EST y EDI no lo leen; `style.schema.json` actualizado). `MapRoom`: zonas `street, plaza, bridge, gate, town_wall, yard, building, garden, field` y `OUTDOOR_KINDS`.
+- **Vistas**: colores por zona (`MapMeshBuilder.ZONE_COLORS`, en 2D y 3D), tejado y nombre del tipo en 2D, rótulo en 3D; `outdoor_mask` usa `OUTDOOR_KINDS` (sin techo en 1ª persona al aire libre). MAZ/EST/EDI no cambian.
+- **UI**: escala "Asentamiento" (`UI_SCALE_ALD`); al generar, la barra dice tamaño, nº de edificios y habitantes; la ficha nueva sale en la plaza.
+- Medido: caserío ~40 ms, aldea ~100 ms, pueblo ~250 ms, ciudad ~520-730 ms, peor caso 973 ms; 100 % de edificios colocados en 36 asentamientos de estadística. Capturas 2D en `scratchpad/ald_png` (revisadas: aldea y pueblo con muralla y río).
+
+### Pendiente de Víctor
+- Aprobar el esquema ALD G1, los datos de `data/settlements/`, el bloque `settlement` de los estilos, `MapChild` y las zonas nuevas; después grabar seeds doradas de ALD (candidatas en el test `test_print_examples`).
+- Sigue pendiente lo de EST G2 / código de estancia de edificio (criterio de F3 a nivel estancia).
+
+### Códigos ALD para probar en la app
+`RPGM1-DND5-ALD-G1-0-H8DJRFAE-W` (aldea, 16 edificios) · `RPGM1-DND5-ALD-G1-1G1-KCP3TKJZ-3` (pueblo con muralla y río, 34) · `RPGM1-PF2E-ALD-G1-28HA-NGYMWQV0-1` (ciudad enana rica, amurallada, retícula, hex plana) · `RPGM1-DND5-ALD-G1-1T27-QN75YR3H-9` (caserío élfico pobre en la costa). Edificio hijo de la aldea: `RPGM1-DND5-EDI-G1-Y00-BC23VGX8-T` (taberna).
+
+### Siguiente paso
+1. Navegación aldea → edificio en la UI (el modelo ya la expone: `MapLevel.child_at(casilla)`, `MapChild.seed_code`, `to_child_cell`, `child_level`): p. ej. doble clic en una huella abre su código y coloca la ficha en la entrada.
+2. Tras la aprobación: grabar las seeds doradas de ALD en su propio commit.
+3. Universal VTT (F3).
+
+### Limitaciones conocidas (ALD G1)
+- Edificios sin girar (EDI no tiene orientación): todas las huellas apaisadas.
+- Sin mercado con puestos, pozos ni muelles; río o costa, no ambos; la muralla queda abierta donde la cruza el agua.
+- Una "ciudad" G1 es un barrio (60-80 edificios) por la escala táctica.
+- En hex, calles y parcelas son rectángulos en coordenadas offset (bordes dentados, como EDI).
+- La vista 3D de una ciudad tarda ≈ 1,3 s en construirse (pueblo ≈ 0,43 s, aldea ≈ 0,15 s); 2D es inmediata.
+
+## Sesión anterior: 2026-11-24 (6.ª) — F3 etapa 1: generador de edificios EDI G1 (`cartografo`)
 Tests: **178/178, 22352 asserts, idénticos en escritorio y navegador**; las 20 seeds doradas MAZ/EST siguen iguales.
 
 **Verificación del coordinador**: tests en escritorio y web (Chrome sin ventana), capturas reales 2D/3D/1ª persona de la taberna y del templo élfico hex (`render_views.gd`, carpeta `scratchpad/edi`) y `play_f2.gd` sin fallos. Retoque de vistas: el suelo exterior del edificio (zona `outside` y su entrada/salida) se pinta en otro tono (`MapMeshBuilder.COL_OUTDOOR`, `outdoor_mask()`) y en 1ª persona no lleva techo; en MAZ no cambia nada (sin zona `outside`). Detalle pendiente: en la cenital 3D los rótulos de objetos vecinos se solapan ("Mesa redonda" ×2).
@@ -136,7 +167,7 @@ Víctor cerró la sesión de terminal para reabrir en **Claude Code desktop** co
 
 ### Comandos para retomar
 ```powershell
-pwsh tools/run_tests.ps1        # importa + tests; debe dar 178/178
+pwsh tools/run_tests.ps1        # importa + tests; debe dar 194/194
 $g = "$env:LOCALAPPDATA\Programs\Godot\Godot_v4.7.2-stable_win64_console.exe"
 & $g --path project             # ejecutar la app
 & $g --path project -e          # abrir editor

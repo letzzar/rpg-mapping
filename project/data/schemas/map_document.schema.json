@@ -134,6 +134,26 @@
 							"armed": { "type": "boolean" }
 						}
 					}
+				},
+				"children": {
+					"type": "array",
+					"minItems": 1,
+					"description": "Opcional (F3, ADR 027): mapas hijos anclados en el nivel (edificios de un asentamiento ALD), ordenados por id. Se omite si no hay ninguno, así los documentos sin hijos conservan su hash. La casilla c del nivel child_level del hijo es la casilla c + offset de este nivel",
+					"items": {
+						"type": "object",
+						"additionalProperties": false,
+						"required": ["id", "kind", "seed_code", "room_id", "offset", "child_level", "rect", "entrance"],
+						"properties": {
+							"id": { "type": "integer", "minimum": 1 },
+							"kind": { "type": "string", "pattern": "^[a-z0-9_]+$", "description": "Tipo del hijo (edificio: building_type de EDI)" },
+							"seed_code": { "type": "string", "description": "Código RPGM1 canónico que regenera el hijo" },
+							"room_id": { "type": "integer", "minimum": 1, "description": "Zona de este nivel que ocupa la huella" },
+							"offset": { "$ref": "#/$defs/cell" },
+							"child_level": { "type": "integer", "minimum": 0 },
+							"rect": { "type": "array", "items": { "type": "integer" }, "minItems": 4, "maxItems": 4, "description": "Huella [x, y, ancho, alto] en casillas de este nivel" },
+							"entrance": { "$ref": "#/$defs/cell" }
+						}
+					}
 				}
 			}
 		},

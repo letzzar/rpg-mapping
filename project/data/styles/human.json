@@ -4,5 +4,6 @@
 	"name_key": "STYLE_HUMAN",
 	"materials": { "furniture": "oak", "stone": "stone", "metal": "iron", "fabric": "wool", "none": "" },
 	"furniture_weight_pct": {},
-	"building": { "footprint_pct": 100, "window_pct": 100 }
+	"building": { "footprint_pct": 100, "window_pct": 100 },
+	"settlement": { "type_weight_pct": {}, "turn_permille": 180 }
 }

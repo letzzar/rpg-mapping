@@ -22,6 +22,10 @@ var rooms: Array[MapRoom] = []
 var objects: Array[MapObject] = []
 var stairs: Array[MapStair] = []
 var traps: Array[MapTrap] = []
+## Mapas hijos anclados en el nivel (edificios de un asentamiento, ALD G1),
+## ordenados por id. Se serializan solo si hay alguno: los documentos sin
+## hijos (MAZ, EST, EDI) dan el mismo JSON y el mismo hash que antes.
+var children: Array[MapChild] = []
 
 var _edges: Dictionary[int, int] = {}
 ## Observador ("party", id de jugador…) -> 1 byte por casilla (1 = explorada).
@@ -276,6 +280,34 @@ func traps_at(cell: Vector2i) -> Array[MapTrap]:
 	return out
 
 
+# --- Mapas hijos -------------------------------------------------------------
+
+func child(id: int) -> MapChild:
+	for c: MapChild in children:
+		if c.id == id:
+			return c
+	return null
+
+
+func add_child_map(c: MapChild) -> bool:
+	if child(c.id) != null:
+		return false
+	var k: int = 0
+	while k < children.size() and children[k].id < c.id:
+		k += 1
+	children.insert(k, c)
+	return true
+
+
+## Hijo cuya huella contiene la casilla (null si ninguno). Para la navegación
+## aldea → edificio.
+func child_at(cell: Vector2i) -> MapChild:
+	for c: MapChild in children:
+		if c.rect.has_point(cell):
+			return c
+	return null
+
+
 # --- Movimiento y visión (sin reglas del sistema) ---------------------------
 
 const MOVE_PASSABLE: int = 1
@@ -390,7 +422,7 @@ func content_to_dict() -> Dictionary:
 	var trap_list: Array = []
 	for t: MapTrap in traps:
 		trap_list.append(t.to_dict())
-	return {
+	var d: Dictionary = {
 		"terrain": terrain,
 		"room_ids": room_ids,
 		"edges": edges,
@@ -399,6 +431,13 @@ func content_to_dict() -> Dictionary:
 		"stairs": stair_list,
 		"traps": trap_list,
 	}
+	# Opcional: sin hijos no se escribe (los hashes de MAZ, EST y EDI no cambian).
+	if not children.is_empty():
+		var child_list: Array = []
+		for c: MapChild in children:
+			child_list.append(c.to_dict())
+		d["children"] = child_list
+	return d
 
 
 func fog_to_dict() -> Dictionary:
@@ -448,6 +487,10 @@ func load_dicts(r: JsonReader, content: Dictionary, fog: Dictionary) -> void:
 	for d: Dictionary in r.get_dicts(content, "traps"):
 		if not add_trap(MapTrap.from_dict(r, d)):
 			r.fail("id de trampa repetido")
+	if content.has("children"):
+		for d: Dictionary in r.get_dicts(content, "children"):
+			if not add_child_map(MapChild.from_dict(r, d)):
+				r.fail("id de mapa hijo repetido")
 	var viewers: Array = fog.keys()
 	viewers.sort()
 	for v: Variant in viewers:

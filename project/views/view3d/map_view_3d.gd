@@ -268,6 +268,25 @@ func _build_labels() -> void:
 		lbl.outline_modulate = Color("2b1d14")
 		lbl.position = MapMeshBuilder.v3(center, maxf(0.12, float(o.height_mm) / 1000.0) + 0.3)
 		_labels_node.add_child(lbl)
+	# Edificios de un asentamiento (mapas hijos): su tipo sobre la huella.
+	var fog_opts: MapMeshBuilder.Options = _build_opts_for_fog()
+	for ch: MapChild in lvl.children:
+		var a: Vector2 = g.cell_to_pixel(ch.rect.position, cell_m)
+		var b: Vector2 = g.cell_to_pixel(ch.rect.end - Vector2i(1, 1), cell_m)
+		if MapMeshBuilder.fog_factor(fog_opts, g.index_of(ch.entrance)) <= 0.0:
+			continue
+		var blbl: Label3D = Label3D.new()
+		blbl.text = tr("BUILDING_" + ch.kind.to_upper())
+		blbl.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		blbl.fixed_size = true
+		blbl.no_depth_test = true
+		blbl.pixel_size = 0.001
+		blbl.font_size = 36
+		blbl.outline_size = 12
+		blbl.modulate = Color("fbf0d2")
+		blbl.outline_modulate = Color("2b1d14")
+		blbl.position = MapMeshBuilder.v3((a + b) * 0.5, 3.6)
+		_labels_node.add_child(blbl)
 
 
 func _build_opts_for_fog() -> MapMeshBuilder.Options:

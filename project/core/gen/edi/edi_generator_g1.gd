@@ -269,6 +269,33 @@ static func generate_building(p: Params, rng: Rng) -> Result:
 	return res
 
 
+## Planta baja de un edificio SIN generar el resto (la usa ALD G1, ADR 027,
+## para conocer la puerta principal, la trasera y las ventanas de cada
+## edificio hijo sin pagar el amueblado). Es exactamente la planta que
+## construye generate_building() con los mismos parámetros y el mismo Rng: sale
+## solo de la huella y de fork("level", nivel de la planta baja), y sus puertas
+## y ventanas se planifican antes que las escaleras, las demás plantas y el
+## mobiliario, que no las tocan. Coordenadas de la rejilla del edificio
+## ((ancho + 2) × (alto + 2), con el anillo exterior). No cambia la salida de
+## EDI G1 (solo es otra entrada; lo vigilan sus seeds doradas y
+## test_ald_generator). null si el tipo, el estilo o la rejilla no existen.
+static func plan_ground_floor(p: Params, rng: Rng) -> Floor:
+	var data: EdiData = EdiData.load_default()
+	if not data.is_valid():
+		return null
+	var bt: EdiData.BuildingType = data.building_type(p.building_type)
+	var sb: EdiData.StyleBuilding = data.style_building(p.style)
+	if bt == null or sb == null:
+		return null
+	var dims: Vector2i = footprint_size(bt, sb, p.size_id)
+	var grid: GridGeometry = GridFactory.create(p.grid_kind, dims.x + 2, dims.y + 2)
+	if grid == null:
+		return null
+	var cellar_n: int = 1 if p.cellar else 0
+	var none: Array[Vector2i] = []
+	return _build_floor(grid, bt, sb, cellar_n, EdiData.FLOOR_GROUND, Rect2i(1, 1, dims.x, dims.y), none, rng.fork("level", cellar_n))
+
+
 # --- Huellas y escaleras ---------------------------------------------------------
 
 ## Recorta max(1, largo/4) casillas de un extremo del eje largo con

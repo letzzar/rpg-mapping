@@ -1,0 +1,60 @@
+{
+	"schema_version": 1,
+	"building_types": [
+		{ "id": "house", "residents": 5 },
+		{ "id": "tavern", "residents": 3 },
+		{ "id": "inn", "residents": 4 },
+		{ "id": "smithy", "residents": 4 },
+		{ "id": "shop", "residents": 4 },
+		{ "id": "temple", "residents": 2 },
+		{ "id": "guardhouse", "residents": 6 }
+	],
+	"sizes": [
+		{
+			"id": "hamlet", "map": [72, 56], "buildings": [5, 8],
+			"main_width": 2, "street_width": 2, "lane_width": 1, "crossroads_permille": 0,
+			"branch_every": [14, 20], "branch_length": [8, 16], "branch_levels": 1, "grid_block": [20, 14],
+			"plaza": [7, 5], "yard": 2, "river_width": 3, "extra_floor_permille": 0,
+			"required": [],
+			"type_weights": { "house": 100, "tavern": 6, "smithy": 6, "shop": 2, "inn": 0, "temple": 1, "guardhouse": 0 }
+		},
+		{
+			"id": "village", "map": [104, 80], "buildings": [12, 18],
+			"main_width": 2, "street_width": 2, "lane_width": 1, "crossroads_permille": 400,
+			"branch_every": [14, 20], "branch_length": [12, 22], "branch_levels": 2, "grid_block": [22, 16],
+			"plaza": [9, 7], "yard": 1, "river_width": 3, "extra_floor_permille": 0,
+			"required": ["tavern", "temple", "smithy"],
+			"type_weights": { "house": 100, "tavern": 5, "smithy": 5, "shop": 8, "inn": 3, "temple": 2, "guardhouse": 1 }
+		},
+		{
+			"id": "town", "map": [160, 124], "buildings": [28, 38],
+			"main_width": 3, "street_width": 2, "lane_width": 2, "crossroads_permille": 800,
+			"branch_every": [13, 18], "branch_length": [14, 26], "branch_levels": 2, "grid_block": [22, 16],
+			"plaza": [13, 9], "yard": 0, "river_width": 4, "extra_floor_permille": 250,
+			"required": ["temple", "tavern", "inn", "smithy", "guardhouse", "shop", "shop"],
+			"type_weights": { "house": 100, "tavern": 6, "smithy": 5, "shop": 16, "inn": 5, "temple": 3, "guardhouse": 3 }
+		},
+		{
+			"id": "city", "map": [212, 164], "buildings": [60, 80],
+			"main_width": 3, "street_width": 2, "lane_width": 2, "crossroads_permille": 1000,
+			"branch_every": [13, 18], "branch_length": [16, 30], "branch_levels": 3, "grid_block": [22, 16],
+			"plaza": [17, 11], "yard": 0, "river_width": 5, "extra_floor_permille": 500,
+			"required": ["temple", "temple", "inn", "inn", "tavern", "tavern", "guardhouse", "guardhouse", "smithy", "smithy", "shop", "shop", "shop", "shop"],
+			"type_weights": { "house": 100, "tavern": 6, "smithy": 4, "shop": 22, "inn": 6, "temple": 4, "guardhouse": 5 }
+		}
+	],
+	"prosperity": [
+		{
+			"id": "poor", "type_weight_pct": { "house": 110, "shop": 50, "inn": 60, "temple": 80 },
+			"edi_size_weights": { "small": 70, "medium": 25, "large": 5 }, "cellar_permille": 100, "clutter": 3
+		},
+		{
+			"id": "average", "type_weight_pct": {},
+			"edi_size_weights": { "small": 40, "medium": 45, "large": 15 }, "cellar_permille": 250, "clutter": 5
+		},
+		{
+			"id": "rich", "type_weight_pct": { "shop": 180, "inn": 150, "tavern": 120, "temple": 130 },
+			"edi_size_weights": { "small": 15, "medium": 45, "large": 40 }, "cellar_permille": 450, "clutter": 7
+		}
+	]
+}

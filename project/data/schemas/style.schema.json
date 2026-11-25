@@ -2,7 +2,7 @@
 	"$schema": "https://json-schema.org/draft/2020-12/schema",
 	"$id": "https://rpg-mapping.local/schemas/style.schema.json",
 	"title": "Estilo arquitectónico (data/styles/<id>.json)",
-	"description": "ADR 015 y 023. En F1 lo usa EST: materiales por clase de material y multiplicador (en %) del peso de los objetos opcionales. ALD y EDI (F3) añadirán campos al final.",
+	"description": "ADR 015 y 023. En F1 lo usa EST: materiales por clase de material y multiplicador (en %) del peso de los objetos opcionales. EDI (F3) lee el bloque opcional 'building' y ALD (F3) el bloque opcional 'settlement'.",
 	"type": "object",
 	"additionalProperties": false,
 	"required": ["schema_version", "id", "name_key", "materials", "furniture_weight_pct"],
@@ -27,6 +27,15 @@
 			"properties": {
 				"footprint_pct": { "type": "integer", "minimum": 50, "maximum": 200, "description": "% del ancho y alto de la huella del edificio" },
 				"window_pct": { "type": "integer", "minimum": 0, "maximum": 400, "description": "% de la densidad de ventanas del tipo de edificio" }
+			}
+		},
+		"settlement": {
+			"type": "object",
+			"additionalProperties": false,
+			"description": "Opcional (ALD G1, F3, ADR 027; EST y EDI no lo leen). Sin él: pesos al 100 % y turn_permille 180.",
+			"properties": {
+				"type_weight_pct": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0 }, "description": "Tipo de edificio EDI -> % de su peso en el asentamiento (100 si no aparece)" },
+				"turn_permille": { "type": "integer", "minimum": 0, "maximum": 1000, "description": "Probabilidad (‰) por paso de que una calle orgánica se desvíe una casilla (calles más o menos sinuosas)" }
 			}
 		}
 	}

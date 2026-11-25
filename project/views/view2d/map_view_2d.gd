@@ -34,6 +34,8 @@ const COL_DOOR_OPEN: Color = Color("f7dc8e")
 const COL_SECRET: Color = Color("5fb4d6")
 ## Cristal de las ventanas (F3).
 const COL_WINDOW: Color = Color("a8d4e6")
+## Tejado de los edificios de un asentamiento (ALD, F3).
+const COL_ROOF: Color = Color("b9785a")
 const COL_PATH_OK: Color = Color(0.11, 0.31, 0.49, 0.9)
 const COL_PATH_FAR: Color = Color(0.70, 0.15, 0.10, 0.9)
 const COL_RULER: Color = Color(0.55, 0.37, 0.12, 0.95)
@@ -124,6 +126,11 @@ func _draw() -> void:
 	var lvl: MapLevel = document.level(level_index)
 	draw_rect(Rect2(Vector2.ZERO, g.map_pixel_size(cell_px)), COL_BG)
 	var outdoor: PackedByteArray = MapMeshBuilder.outdoor_mask(lvl)
+	var zone_cols: Dictionary[int, Color] = MapMeshBuilder.zone_colors_by_room(lvl)
+	# En 2D la huella de los edificios de un asentamiento se pinta como tejado.
+	for r: MapRoom in lvl.rooms:
+		if r.kind == MapRoom.KIND_BUILDING:
+			zone_cols[r.id] = COL_ROOF
 	for i: int in g.cell_count():
 		var c: Vector2i = g.cell_at(i)
 		var t: int = lvl.get_terrain(c)
@@ -131,6 +138,8 @@ func _draw() -> void:
 		var fill: Color = TERRAIN_COLORS[t] if t >= 0 and t < TERRAIN_COLORS.size() else COL_BG
 		if outdoor[i] != 0 and t == Terrain.FLOOR:
 			fill = MapMeshBuilder.COL_OUTDOOR
+		if t == Terrain.FLOOR and zone_cols.has(lvl.room_ids[i]):
+			fill = zone_cols[lvl.room_ids[i]]
 		draw_colored_polygon(poly, fill)
 		if show_grid and Terrain.is_passable(t):
 			# Ancho negativo = línea fina de 1 px de pantalla a cualquier zoom;
@@ -141,6 +150,7 @@ func _draw() -> void:
 	_draw_edges(g, lvl)
 	_draw_features(g, lvl)
 	_draw_objects(g, lvl)
+	_draw_children(g, lvl)
 	if fog:
 		_draw_fog(g)
 	_draw_overlays(g)
@@ -334,6 +344,27 @@ func _draw_object_label(font: Font, g: GridGeometry, cells: Array[Vector2i], lab
 		return
 	draw_multiline_string(font, center + Vector2(-avail * 0.5, fs * 0.35 - fs * 0.55), label,
 		HORIZONTAL_ALIGNMENT_CENTER, avail, fs, 2, col)
+
+
+## Nombre del tipo de cada mapa hijo (edificios de un asentamiento) centrado
+## en su huella, con la letra que quepa en su ancho.
+func _draw_children(g: GridGeometry, lvl: MapLevel) -> void:
+	if lvl.children.is_empty():
+		return
+	var font: Font = ThemeDB.fallback_font
+	for ch: MapChild in lvl.children:
+		var a: Vector2 = g.cell_to_pixel(ch.rect.position, cell_px)
+		var b: Vector2 = g.cell_to_pixel(ch.rect.end - Vector2i(1, 1), cell_px)
+		var center: Vector2 = (a + b) * 0.5
+		var avail: float = absf(b.x - a.x) + cell_px * 0.5
+		var label: String = tr("BUILDING_" + ch.kind.to_upper())
+		var fs: int = int(cell_px * 0.9)
+		while fs > 6 and font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x > avail:
+			fs -= 1
+		draw_string_outline(font, center + Vector2(-avail * 0.5, fs * 0.35), label,
+			HORIZONTAL_ALIGNMENT_CENTER, avail, fs, maxi(2, fs / 6), Color("fbf0d2"))
+		draw_string(font, center + Vector2(-avail * 0.5, fs * 0.35), label,
+			HORIZONTAL_ALIGNMENT_CENTER, avail, fs, Color("2b1d14"))
 
 
 func _draw_tokens(g: GridGeometry) -> void:

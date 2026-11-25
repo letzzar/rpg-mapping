@@ -74,6 +74,8 @@ static func _ensure_builtins() -> void:
 	assert(problem.is_empty(), "ParamSchemaRegistry: EST G1 no válido: " + problem)
 	problem = _add(edi_g1())
 	assert(problem.is_empty(), "ParamSchemaRegistry: EDI G1 no válido: " + problem)
+	problem = _add(ald_g1())
+	assert(problem.is_empty(), "ParamSchemaRegistry: ALD G1 no válido: " + problem)
 
 
 ## MAZ G1 — PROPUESTA DEFINITIVA, PENDIENTE DE APROBAR (F1, etapa 2). Se
@@ -158,3 +160,29 @@ static func edi_g1() -> ParamSchema:
 		ParamSchema.int_field("clutter", 0, 10, 5),
 	]
 	return ParamSchema.new("EDI", 1, fields)
+
+
+## ALD G1 — PROPUESTA, PENDIENTE DE APROBAR (F3). Se congela al grabar la
+## primera seed dorada de ALD. Detalle en AldGeneratorG1, PROYECTO §6.3 y
+## ADR 027. Orden de más a menos usado:
+## - size: caserío, aldea, pueblo, ciudad (data/settlements: mapa, nº de
+##   edificios, calles, plaza…); capacity 8. La población se deriva de los
+##   edificios (no es un parámetro en G1).
+## - grid: rejilla (ADR 012); la de los edificios hijos.
+## - style: ADR 015 (mismos ids que EST, EDI y MAZ); el de los edificios hijos.
+## - wall: muralla con puertas donde la cruzan las calles principales.
+## - water: ninguna, río (con puente) o costa; capacity 8.
+## - prosperity: pobre, media, rica (pesos de tipos, tamaño EDI, sótanos y
+##   clutter de los hijos); capacity 8.
+## - layout: calles orgánicas o retícula (ciudad planificada); capacity 4.
+static func ald_g1() -> ParamSchema:
+	var fields: Array[ParamSchema.Field] = [
+		ParamSchema.enum_field("size", PackedStringArray(["hamlet", "village", "town", "city"]), "village", 8),
+		ParamSchema.enum_field("grid", PackedStringArray(["square", "hex_flat", "hex_pointy"]), "square", 4),
+		ParamSchema.enum_field("style", PackedStringArray(["human", "dwarf", "elf"]), "human", 16),
+		ParamSchema.bool_field("wall", false),
+		ParamSchema.enum_field("water", PackedStringArray(["none", "river", "coast"]), "none", 8),
+		ParamSchema.enum_field("prosperity", PackedStringArray(["poor", "average", "rich"]), "average", 8),
+		ParamSchema.enum_field("layout", PackedStringArray(["organic", "grid"]), "organic", 4),
+	]
+	return ParamSchema.new("ALD", 1, fields)

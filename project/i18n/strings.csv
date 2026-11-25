@@ -136,3 +136,18 @@ UI_TOKEN_SELECTED,Ficha {name} seleccionada,Token {name} selected
 UI_FP_NEEDS_TOKEN,Añade una ficha para verla en 1ª persona,Add a token to see it in first person
 UI_FP_HELP,"W/S o flechas: avanzar y retroceder · A/D: girar · Espacio o E: abrir/cerrar puerta · botón derecho: mirar","W/S or arrows: forward and back · A/D: turn · Space or E: open/close door · right button: look around"
 UI_3D_HELP,"Arrastra una ficha para moverla · clic en una puerta · rueda: zoom · botón derecho: girar e inclinar · central: desplazar · Q/E R/F · O: ortográfica","Drag a token to move it · click a door · wheel: zoom · right button: rotate and tilt · middle: pan · Q/E R/F · O: orthographic"
+UI_SCALE_ALD,Asentamiento,Settlement
+UI_SETTLEMENT_INFO,"{size}: {buildings} edificios, unos {population} habitantes · {code}","{size}: {buildings} buildings, about {population} inhabitants · {code}"
+ROOM_KIND_STREET,Calle,Street
+ROOM_KIND_PLAZA,Plaza,Square
+ROOM_KIND_BRIDGE,Puente,Bridge
+ROOM_KIND_GATE,Puerta de la muralla,Town gate
+ROOM_KIND_TOWN_WALL,Muralla,Town wall
+ROOM_KIND_YARD,Parcela,Yard
+ROOM_KIND_BUILDING,Edificio,Building
+ROOM_KIND_GARDEN,Huertos,Gardens
+ROOM_KIND_FIELD,Campos,Fields
+SETTLEMENT_HAMLET,Caserío,Hamlet
+SETTLEMENT_VILLAGE,Aldea,Village
+SETTLEMENT_TOWN,Pueblo,Town
+SETTLEMENT_CITY,Ciudad,City

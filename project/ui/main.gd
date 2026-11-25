@@ -6,7 +6,7 @@ extends Control
 ## La interfaz se construye por código para mantener la escena mínima. Todos
 ## los textos salen de i18n/strings.csv.
 
-const SCALES: Array[String] = ["MAZ", "EST", "EDI"]
+const SCALES: Array[String] = ["MAZ", "EST", "EDI", "ALD"]
 const GEN: int = 1
 const UNIT_OPTIONS: Array[String] = ["UI_UNITS_METRIC", "UI_UNITS_METRIC_EXACT", "UI_UNITS_IMPERIAL"]
 const GRID_OPTIONS: Array[String] = ["square", "hex_flat", "hex_pointy"]
@@ -245,6 +245,12 @@ func _generate_from_text() -> void:
 	_code_edit.text = res.doc.seed_code if not res.doc.seed_code.is_empty() else _code_edit.text
 	_apply_profile()
 	_status.text = tr("UI_GENERATED").replace("{code}", _code_edit.text)
+	if parsed.is_valid() and parsed.scale == AldGeneratorG1.SCALE:
+		# Asentamiento: tamaño, edificios y población derivada (ADR 027).
+		var size_id: String = parsed.params.get("size", "")
+		_status.text = tr("UI_SETTLEMENT_INFO").replace("{size}", tr("SETTLEMENT_" + size_id.to_upper())) \
+			.replace("{buildings}", str(res.doc.level(0).children.size())) \
+			.replace("{population}", str(AldGeneratorG1.population_of(res.doc))).replace("{code}", _code_edit.text)
 
 
 func _set_document(doc: MapDocument) -> void:
@@ -453,7 +459,8 @@ func _add_token() -> void:
 func _cells_by_entrance_distance(lvl: MapLevel, mask: PackedByteArray) -> Array[Vector2i]:
 	var g: GridGeometry = _doc.grid
 	var seeds: Array[Vector2i] = []
-	for kind: String in [MapRoom.KIND_ENTRANCE, MapRoom.KIND_EXIT]:
+	# En un asentamiento (sin entrada) la ficha sale en la plaza.
+	for kind: String in [MapRoom.KIND_ENTRANCE, MapRoom.KIND_EXIT, MapRoom.KIND_PLAZA]:
 		for r: MapRoom in lvl.rooms:
 			if r.kind == kind:
 				seeds.append_array(lvl.room_cells(r.id))

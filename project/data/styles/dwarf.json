@@ -4,5 +4,6 @@
 	"name_key": "STYLE_DWARF",
 	"materials": { "furniture": "granite", "stone": "granite", "metal": "steel", "fabric": "leather", "none": "" },
 	"furniture_weight_pct": { "barrel": 200, "weapon_rack": 200, "statue": 150, "pillar": 150, "brazier": 150, "rug": 50, "candle_stand": 50, "pew": 70 },
-	"building": { "footprint_pct": 115, "window_pct": 40 }
+	"building": { "footprint_pct": 115, "window_pct": 40 },
+	"settlement": { "type_weight_pct": { "smithy": 250, "guardhouse": 150, "inn": 70, "temple": 80 }, "turn_permille": 80 }
 }
