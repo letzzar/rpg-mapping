@@ -1,6 +1,25 @@
 # SESSION_HANDOFF — RPG Mapping
 
-## Última sesión: 2026-11-25 (7.ª) — F3 etapa 2: generador de asentamientos ALD G1 (`cartografo`)
+## Última sesión: 2026-11-25 (8.ª) — F3 etapa 3: navegación aldea → edificio
+Tests: **199/199, 24568 asserts, idénticos en escritorio y navegador** (5 nuevos en `tests/unit/test_map_navigation.gd`); 37 seeds doradas sin cambios. `play_f2.gd` sigue con 0 fallos. Probado en la app con ventana real (eventos inyectados): doble clic en la taberna de `RPGM1-DND5-ALD-G1-0-H8DJRFAE-W` → entra con las 2 fichas en la puerta, nivel 2 (tiene sótano), 1ª persona mirando a la puerta; "← Volver a: Aldea" → fichas delante de la puerta.
+
+### Hecho
+- **`MapNavigator`** (`core/model/map_navigator.gd`, ADR 028): ruta de mapas (`frames`), cada uno con documento, historial y nivel; hijos visitados cacheados en el padre. `enter(child, nivel, perfil)` / `back(perfil)` pasan las fichas del grupo por la puerta y vacían el historial de los dos mapas. `free_cells_near(..., max_count)` para en cuanto tiene casillas (recorrer una ciudad entera costaba ~0,5 s).
+- **`RemoveTokenCommand`** nuevo (con delta `remove_token`, deshacer y rehacer).
+- **UI** (`ui/main.gd`): señal `cell_activated` (doble clic sin ficha) en `MapView2D` y `MapView3D` (cenital) → `_on_cell_activated`; botón "← Volver a: {name}" (`_back_btn`); `_show_frame` pone código, escala, sistema y rejilla del mapa; la barra de un asentamiento añade "Doble clic en un edificio para entrar en él". `_set_document(doc, stack, nivel)` ya no crea historial ni reinicia el contador de fichas (solo al generar). Textos nuevos `UI_NAV_*`, `CMD_REMOVE_TOKEN`.
+- **Vista 2D**: la casilla sale de la posición del **evento** (`_pointer_local/_pointer_global`), no de `get_local_mouse_position()` (con eventos inyectados el doble clic caía fuera del mapa; también mejor para táctil y web). El zoom con rueda usa el mismo punto.
+- **1ª persona**: si la ficha tiene una puerta al lado, mira hacia ella (`_door_direction`); si no, como antes.
+
+### Siguiente paso
+1. Criterio de F3 a nivel estancia (EST G2 o código de estancia de edificio: decidir con Víctor).
+2. Universal VTT (F3).
+
+### Limitaciones conocidas (navegación)
+- Solo aldea → edificio; edificio → estancia llegará con la decisión anterior.
+- Al generar otro mapa se olvida la ruta y los edificios visitados (no hay guardado de partida aún).
+- El doble clic en 3D solo en vista cenital (en 1ª persona no hay casilla bajo el puntero).
+
+## Sesión anterior: 2026-11-25 (7.ª) — F3 etapa 2: generador de asentamientos ALD G1 (`cartografo`)
 Tests: **194/194, 24275 asserts, idénticos en escritorio y navegador** (16 nuevos en `tests/unit/test_ald_generator.gd`). Revisado por el coordinador y probado en la app: los códigos de ejemplo y la taberna hija se generan y se ven en 2D, 3D cenital y 1ª persona sin errores. **ALD G1 aprobado por Víctor (2026-11-25) y congelado**: 8 seeds doradas de ALD + la taberna hija como EDI (37 en total); las 28 anteriores no cambian.
 
 ### Hecho
@@ -22,7 +41,7 @@ Tests: **194/194, 24275 asserts, idénticos en escritorio y navegador** (16 nuev
 `RPGM1-DND5-ALD-G1-0-H8DJRFAE-W` (aldea, 16 edificios) · `RPGM1-DND5-ALD-G1-1G1-KCP3TKJZ-3` (pueblo con muralla y río, 34) · `RPGM1-PF2E-ALD-G1-28HA-NGYMWQV0-1` (ciudad enana rica, amurallada, retícula, hex plana) · `RPGM1-DND5-ALD-G1-1T27-QN75YR3H-9` (caserío élfico pobre en la costa). Edificio hijo de la aldea: `RPGM1-DND5-EDI-G1-Y00-BC23VGX8-T` (taberna).
 
 ### Siguiente paso
-1. Navegación aldea → edificio en la UI (el modelo ya la expone: `MapLevel.child_at(casilla)`, `MapChild.seed_code`, `to_child_cell`, `child_level`): p. ej. doble clic en una huella abre su código y coloca la ficha en la entrada.
+1. ~~Navegación aldea → edificio en la UI~~ (hecho en la 8.ª sesión).
 2. Universal VTT (F3).
 
 ### Limitaciones conocidas (ALD G1)

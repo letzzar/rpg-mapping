@@ -23,6 +23,9 @@ signal status_changed(text: String)
 ## Tras ejecutar un comando del usuario (mover, abrir puerta): la UI explora.
 signal user_command_done
 signal token_selected(token_id: int)
+## Doble clic izquierdo (vista cenital) en una casilla sin ficha (la UI entra
+## en el edificio que haya ahí, F3).
+signal cell_activated(cell: Vector2i)
 
 enum Mode { TOP, FIRST_PERSON }
 
@@ -330,8 +333,28 @@ func _enter_first_person() -> void:
 			party = [document.tokens[0]]
 		selected_token = party[0].id if not party.is_empty() else -1
 	_fp_pitch = 0.0
-	_fp_facing = _longest_open_direction()
+	_fp_facing = _door_direction()
+	if _fp_facing < 0:
+		_fp_facing = _longest_open_direction()
 	_fp_yaw = _facing_yaw(_fp_facing)
+
+
+## Lado de la casilla de la ficha con una puerta (visible), o -1. Al entrar en
+## un edificio (F3) la ficha queda delante de la puerta: debe mirarla, no a lo
+## largo de la fachada.
+func _door_direction() -> int:
+	var t: MapToken = document.token(selected_token)
+	if t == null:
+		return -1
+	var lvl: MapLevel = document.level(level_index)
+	for dir: int in document.grid.edge_direction_count():
+		var v: int = lvl.get_edge(t.cell, dir)
+		if not MapEdge.is_door(v):
+			continue
+		if MapEdge.kind_of(v) == MapEdge.KIND_SECRET_DOOR and not MapEdge.has_flag(v, MapEdge.FLAG_DISCOVERED):
+			continue
+		return dir
+	return -1
 
 
 ## Dirección con arista por la que más casillas se puede avanzar en línea
@@ -442,7 +465,10 @@ func _handle_button(mb: InputEventMouseButton) -> void:
 			if mode != Mode.TOP:
 				return
 			var cell: Vector2i = cell_at_screen(mb.position)
-			if mb.pressed:
+			if mb.pressed and mb.double_click and _token_at(cell) == null:
+				if document.grid.in_bounds(cell):
+					cell_activated.emit(cell)
+			elif mb.pressed:
 				_on_left_press(cell, mb.position)
 			else:
 				_on_left_release(cell)

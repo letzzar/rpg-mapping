@@ -20,6 +20,9 @@ signal status_changed(text: String)
 signal token_selected(token_id: int)
 ## Tras ejecutar un comando del usuario (mover, abrir puerta): la UI explora.
 signal user_command_done
+## Doble clic izquierdo en una casilla sin ficha (la UI entra en el edificio
+## que haya ahí, F3).
+signal cell_activated(cell: Vector2i)
 
 const ZOOM_MIN: float = 0.2
 const ZOOM_MAX: float = 4.0
@@ -88,6 +91,9 @@ var _drag_target: Vector2i = Vector2i(-1, -1)
 var _ruler_from: Vector2i = Vector2i(-1, -1)
 var _ruler_to: Vector2i = Vector2i(-1, -1)
 var _panning: bool = false
+## Posición del puntero del último evento, local a la vista y global (canvas).
+var _pointer_local: Vector2 = Vector2.ZERO
+var _pointer_global: Vector2 = Vector2.ZERO
 
 
 func set_document(doc: MapDocument) -> void:
@@ -452,16 +458,30 @@ func _token_cells(t: MapToken) -> Array[Vector2i]:
 # --- Interacción --------------------------------------------------------------
 
 func _unhandled_input(event: InputEvent) -> void:
-	process_input(event)
+	process_input(event, false)
 
 
 ## Punto de entrada del ratón. Lo llama `_unhandled_input` cuando la vista
 ## va suelta, y el Control que la contiene (vía `gui_input`) cuando está
 ## dentro de una interfaz: un Control con mouse_filter STOP bajo el puntero
 ## consume el evento y nunca llegaría a `_unhandled_input`.
-func process_input(event: InputEvent) -> void:
+##
+## `from_parent_gui`: la posición del evento es local al Control padre (como
+## en gui_input); si no, está en coordenadas del viewport. La casilla sale de
+## la posición del evento y no de get_local_mouse_position(), que lee el
+## ratón del sistema: con eventos inyectados (pruebas, guiones) o táctiles
+## apuntaba a otro sitio y el doble clic no encontraba el edificio.
+func process_input(event: InputEvent, from_parent_gui: bool = true) -> void:
 	if not interactive or document == null:
 		return
+	var me: InputEventMouse = event as InputEventMouse
+	if me != null:
+		var parent_ctrl: Control = get_parent() as Control
+		if from_parent_gui and parent_ctrl != null:
+			_pointer_global = parent_ctrl.get_global_transform() * me.position
+		else:
+			_pointer_global = get_viewport().get_canvas_transform().affine_inverse() * me.position
+		_pointer_local = get_global_transform().affine_inverse() * _pointer_global
 	var mb: InputEventMouseButton = event as InputEventMouseButton
 	if mb != null:
 		_handle_button(mb)
@@ -472,7 +492,7 @@ func process_input(event: InputEvent) -> void:
 
 
 func _handle_button(mb: InputEventMouseButton) -> void:
-	var cell: Vector2i = document.grid.pixel_to_cell(get_local_mouse_position(), cell_px)
+	var cell: Vector2i = document.grid.pixel_to_cell(_pointer_local, cell_px)
 	match mb.button_index:
 		MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN:
 			if mb.pressed:
@@ -480,7 +500,7 @@ func _handle_button(mb: InputEventMouseButton) -> void:
 				# factor > 1, y los paneles táctiles envían factor < 1.
 				var steps: float = mb.factor if mb.factor > 0.0 else 1.0
 				var f: float = pow(ZOOM_STEP, steps)
-				_zoom_at(get_global_mouse_position(), f if mb.button_index == MOUSE_BUTTON_WHEEL_UP else 1.0 / f)
+				_zoom_at(_pointer_global, f if mb.button_index == MOUSE_BUTTON_WHEEL_UP else 1.0 / f)
 				get_viewport().set_input_as_handled()
 		MOUSE_BUTTON_MIDDLE:
 			_panning = mb.pressed
@@ -495,7 +515,10 @@ func _handle_button(mb: InputEventMouseButton) -> void:
 			queue_redraw()
 			get_viewport().set_input_as_handled()
 		MOUSE_BUTTON_LEFT:
-			if mb.pressed:
+			if mb.pressed and mb.double_click and _token_at(cell) == null:
+				if document.grid.in_bounds(cell):
+					cell_activated.emit(cell)
+			elif mb.pressed:
 				_on_left_press(cell)
 			else:
 				_on_left_release(cell)
@@ -506,7 +529,7 @@ func _handle_motion(mm: InputEventMouseMotion) -> void:
 	if _panning:
 		position += mm.relative
 		return
-	var cell: Vector2i = document.grid.pixel_to_cell(get_local_mouse_position(), cell_px)
+	var cell: Vector2i = document.grid.pixel_to_cell(_pointer_local, cell_px)
 	if _ruler_from.x >= 0:
 		if document.grid.in_bounds(cell) and cell != _ruler_to:
 			_ruler_to = cell
@@ -527,7 +550,7 @@ func _on_left_press(cell: Vector2i) -> void:
 		token_selected.emit(t.id)
 		queue_redraw()
 		return
-	var edge: int = _door_edge_near(get_local_mouse_position())
+	var edge: int = _door_edge_near(_pointer_local)
 	if edge >= 0 and command_stack != null:
 		if command_stack.execute(SetEdgeCommand.toggle_flag(document, level_index, edge, MapEdge.FLAG_OPEN)):
 			user_command_done.emit()
@@ -608,7 +631,7 @@ func _zoom_at(screen_point: Vector2, factor: float) -> void:
 	var z: float = clampf(old * factor, ZOOM_MIN, ZOOM_MAX)
 	if is_equal_approx(z, old):
 		return
-	var local: Vector2 = get_local_mouse_position()
+	var local: Vector2 = get_global_transform().affine_inverse() * screen_point
 	scale = Vector2(z, z)
 	# Mantiene bajo el puntero el mismo punto del mapa.
 	position = get_parent_global_mouse(screen_point) - local * z

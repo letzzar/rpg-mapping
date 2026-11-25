@@ -42,6 +42,9 @@ var _save_dialog: FileDialog
 
 var _doc: MapDocument = null
 var _stack: CommandStack = null
+## Ruta aldea → edificio (F3); el mapa mostrado es `_nav.current()`.
+var _nav: MapNavigator = MapNavigator.new()
+var _back_btn: Button
 var _profiles: Array[SystemProfile] = []
 var _token_counter: int = 0
 
@@ -86,6 +89,9 @@ func _build_ui() -> void:
 		_scale_opt.add_item(tr("UI_SCALE_" + sc_id))
 	bar.add_child(_scale_opt)
 	bar.add_child(_button("UI_RANDOM", _generate_random))
+	_back_btn = _button("UI_NAV_BACK", _go_back)
+	_back_btn.visible = false
+	bar.add_child(_back_btn)
 
 	_system_opt = OptionButton.new()
 	for p: SystemProfile in _profiles:
@@ -152,6 +158,7 @@ func _build_ui() -> void:
 	_map_area.gui_input.connect(_view.process_input)
 	_view.user_command_done.connect(_on_user_command)
 	_view.token_selected.connect(func(id: int) -> void: _view3d.selected_token = id)
+	_view.cell_activated.connect(_on_cell_activated)
 
 	# Vista 3D en su propio SubViewport (mundo 3D propio). El contenedor
 	# recoge ratón y teclado y se los pasa a la vista, como en 2D.
@@ -175,6 +182,7 @@ func _build_ui() -> void:
 	_view3d_box.gui_input.connect(_on_view3d_input)
 	_view3d.status_changed.connect(func(t: String) -> void: _status.text = t)
 	_view3d.user_command_done.connect(_on_user_command)
+	_view3d.cell_activated.connect(_on_cell_activated)
 	_view3d.token_selected.connect(func(id: int) -> void: _status.text = tr("UI_TOKEN_SELECTED").replace("{name}", _doc.token(id).name))
 
 	_status = Label.new()
@@ -231,54 +239,136 @@ func _generate_from_text() -> void:
 	if res.doc == null:
 		_status.text = tr(res.error)
 		return
-	_set_document(res.doc)
-	var parsed: SeedCode = SeedCode.parse(_code_edit.text)
+	_token_counter = 0
+	if res.doc.seed_code.is_empty():
+		res.doc.seed_code = _code_edit.text
+	_show_frame(_nav.open_root(res.doc), -1)
+	_status.text = _map_summary(res.doc)
+
+
+## Texto de la barra al abrir un mapa: en un asentamiento, tamaño, edificios
+## y población derivada (ADR 027) y cómo entrar en los edificios.
+func _map_summary(doc: MapDocument) -> String:
+	var parsed: SeedCode = SeedCode.parse(doc.seed_code)
+	if parsed.is_valid() and parsed.scale == AldGeneratorG1.SCALE:
+		var size_id: String = parsed.params.get("size", "")
+		return tr("UI_SETTLEMENT_INFO").replace("{size}", tr("SETTLEMENT_" + size_id.to_upper())) \
+			.replace("{buildings}", str(doc.level(0).children.size())) \
+			.replace("{population}", str(AldGeneratorG1.population_of(doc))).replace("{code}", doc.seed_code) \
+			+ " · " + tr("UI_NAV_HINT")
+	return tr("UI_GENERATED").replace("{code}", doc.seed_code)
+
+
+## Nombre visible de un mapa de la ruta: el edificio por el que se entró o,
+## en la raíz, el tamaño del asentamiento o la escala.
+func _frame_name(f: MapNavigator.Frame) -> String:
+	if f.child != null:
+		return tr("BUILDING_" + f.child.kind.to_upper())
+	var parsed: SeedCode = SeedCode.parse(f.doc.seed_code)
+	if parsed.is_valid() and parsed.scale == AldGeneratorG1.SCALE:
+		var size_id: String = parsed.params.get("size", "")
+		return tr("SETTLEMENT_" + size_id.to_upper())
+	return tr("UI_SCALE_" + parsed.scale) if parsed.is_valid() else ""
+
+
+## Muestra un mapa de la ruta: su documento, su historial de deshacer y el
+## nivel `level` (-1 = el de la entrada). Pone el código y los selectores de
+## escala, sistema y rejilla como los del mapa.
+func _show_frame(f: MapNavigator.Frame, level: int) -> void:
+	_set_document(f.doc, f.stack, level)
+	var parsed: SeedCode = SeedCode.parse(f.doc.seed_code)
 	for i: int in _profiles.size():
 		if _profiles[i].seed_code == parsed.system:
 			_system_opt.select(i)
 	var scale_idx: int = SCALES.find(parsed.scale)
 	if scale_idx >= 0:
 		_scale_opt.select(scale_idx)
-	var grid_idx: int = GRID_OPTIONS.find(res.doc.grid_kind())
+	var grid_idx: int = GRID_OPTIONS.find(f.doc.grid_kind())
 	if grid_idx >= 0:
 		_grid_opt.select(grid_idx)
-	_code_edit.text = res.doc.seed_code if not res.doc.seed_code.is_empty() else _code_edit.text
+	_code_edit.text = f.doc.seed_code
 	_apply_profile()
-	_status.text = tr("UI_GENERATED").replace("{code}", _code_edit.text)
-	if parsed.is_valid() and parsed.scale == AldGeneratorG1.SCALE:
-		# Asentamiento: tamaño, edificios y población derivada (ADR 027).
-		var size_id: String = parsed.params.get("size", "")
-		_status.text = tr("UI_SETTLEMENT_INFO").replace("{size}", tr("SETTLEMENT_" + size_id.to_upper())) \
-			.replace("{buildings}", str(res.doc.level(0).children.size())) \
-			.replace("{population}", str(AldGeneratorG1.population_of(res.doc))).replace("{code}", _code_edit.text)
+	var up: MapNavigator.Frame = _nav.parent()
+	_back_btn.visible = up != null
+	if up != null:
+		_back_btn.text = tr("UI_NAV_BACK").replace("{name}", _frame_name(up))
+	if _view_opt.selected != VIEW_2D:
+		_apply_view()
 
 
-func _set_document(doc: MapDocument) -> void:
+func _set_document(doc: MapDocument, stack: CommandStack, level: int) -> void:
 	_doc = doc
-	_token_counter = 0
-	_stack = CommandStack.new(doc)
-	_stack.changed.connect(_refresh_buttons)
+	_stack = stack
+	if not _stack.changed.is_connected(_refresh_buttons):
+		_stack.changed.connect(_refresh_buttons)
 	_view.command_stack = _stack
 	_view.document = doc
 	_view3d.command_stack = _stack
 	_view3d.profile = _current_profile()
 	_view3d.document = doc
-	doc.changed.connect(func(_l: int, layer: String) -> void:
-		if layer != MapDocument.LAYER_FOG:
-			_queue_vision())
+	# Con nombre (no lambda) para no conectarlo dos veces al volver a un mapa.
+	if not doc.changed.is_connected(_on_doc_changed):
+		doc.changed.connect(_on_doc_changed)
 	_level_opt.clear()
 	for i: int in doc.level_count():
 		_level_opt.add_item(tr("UI_LEVEL").replace("{n}", str(i + 1)))
 	# Se abre en el nivel de la entrada: en un edificio con sótano (EDI) el
 	# nivel 0 es el sótano y la puerta está en la planta baja.
-	var start: int = _entrance_level(doc)
-	if start > 0:
-		_level_opt.select(start)
-		_view.level_index = start
-		_view3d.level_index = start
+	var start: int = level if level >= 0 and level < doc.level_count() else _entrance_level(doc)
+	_level_opt.select(start)
+	_view.level_index = start
+	_view3d.level_index = start
+	# La 1ª persona sigue a una ficha del grupo de este mapa (los ids cambian
+	# al pasar de un mapa a otro).
+	for t: MapToken in doc.tokens:
+		if t.level == start and PartyVision.SIDES_IN_PARTY.has(t.side):
+			_view3d.selected_token = t.id
+			break
 	_fit.call_deferred()
 	_refresh_buttons()
 	_refresh_vision()
+
+
+func _on_doc_changed(_level: int, layer: String) -> void:
+	if layer != MapDocument.LAYER_FOG:
+		_queue_vision()
+
+
+# --- Navegación aldea → edificio (F3) -----------------------------------------
+
+## Doble clic en una casilla: si es la huella de un edificio, entra en él con
+## las fichas del grupo de este nivel.
+func _on_cell_activated(cell: Vector2i) -> void:
+	if _doc == null:
+		return
+	var child: MapChild = _doc.level(_view.level_index).child_at(cell)
+	if child == null:
+		return
+	var f: MapNavigator.Frame = _nav.enter(child, _view.level_index, _current_profile())
+	if f == null:
+		_status.text = tr(_nav.error)
+		return
+	_show_frame(f, f.level_index)
+	_explore_after_navigation()
+	_status.text = tr("UI_NAV_ENTERED").replace("{name}", _frame_name(f)).replace("{code}", f.doc.seed_code)
+
+
+## Vuelve al mapa padre sacando al grupo por la puerta.
+func _go_back() -> void:
+	var f: MapNavigator.Frame = _nav.back(_current_profile())
+	if f == null:
+		_status.text = tr(_nav.error)
+		return
+	_show_frame(f, f.level_index)
+	_explore_after_navigation()
+	_status.text = tr("UI_NAV_RETURNED").replace("{name}", _frame_name(f))
+
+
+## Explora lo que ve el grupo al llegar. No se puede deshacer: el paso de un
+## mapa a otro tampoco (MapNavigator vacía la historia).
+func _explore_after_navigation() -> void:
+	_on_user_command()
+	_stack.clear()
 
 
 ## Primer nivel con una zona "entrance" (0 si no hay ninguna).

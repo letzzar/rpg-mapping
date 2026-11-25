@@ -151,3 +151,10 @@ SETTLEMENT_HAMLET,Caserío,Hamlet
 SETTLEMENT_VILLAGE,Aldea,Village
 SETTLEMENT_TOWN,Pueblo,Town
 SETTLEMENT_CITY,Ciudad,City
+CMD_REMOVE_TOKEN,Quitar ficha,Remove token
+UI_NAV_BACK,"← Volver a: {name}","← Back to: {name}"
+UI_NAV_ENTERED,"Dentro de: {name} · fichas del grupo en la puerta · {code}","Inside: {name} · party tokens at the door · {code}"
+UI_NAV_RETURNED,"De vuelta en: {name} · fichas del grupo delante de la puerta","Back in: {name} · party tokens in front of the door"
+UI_NAV_HINT,"Doble clic en un edificio para entrar en él","Double-click a building to go inside"
+UI_NAV_NO_CHILD,No hay nada en lo que entrar ahí,There is nothing to enter there
+UI_NAV_NO_PARENT,Ya estás en el mapa principal,You are already on the main map
