@@ -1,7 +1,7 @@
 # SESSION_HANDOFF — RPG Mapping
 
 ## Última sesión: 2026-11-25 (7.ª) — F3 etapa 2: generador de asentamientos ALD G1 (`cartografo`)
-Tests: **194/194, 24251 asserts** en escritorio (16 nuevos en `tests/unit/test_ald_generator.gd`); las 28 seeds doradas MAZ/EST/EDI siguen iguales. **Idénticos en navegador** (preset "Web Tests" en Chrome sin ventana: 194/194, 24251 asserts). Revisado por el coordinador y probado en la app: los 4 códigos de ejemplo y la taberna hija se generan y se ven en 2D, 3D cenital y 1ª persona sin errores. **Sin seeds doradas de ALD**: el esquema está pendiente de aprobar por Víctor.
+Tests: **194/194, 24275 asserts, idénticos en escritorio y navegador** (16 nuevos en `tests/unit/test_ald_generator.gd`). Revisado por el coordinador y probado en la app: los códigos de ejemplo y la taberna hija se generan y se ven en 2D, 3D cenital y 1ª persona sin errores. **ALD G1 aprobado por Víctor (2026-11-25) y congelado**: 8 seeds doradas de ALD + la taberna hija como EDI (37 en total); las 28 anteriores no cambian.
 
 ### Hecho
 - **ALD G1** (`core/gen/ald/ald_generator_g1.gd`, `ald_data.gd`; PROYECTO §6.3, **ADR 027**): escala 1 casilla = 5 ft (la de EDI); calles orgánicas (caminantes + ramas en niveles) o retícula; plaza; muralla con puertas; río con puente o costa; parcelas = huella EDI + anillo + patio; población derivada. Mapa ampliado con muralla/agua para no perder suelo edificable.
@@ -13,16 +13,17 @@ Tests: **194/194, 24251 asserts** en escritorio (16 nuevos en `tests/unit/test_a
 - Medido: caserío ~40 ms, aldea ~100 ms, pueblo ~250 ms, ciudad ~520-730 ms, peor caso 973 ms; 100 % de edificios colocados en 36 asentamientos de estadística. Capturas 2D en `scratchpad/ald_png` (revisadas: aldea y pueblo con muralla y río).
 
 ### Pendiente de Víctor
-- Aprobar el esquema ALD G1, los datos de `data/settlements/`, el bloque `settlement` de los estilos, `MapChild` y las zonas nuevas; después grabar seeds doradas de ALD (candidatas en el test `test_print_examples`).
-- Sigue pendiente lo de EST G2 / código de estancia de edificio (criterio de F3 a nivel estancia).
+- Decidir EST G2 / código de estancia de edificio (criterio de F3 a nivel estancia).
+
+### Pedido para el futuro (Víctor, 2026-11-25)
+- **Efectos de zona**: fuego, niebla, agua, ácido, lava, etc. colocables en zonas. Anotado en PROYECTO §6.7 (ideas de diseño: como datos, como sesión con deshacer, efecto en visión/movimiento, filtrado en red) y en §16 como fase sin asignar. Necesita un ADR antes de implementarlo.
 
 ### Códigos ALD para probar en la app
 `RPGM1-DND5-ALD-G1-0-H8DJRFAE-W` (aldea, 16 edificios) · `RPGM1-DND5-ALD-G1-1G1-KCP3TKJZ-3` (pueblo con muralla y río, 34) · `RPGM1-PF2E-ALD-G1-28HA-NGYMWQV0-1` (ciudad enana rica, amurallada, retícula, hex plana) · `RPGM1-DND5-ALD-G1-1T27-QN75YR3H-9` (caserío élfico pobre en la costa). Edificio hijo de la aldea: `RPGM1-DND5-EDI-G1-Y00-BC23VGX8-T` (taberna).
 
 ### Siguiente paso
 1. Navegación aldea → edificio en la UI (el modelo ya la expone: `MapLevel.child_at(casilla)`, `MapChild.seed_code`, `to_child_cell`, `child_level`): p. ej. doble clic en una huella abre su código y coloca la ficha en la entrada.
-2. Tras la aprobación: grabar las seeds doradas de ALD en su propio commit.
-3. Universal VTT (F3).
+2. Universal VTT (F3).
 
 ### Limitaciones conocidas (ALD G1)
 - Edificios sin girar (EDI no tiene orientación): todas las huellas apaisadas.

@@ -543,6 +543,12 @@ func test_print_examples() -> void:
 		[{"size": "town", "wall": true, "water": "river"}, 0x9B2C3D4E5F, "DND5"],
 		[{"size": "city", "grid": "hex_flat", "style": "dwarf", "wall": true, "prosperity": "rich", "layout": "grid"}, 0xAC3D4E5F60, "PF2E"],
 		[{"size": "hamlet", "style": "elf", "water": "coast", "prosperity": "poor"}, 0xBD4E5F6071, "DND5"],
+		# Candidatas añadidas para las seeds doradas: hex punta, costa amurallada,
+		# retícula en caserío y pueblo, y la combinación de aldea más cargada.
+		[{"grid": "hex_pointy", "style": "elf", "water": "river", "prosperity": "rich"}, 0xCE5F607182, "PF2E"],
+		[{"size": "town", "style": "dwarf", "wall": true, "water": "coast", "prosperity": "poor"}, 0xDF60718293, "DND5"],
+		[{"size": "hamlet", "grid": "hex_flat", "layout": "grid"}, 0xE0718293A4, "DND5"],
+		[{"size": "town", "grid": "hex_pointy", "wall": true, "prosperity": "rich", "layout": "grid"}, 0xF18293A4B5, "PF2E"],
 	]:
 		var params: Dictionary = item[0]
 		var seed_value: int = item[1]

@@ -47,3 +47,20 @@ RPGM1-DND5-EDI-G1-1E04-SSFP0WC2-N 03c4153545277db0b00c92cddcdade72642f38fa985f45
 RPGM1-PF2E-EDI-G1-F015-VXG730MK-E 6e559d74a75288c46188f6c5a7eb93a134c29f02e8b5b32bcca4e452d265dd70
 RPGM1-DND5-EDI-G1-A46-W1RR54X4-6 1f2c9d83208f539e58487b3824f2d9b4078f735680a096d26a110a058b86eeaa
 RPGM1-PF2E-EDI-G1-2820-Y619795N-E c71db0745697acc54b8714a3df6425bd61cbdd5bc92e63ae1558bd1d19930b68
+# ALD G1: esquema aprobado por Víctor (2026-11-25): parámetros size, grid,
+# style, wall, water, prosperity, layout; ald_settlement_types.json, bloque
+# "settlement" de los estilos, MapChild y escala 5 ft (ADR 027). Congelado:
+# cualquier cambio que altere estos hashes exige G2.
+# (salen de test_ald_generator.gd::test_print_examples(); 4 tamaños, 3 rejillas,
+#  3 estilos, muralla, río/costa, 3 prosperidades, orgánico/retícula)
+RPGM1-DND5-ALD-G1-0-H8DJRFAE-W cdfff9e44f076f52424fd2c4dfb8ba7e2b6f496fb8201a70fb4394b813d0db10
+RPGM1-DND5-ALD-G1-1G1-KCP3TKJZ-3 377eafe4a3beebc9c261118ef7d9e527984ed601a18784427c7fe37f31e65735
+RPGM1-PF2E-ALD-G1-28HA-NGYMWQV0-1 82421ac40add393910c47f27de8459a980bec35df7aa7759701d8ee5b8a9b24e
+RPGM1-DND5-ALD-G1-1T27-QN75YR3H-9 51480251c1293170e108fec42707b71a7245656770e2e6bc7bb014b48cbe2b18
+RPGM1-PF2E-ALD-G1-92G-SSFP0WC2-B 5c0799870c14903e08da37ddc311a4f3719aa0414306dccb22acf20ee0da58cd
+RPGM1-DND5-ALD-G1-1TH1-VXG730MK-P 31bedbceefbe918e2db933b35405d5f1ccbf2db2e90f099ad73a4a9aef816d25
+RPGM1-DND5-ALD-G1-200F-W1RR54X4-Y 51054c997feb252f8861531c40b341e1da9f9941e53da90b960f8395724eede6
+RPGM1-PF2E-ALD-G1-28GH-Y619795N-G ae85b3c583efe97af7a5fc426125bb92f2d311acd08b88aebd0f59806372cc27
+# Edificio hijo (la taberna de la primera aldea): fija que el código EDI que
+# guarda ALD siga regenerando el mismo edificio (criterio de F3).
+RPGM1-DND5-EDI-G1-Y00-BC23VGX8-T b6972f34258f2a3aecc0e100c05477b419a39023c0bc28187d7ce5529ae543c7
