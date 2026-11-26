@@ -19,11 +19,37 @@
 				"required": ["op", "data"],
 				"additionalProperties": false,
 				"properties": {
-					"op": { "enum": ["add_token", "remove_token", "move_token", "set_edge", "explore", "set_token_character", "set_token_sheet", "set_turns", "set_terrain", "add_object", "remove_object", "set_room", "conceal"] },
+					"op": { "enum": ["add_token", "remove_token", "move_token", "set_edge", "explore", "set_token_character", "set_token_sheet", "set_turns", "set_terrain", "add_object", "remove_object", "set_room", "conceal", "set_child_override"] },
 					"data": { "type": "object" }
 				}
 			}
 		},
-		"document": { "$ref": "map_document.schema.json", "description": "Solo si seed_code está vacío." }
+		"document": { "$ref": "map_document.schema.json", "description": "Solo si seed_code está vacío." },
+		"route": {
+			"type": "object",
+			"description": "Recorrido abierto (ADR 040): nivel mirado en la raíz, mapas hijos visitados (cada uno con su child, su mapa en este mismo formato y sus propios hijos) y path = ids de los hijos hasta el mapa en que se estaba.",
+			"required": ["level", "children", "path"],
+			"properties": {
+				"level": { "type": "integer", "minimum": 0 },
+				"children": { "type": "array", "items": { "$ref": "#/$defs/visited" } },
+				"path": { "type": "array", "items": { "type": "integer" } }
+			}
+		}
+	},
+	"$defs": {
+		"visited": {
+			"type": "object",
+			"required": ["id", "child", "keep_positions", "parent_level", "level", "override_key", "map", "children"],
+			"properties": {
+				"id": { "type": "integer" },
+				"child": { "type": "object" },
+				"keep_positions": { "type": "boolean" },
+				"parent_level": { "type": "integer" },
+				"level": { "type": "integer" },
+				"override_key": { "type": "string" },
+				"map": { "$ref": "#" },
+				"children": { "type": "array", "items": { "$ref": "#/$defs/visited" } }
+			}
+		}
 	}
 }

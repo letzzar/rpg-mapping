@@ -27,6 +27,9 @@ const GRIDS: PackedStringArray = ["square", "hex_flat", "hex_pointy"]
 signal room_opened(doc: MapDocument, id: String)
 ## Mensaje para la barra de estado.
 signal status(text: String)
+## Pide que el mapa en que se está (edificio o estancia) se abra como la
+## estancia `id` de la biblioteca; "" = volver al generado (ADR 040).
+signal use_here_requested(id: String)
 
 ## Ejecuta un comando en el historial del mapa; devuelve si se aplicó.
 var execute: Callable = func(_cmd: MapCommand) -> bool: return false
@@ -150,6 +153,23 @@ func _init() -> void:
 			library.remove(_lib_ids[sel[0]])
 			refresh_library())
 	lr.add_child(del_btn)
+	# E4 (ADR 040): dentro de un edificio o de una estancia de edificio, que
+	# su interior sea una estancia de la biblioteca (o volver al generado).
+	var use_btn: Button = Button.new()
+	use_btn.text = tr("UI_ROOM_USE_HERE")
+	use_btn.tooltip_text = tr("UI_ROOM_USE_HERE_TIP")
+	use_btn.pressed.connect(func() -> void:
+		var sel: PackedInt32Array = _lib_list.get_selected_items()
+		if sel.is_empty():
+			status.emit(tr("UI_ROOM_PICK_FIRST"))
+		else:
+			use_here_requested.emit(_lib_ids[sel[0]]))
+	box.add_child(use_btn)
+	var restore_btn: Button = Button.new()
+	restore_btn.text = tr("UI_ROOM_RESTORE")
+	restore_btn.tooltip_text = tr("UI_ROOM_RESTORE_TIP")
+	restore_btn.pressed.connect(func() -> void: use_here_requested.emit(""))
+	box.add_child(restore_btn)
 
 	_heading(box, "UI_EDIT_NEW")
 	var grid: GridContainer = GridContainer.new()
@@ -393,17 +413,7 @@ func select_room(room_id: int, kind: String, label: String) -> void:
 ## Casilla de la entrada del nivel (o la primera transitable); (-1, -1) si
 ## no hay suelo.
 func start_cell() -> Vector2i:
-	var lvl: MapLevel = _doc.level(level_index)
-	var mask: PackedByteArray = lvl.movement_mask()
-	for r: MapRoom in lvl.rooms:
-		if r.kind == MapRoom.KIND_ENTRANCE:
-			for c: Vector2i in lvl.room_cells(r.id):
-				if (mask[_doc.grid.index_of(c)] & MapLevel.MOVE_PASSABLE) != 0:
-					return c
-	for i: int in mask.size():
-		if (mask[i] & MapLevel.MOVE_PASSABLE) != 0:
-			return _doc.grid.cell_at(i)
-	return Vector2i(-1, -1)
+	return RoomContent.entrance_cell(_doc, level_index)
 
 
 ## "Todo el suelo se alcanza desde la entrada" o cuántas casillas no.

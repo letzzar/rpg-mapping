@@ -62,6 +62,12 @@ static func command_for(r: JsonReader, doc: MapDocument, dl: MapDelta) -> MapCom
 			cmd = SetEdgeCommand.new(r.get_int(d, "level"), r.get_int(d, "edge"), r.get_int(d, "value"))
 		ExploreCommand.DELTA_OP:
 			cmd = ExploreCommand.new(r.get_int(d, "level"), r.get_str(d, "viewer"), _cells(r, d))
+		SetChildOverrideCommand.DELTA_OP:
+			var sub: Array[MapDelta] = []
+			for v: Variant in r.get_array(d, "deltas"):
+				var dd: Dictionary = r.to_dict(v, "deltas")
+				sub.append(MapDelta.make(r.get_str(dd, "op"), r.get_dict(dd, "data")))
+			cmd = SetChildOverrideCommand.new(r.get_int(d, "child"), r.get_str(d, "seed_code"), sub)
 		ConcealCommand.DELTA_OP:
 			cmd = ConcealCommand.new(r.get_int(d, "level"), r.get_str(d, "viewer"), _cells(r, d))
 		SetTerrainCommand.DELTA_OP:

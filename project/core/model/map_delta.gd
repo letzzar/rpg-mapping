@@ -41,6 +41,12 @@ static func from_dict(r: JsonReader, d: Dictionary) -> MapDelta:
 	return MapDelta.make(r.get_str(d, "op"), nd)
 
 
+## Números de un valor leído de JSON (float) a int; para otros datos de
+## sesión con la misma forma que `data` (ADR 040).
+static func normalize(r: JsonReader, v: Variant) -> Variant:
+	return _normalize(r, v)
+
+
 static func _normalize(r: JsonReader, v: Variant) -> Variant:
 	match typeof(v):
 		TYPE_FLOAT:

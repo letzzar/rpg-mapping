@@ -51,6 +51,11 @@ var tokens: Array[MapToken] = []
 var deltas: Array[MapDelta] = []
 ## Turnos e iniciativa (sesión, ADR 035).
 var turns: TurnTracker = TurnTracker.new()
+## Hijos sustituidos por una estancia propia (E4, ADR 040): MapChild.id →
+## {"seed_code": código base, "deltas": [MapDelta.to_dict()…]} (contenido de
+## la estancia). Al entrar en ese hijo se abre la estancia en vez del mapa
+## generado. Sesión; cambia con SetChildOverrideCommand.
+var child_overrides: Dictionary[int, Dictionary] = {}
 ## Incrementa en cada notify_changed() (las vistas pueden compararlo).
 var revision: int = 0
 ## Imagen de fondo del nivel 0 de un mapa importado (Universal VTT, ADR 030),
@@ -221,6 +226,11 @@ func to_dict(include_session: bool = true) -> Dictionary:
 		# Solo si hay algo: los mapas sin turnos guardan lo mismo que antes.
 		if not turns.equals(TurnTracker.new()):
 			session["turns"] = turns.to_dict()
+		if not child_overrides.is_empty():
+			var ov: Dictionary = {}
+			for k: int in child_overrides:
+				ov[str(k)] = child_overrides[k].duplicate(true)
+			session["child_overrides"] = ov
 		d["session"] = session
 	return d
 
@@ -289,6 +299,17 @@ static func from_dict(d: Dictionary) -> LoadResult:
 			doc.deltas.append(MapDelta.from_dict(r, dd))
 		if s.has("turns"):
 			doc.turns = TurnTracker.from_dict(r, r.get_dict(s, "turns"))
+		if s.has("child_overrides"):
+			var ov: Dictionary = r.get_dict(s, "child_overrides")
+			for k: Variant in ov:
+				var ks: String = r.to_str(k, "child_overrides")
+				if not ks.is_valid_int():
+					r.fail("child_overrides: clave no numérica")
+					continue
+				var entry: Dictionary = r.to_dict(ov[k], "child_overrides")
+				var normalized: Variant = MapDelta.normalize(r, entry)
+				var nd: Dictionary = r.to_dict(normalized, "child_overrides")
+				doc.child_overrides[ks.to_int()] = nd
 	for i: int in level_dicts.size():
 		var fog: Dictionary = fog_dicts[i] if i < fog_dicts.size() else {}
 		doc.levels[i].load_dicts(r, level_dicts[i], fog)

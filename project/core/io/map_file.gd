@@ -22,6 +22,9 @@ const EXTENSION: String = ".rpgm-map.json"
 class LoadResult:
 	extends RefCounted
 	var doc: MapDocument = null
+	## Recorrido abierto (from_json): la raíz es `doc`; con "route", los
+	## mapas visitados y en cuál se estaba (ADR 040).
+	var nav: MapNavigator = null
 	## Clave i18n del error ("" si se abrió).
 	var error: String = ""
 	## Detalle técnico (para el registro).
@@ -64,7 +67,101 @@ static func from_json(text: String) -> LoadResult:
 		bad.error = "MAP_ERR_FILE"
 		return bad
 	var d: Dictionary = parsed
-	return from_dict(d)
+	var res: LoadResult = from_dict(d)
+	if res.doc == null:
+		return res
+	res.nav = MapNavigator.new()
+	var root: MapNavigator.Frame = res.nav.open_root(res.doc)
+	# Sin recorrido: se abre en el nivel de la entrada, como al generar.
+	root.level_index = -1
+	if d.has("route"):
+		var r: JsonReader = JsonReader.new()
+		var route: Dictionary = r.get_dict(d, "route")
+		root.level_index = r.get_int(route, "level")
+		var err: LoadResult = _load_children(r, root, r.get_dicts(route, "children"))
+		if err != null:
+			return err
+		var cur: MapNavigator.Frame = root
+		for v: Variant in r.get_array(route, "path"):
+			var cid: int = r.to_int(v, "path")
+			if not cur.visited.has(cid):
+				r.fail("path: hijo %d no visitado" % cid)
+				break
+			cur = cur.visited[cid]
+			res.nav.frames.append(cur)
+		if not r.ok():
+			var bad2: LoadResult = LoadResult.new()
+			bad2.error = "MAP_ERR_FILE"
+			bad2.detail = r.error
+			return bad2
+	return res
+
+
+# --- Recorrido (ADR 040) ------------------------------------------------------
+
+## El recorrido entero: la raíz como to_dict() más "route" con los mapas
+## visitados (cada uno con sus deltas y su sustitución), en cuál se está y
+## qué nivel se miraba. Así las estancias y los edificios editados viajan en
+## el mismo fichero.
+static func route_to_dict(nav: MapNavigator) -> Dictionary:
+	var root: MapNavigator.Frame = nav.frames[0]
+	var d: Dictionary = to_dict(root.doc)
+	var path: Array = []
+	for i: int in range(1, nav.frames.size()):
+		path.append(nav.frames[i].child.id)
+	d["route"] = {"level": root.level_index, "children": _children_dicts(root), "path": path}
+	return d
+
+
+static func route_to_json(nav: MapNavigator) -> String:
+	return CanonicalJson.stringify(route_to_dict(nav))
+
+
+static func _children_dicts(f: MapNavigator.Frame) -> Array:
+	var out: Array = []
+	var ids: Array = f.visited.keys()
+	ids.sort()
+	for cid: int in ids:
+		var sub: MapNavigator.Frame = f.visited[cid]
+		out.append({
+			"id": cid,
+			"child": sub.child.to_dict(),
+			"keep_positions": sub.keep_positions,
+			"parent_level": sub.parent_level,
+			"level": sub.level_index,
+			"override_key": sub.override_key,
+			"map": to_dict(sub.doc),
+			"children": _children_dicts(sub),
+		})
+	return out
+
+
+## Reconstruye los hijos visitados de `parent`; null si todo fue bien, o el
+## error del primero que falló.
+static func _load_children(r: JsonReader, parent: MapNavigator.Frame, list: Array[Dictionary]) -> LoadResult:
+	for cd: Dictionary in list:
+		var lr: LoadResult = from_dict(r.get_dict(cd, "map"))
+		if lr.doc == null:
+			return lr
+		var f: MapNavigator.Frame = MapNavigator.Frame.new()
+		f.doc = lr.doc
+		f.stack = CommandStack.new(lr.doc)
+		f.child = MapChild.from_dict(r, r.get_dict(cd, "child"))
+		f.keep_positions = r.get_bool(cd, "keep_positions")
+		f.parent_level = r.get_int(cd, "parent_level")
+		f.level_index = r.get_int(cd, "level")
+		f.override_key = r.get_str(cd, "override_key")
+		var cid: int = r.get_int(cd, "id")
+		if not r.ok():
+			var bad: LoadResult = LoadResult.new()
+			bad.error = "MAP_ERR_FILE"
+			bad.detail = r.error
+			return bad
+		parent.visited[cid] = f
+		var err: LoadResult = _load_children(r, f, r.get_dicts(cd, "children"))
+		if err != null:
+			return err
+	return null
 
 
 static func from_dict(d: Dictionary) -> LoadResult:

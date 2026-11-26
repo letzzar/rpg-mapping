@@ -509,3 +509,14 @@ UI_PROJ_PARTY_NAME,Grupo,Party
 UI_PROJ_PARTY_ADDED,Ficha del grupo añadida: muévela donde esté el grupo en la mesa.,Party token added: move it to where the party is on the table.
 UI_PROJ_AREA,Proyector,Projector
 CMD_CONCEAL,Ocultar a los jugadores,Hide from players
+UI_ROOM_USE_HERE,Usar aquí la estancia elegida,Use the chosen room here
+UI_ROOM_USE_HERE_TIP,"Dentro de un edificio o de una estancia de edificio: su interior pasa a ser la estancia elegida de tu biblioteca. El grupo entra y sale por su puerta. Va en el guardado.","Inside a building or a building room: its interior becomes the chosen room from your library. The party enters and leaves through its door. It is saved."
+UI_ROOM_RESTORE,Volver a la generada,Back to the generated one
+UI_ROOM_RESTORE_TIP,Quita la estancia propia y vuelve a abrir el interior generado.,Removes your own room and reopens the generated interior.
+UI_ROOM_PICK_FIRST,Elige primero una estancia de la lista de tu biblioteca.,First pick a room from your library list.
+UI_ROOM_USE_NEEDS_CHILD,"Esto se hace dentro de un edificio o de una estancia de edificio (entra con doble clic).","This is done inside a building or a building room (enter with a double-click)."
+UI_ROOM_USE_SAME,Ya estaba así: no hay nada que cambiar.,It was already like that: nothing to change.
+UI_ROOM_USED,"{name}: ahora es tu estancia.","{name}: it is now your room."
+UI_ROOM_RESTORED,{name}: vuelve a ser la generada.,{name}: back to the generated one.
+CMD_SET_CHILD_OVERRIDE,Usar una estancia propia,Use your own room
+CMD_CLEAR_CHILD_OVERRIDE,Volver a la estancia generada,Back to the generated room

@@ -1,6 +1,21 @@
 # SESSION_HANDOFF — RPG Mapping
 
-## Última sesión: 2026-11-26 (14.ª, sexta parte) — Modo proyectado
+## Última sesión: 2026-11-26 (14.ª, séptima parte) — Editor de estancias E4
+Tests: **326/326 en escritorio, en inglés y en el navegador** (3 nuevos en `test_room_override.gd`).
+
+### Hecho (ADR 040)
+- Una estancia de la biblioteca puede ser el **interior** de un edificio de una aldea o de una estancia de edificio: "Usar aquí la estancia elegida" (y "Volver a la generada") en el panel del editor, estando dentro. `MapDocument.child_overrides` + `SetChildOverrideCommand` en el padre; `MapNavigator` la abre y el grupo entra y sale por su puerta.
+- **Guardar mapa guarda el recorrido entero** (raíz + edificios y estancias visitados con sus cambios y sustituciones + en cuál se estaba); "Abrir mapa" vuelve al mismo sitio. Los ficheros de antes (sin recorrido) se siguen abriendo.
+- En red no hace falta nada: los jugadores reciben el mapa en que está el DM.
+
+### Siguiente paso
+1. El editor de estancias (E1–E4) queda completo. Pendiente de Víctor: probar el modo proyectado con el proyector, y decidir qué sigue (resto de F5: modelos CC0 y animaciones, que necesitan permiso de descarga; F6 mundo y región; imagen Docker al final).
+
+### Limitaciones conocidas (E4)
+- Sustituir no se puede deshacer con "Deshacer" una vez dentro (cruzar de mapa vacía el historial, como siempre): se vuelve con "Volver a la generada".
+- En una mazmorra (MAZ) no hay hijos: no se puede meter una estancia propia.
+
+## Sesión anterior: 2026-11-26 (14.ª, sexta parte) — Modo proyectado
 Tests: **323/323 en escritorio, en inglés y en el navegador** (5 nuevos en `test_projector.gd`; el de la pantalla principal queda pendiente en web: allí no hay proyector). Probado con capturas: sala revelada, puerta abierta que revela el pasillo, rectángulo del proyector en la pantalla del DM y cuadrado de calibración.
 
 ### Hecho (ADR 039)

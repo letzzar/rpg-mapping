@@ -37,6 +37,10 @@ class Frame:
 	var keep_positions: bool = false
 	## Nivel del padre desde el que se entró (destino al salir).
 	var parent_level: int = 0
+	## Estancia propia con la que se abrió (texto canónico de la entrada de
+	## MapDocument.child_overrides; "" = el hijo generado). Si en el padre
+	## cambia, el mapa guardado en `visited` ya no vale (ADR 040).
+	var override_key: String = ""
 
 
 var frames: Array[Frame] = []
@@ -80,30 +84,52 @@ func enter(child: MapChild, from_level: int, profile: SystemProfile, keep_positi
 	if here == null or child == null:
 		error = "UI_NAV_NO_CHILD"
 		return null
+	# Hijo sustituido por una estancia propia (ADR 040): se abre ella, de un
+	# nivel, y el grupo entra y sale por su puerta (no es el mismo sitio a la
+	# misma escala, así que no hay casillas equivalentes).
+	var ov: Dictionary = here.doc.child_overrides.get(child.id, {})
+	var ov_key: String = CanonicalJson.stringify(ov) if not ov.is_empty() else ""
+	var overridden: bool = not ov_key.is_empty()
+	var child_level: int = 0 if overridden else child.child_level
+	if overridden:
+		keep_positions = false
 	var f: Frame = here.visited.get(child.id, null)
+	if f != null and f.override_key != ov_key:
+		f = null
 	if f == null:
-		var res: GeneratorRegistry.Result = GeneratorRegistry.generate(child.seed_code)
-		if res.doc == null:
-			error = res.error
-			return null
+		var doc: MapDocument = null
+		if overridden:
+			var lr: MapFile.LoadResult = RoomContent.from_override(ov)
+			if lr.doc == null:
+				error = lr.error
+				return null
+			doc = lr.doc
+		else:
+			var res: GeneratorRegistry.Result = GeneratorRegistry.generate(child.seed_code)
+			if res.doc == null:
+				error = res.error
+				return null
+			doc = res.doc
 		f = Frame.new()
-		f.doc = res.doc
-		f.stack = CommandStack.new(res.doc)
+		f.doc = doc
+		f.stack = CommandStack.new(doc)
 		f.child = child
-		f.level_index = child.child_level
+		f.level_index = child_level
+		f.override_key = ov_key
 		here.visited[child.id] = f
 	here.level_index = from_level
 	f.keep_positions = keep_positions
 	f.parent_level = from_level
+	var door_cell: Vector2i = RoomContent.entrance_cell(f.doc) if overridden else child.to_child_cell(child.entrance)
 	var moving: Array[MapToken] = []
 	var targets: Array[Vector2i] = []
 	for t: MapToken in _party_of(here.doc, from_level):
 		if keep_positions and not child.rect.has_point(t.cell):
 			continue
 		moving.append(t)
-		targets.append(child.to_child_cell(t.cell) if keep_positions else child.to_child_cell(child.entrance))
-	_transfer(here, moving, f, child.child_level, targets, profile)
-	f.level_index = child.child_level
+		targets.append(child.to_child_cell(t.cell) if keep_positions else door_cell)
+	_transfer(here, moving, f, child_level, targets, profile)
+	f.level_index = child_level
 	frames.append(f)
 	return f
 

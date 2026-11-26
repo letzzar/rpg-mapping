@@ -70,6 +70,32 @@ static func rebuild(seed_code: String, deltas: Array[MapDelta]) -> MapFile.LoadR
 	return res
 
 
+## Casilla por la que se entra en la estancia (nivel 0): la primera
+## transitable de la zona "entrance"; si no hay, la primera transitable.
+## (-1, -1) si no hay suelo.
+static func entrance_cell(doc: MapDocument, level_index: int = 0) -> Vector2i:
+	var lvl: MapLevel = doc.level(level_index)
+	if lvl == null:
+		return Vector2i(-1, -1)
+	var mask: PackedByteArray = lvl.movement_mask()
+	for r: MapRoom in lvl.rooms:
+		if r.kind == MapRoom.KIND_ENTRANCE:
+			for c: Vector2i in lvl.room_cells(r.id):
+				if (mask[doc.grid.index_of(c)] & MapLevel.MOVE_PASSABLE) != 0:
+					return c
+	for i: int in mask.size():
+		if (mask[i] & MapLevel.MOVE_PASSABLE) != 0:
+			return doc.grid.cell_at(i)
+	return Vector2i(-1, -1)
+
+
+## Documento de la estancia que sustituye a un hijo (entrada de
+## MapDocument.child_overrides).
+static func from_override(e: Dictionary) -> MapFile.LoadResult:
+	var code: String = e.get("seed_code", "")
+	return rebuild(code, SetChildOverrideCommand.override_deltas(e))
+
+
 ## La misma estancia solo con su contenido (sin fichas, niebla ni turnos):
 ## lo que se guarda en la biblioteca.
 static func content_only(doc: MapDocument) -> MapFile.LoadResult:

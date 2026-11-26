@@ -309,6 +309,7 @@ func _build_ui() -> void:
 	_editor_panel.new_room_requested.connect(new_blank_room)
 	_editor_panel.status.connect(func(t: String) -> void: _status.text = t)
 	_editor_panel.room_opened.connect(_open_room_doc)
+	_editor_panel.use_here_requested.connect(use_room_here)
 	middle.add_child(_editor_panel)
 	if not OS.has_feature("web"):
 		_build_projector(middle)
@@ -1153,6 +1154,44 @@ func open_room_code(text: String) -> bool:
 	return true
 
 
+## Dentro de un edificio o de una estancia de edificio: su interior pasa a
+## ser la estancia `id` de la biblioteca ("" = volver al generado). Se sale
+## al mapa padre, se cambia allí (con deshacer, y va en su guardado) y se
+## vuelve a entrar. true si se hizo.
+func use_room_here(id: String) -> bool:
+	var here: MapNavigator.Frame = _nav.current()
+	if here == null or here.child == null:
+		_status.text = tr("UI_ROOM_USE_NEEDS_CHILD")
+		return false
+	var code: String = ""
+	var deltas: Array[MapDelta] = []
+	if not id.is_empty():
+		var lr: MapFile.LoadResult = _editor_panel.library.load_room(id)
+		if lr.doc == null:
+			_status.text = tr(lr.error)
+			return false
+		code = lr.doc.seed_code
+		deltas = RoomContent.content_deltas(lr.doc)
+	var child: MapChild = here.child
+	var parent_level: int = here.parent_level
+	_go_back()
+	var up: MapNavigator.Frame = _nav.current()
+	if not up.stack.execute(SetChildOverrideCommand.new(child.id, code, deltas)):
+		_status.text = tr("UI_ROOM_USE_SAME")
+		return false
+	# Una estancia de edificio generada se entra como siempre (cada ficha a
+	# su misma casilla); sustituida, MapNavigator la abre por su puerta.
+	var keep: bool = SeedCode.parse(child.seed_code).scale == EstGeneratorG2.SCALE
+	var f: MapNavigator.Frame = _nav.enter(child, parent_level, _current_profile(), keep)
+	if f == null:
+		_status.text = tr(_nav.error)
+		return false
+	_show_frame(f, f.level_index)
+	_explore_after_navigation()
+	_status.text = tr("UI_ROOM_USED" if not code.is_empty() else "UI_ROOM_RESTORED").replace("{name}", _frame_name(f))
+	return true
+
+
 func _open_room_doc(doc: MapDocument, shown_code: String) -> void:
 	_token_counter = doc.tokens.size()
 	_show_frame(_nav.open_root(doc), -1)
@@ -1162,24 +1201,33 @@ func _open_room_doc(doc: MapDocument, shown_code: String) -> void:
 
 # --- Guardar y abrir mapas (ADR 036) ------------------------------------------
 
+## Nombre por defecto: el código del mapa raíz del recorrido.
 func _map_file_name() -> String:
-	var base: String = _doc.seed_code if not _doc.seed_code.is_empty() else "mapa"
+	var root: MapDocument = _nav.frames[0].doc if _nav.depth() > 0 else _doc
+	var base: String = root.seed_code if not root.seed_code.is_empty() else "mapa"
 	return base.validate_filename() + MapFile.EXTENSION
+
+
+## Texto del fichero: el recorrido entero (raíz, mapas visitados con sus
+## cambios y en cuál se está, ADR 040).
+func _route_json() -> String:
+	_nav.current().level_index = _view.level_index
+	return MapFile.route_to_json(_nav)
 
 
 func _save_map() -> void:
 	if _doc == null:
 		return
 	if OS.has_feature("web"):
-		JavaScriptBridge.download_buffer(MapFile.to_json(_doc).to_utf8_buffer(), _map_file_name(), "application/json")
+		JavaScriptBridge.download_buffer(_route_json().to_utf8_buffer(), _map_file_name(), "application/json")
 		_status.text = tr("UI_MAP_SAVED").replace("{path}", _map_file_name())
 		return
 	_map_save_dialog.current_file = _map_file_name()
 	_map_save_dialog.popup_centered_ratio(0.6)
 
 
-## Guarda el mapa mostrado (el del edificio o estancia en que se esté). true
-## si se pudo.
+## Guarda el recorrido abierto (desde el mapa raíz, con los edificios y
+## estancias visitados). true si se pudo.
 func save_map_to(path: String) -> bool:
 	if _doc == null:
 		return false
@@ -1187,7 +1235,7 @@ func save_map_to(path: String) -> bool:
 	if f == null:
 		_status.text = tr("UI_MAP_SAVE_FAILED")
 		return false
-	f.store_string(MapFile.to_json(_doc))
+	f.store_string(_route_json())
 	f.close()
 	_status.text = tr("UI_MAP_SAVED").replace("{path}", path)
 	return true
@@ -1206,8 +1254,9 @@ func open_map_from(path: String) -> bool:
 		_status.text = tr(res.error)
 		return false
 	_token_counter = res.doc.tokens.size()
-	_code_edit.text = res.doc.seed_code
-	_show_frame(_nav.open_root(res.doc), -1)
+	_nav = res.nav
+	var f: MapNavigator.Frame = _nav.current()
+	_show_frame(f, f.level_index)
 	_status.text = tr("UI_MAP_OPENED").replace("{path}", path.get_file()) \
 		.replace("{edits}", str(res.doc.deltas.size()))
 	return true
