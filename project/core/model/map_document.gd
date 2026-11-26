@@ -106,6 +106,24 @@ func add_level() -> MapLevel:
 	return l
 
 
+## Asegura que allocate_id() no devuelva ya `id` ni ninguno menor (al
+## reaplicar deltas que traen sus ids, DeltaReplay).
+func reserve_ids_through(id: int) -> void:
+	_next_id = maxi(_next_id, id + 1)
+
+
+## Contador de ids (el siguiente que dará allocate_id()).
+func next_id() -> int:
+	return _next_id
+
+
+## Fija el contador al guardado (MapFile): al reaplicar deltas solo se
+## conocen los ids que siguen en uso, no los gastados en fichas borradas.
+## Nunca lo baja por debajo de lo ya reservado.
+func restore_next_id(value: int) -> void:
+	_next_id = maxi(_next_id, value)
+
+
 ## Id nuevo, único en todo el documento (salas, objetos, escaleras, trampas y
 ## tokens comparten contador). Determinista: depende solo del orden de las
 ## llamadas.

@@ -1,0 +1,29 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://rpg-mapping.local/schemas/map_file.schema.json",
+	"title": "Mapa guardado de RPG Mapping (*.rpgm-map.json)",
+	"description": "MapFile (ADR 004 y 036): código de semilla + ediciones. Al abrir se regenera desde el código y se reaplican los deltas en orden (DeltaReplay). Sin código (mapas importados), el documento entero en `document`.",
+	"type": "object",
+	"required": ["format", "schema_version", "seed_code", "next_id", "deltas"],
+	"additionalProperties": false,
+	"properties": {
+		"format": { "const": "rpgm-map" },
+		"schema_version": { "const": 1 },
+		"seed_code": { "type": "string", "description": "Código RPGM1; vacío si el mapa no sale de un generador." },
+		"next_id": { "type": "integer", "minimum": 1, "description": "Contador de ids tras las ediciones (incluye los de fichas ya borradas)." },
+		"content_hash": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "SHA-256 del mapa recién generado; si al abrir no coincide, el generador cambió sin subir GEN y no se abre." },
+		"deltas": {
+			"type": "array",
+			"items": {
+				"type": "object",
+				"required": ["op", "data"],
+				"additionalProperties": false,
+				"properties": {
+					"op": { "enum": ["add_token", "remove_token", "move_token", "set_edge", "explore", "set_token_character", "set_token_sheet", "set_turns"] },
+					"data": { "type": "object" }
+				}
+			}
+		},
+		"document": { "$ref": "map_document.schema.json", "description": "Solo si seed_code está vacío." }
+	}
+}

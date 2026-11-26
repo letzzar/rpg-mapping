@@ -47,7 +47,7 @@ func apply(doc: Object) -> bool:
 	t.cell = to_cell
 	t.level = to_level
 	d.deltas.append(MapDelta.make(DELTA_OP, {
-		"token": token_id, "level": to_level, "x": to_cell.x, "y": to_cell.y}))
+		"token": token_id, "level": to_level, "x": to_cell.x, "y": to_cell.y, "cost": cost_ft}))
 	_applied = true
 	_counted_ft = cost_ft if d.turns.current_token_id() == token_id else 0
 	d.turns.moved_ft += _counted_ft

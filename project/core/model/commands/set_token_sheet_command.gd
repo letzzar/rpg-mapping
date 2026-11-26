@@ -44,7 +44,8 @@ func apply(doc: Object) -> bool:
 		if not sheet.name.is_empty():
 			t.name = sheet.name
 		t.size_id = sheet.size_id
-	d.deltas.append(MapDelta.make(DELTA_OP, {"token": token_id, "name": t.name, "size_id": t.size_id}))
+	# Hoja entera ({} = quitar el personaje), para recrearlo (ADR 036).
+	d.deltas.append(MapDelta.make(DELTA_OP, {"token": token_id, "sheet": sheet.to_dict() if sheet != null else {}}))
 	_applied = true
 	d.notify_changed(t.level, MapDocument.LAYER_TOKENS)
 	return true

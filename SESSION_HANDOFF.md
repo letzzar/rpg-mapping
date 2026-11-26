@@ -1,6 +1,21 @@
 # SESSION_HANDOFF — RPG Mapping
 
-## Última sesión: 2026-11-26 (14.ª, segunda parte) — F5: turnos y plantillas de área
+## Última sesión: 2026-11-26 (14.ª, tercera parte) — Editor de estancias E1: guardar y abrir mapas
+Tests: **287/287 en escritorio, en inglés y en el navegador** (4 nuevos en `test_delta_replay.gd`: ida y vuelta con los 8 tipos de delta, errores, mapa sin código, botones).
+
+### Hecho (ADR 036)
+- Deltas completos (`add_token`, `set_token_sheet`, `set_turns` y `move_token` no bastaban para rehacer). `DeltaReplay` reaplica, `MapFile` guarda y abre `*.rpgm-map.json` (código + deltas + `next_id` + hash del mapa generado), y hay botones "Guardar mapa" y "Abrir mapa" (en web, guardar descarga; abrir, solo escritorio).
+- **Regla para comandos nuevos**: el delta lleva todo lo necesario para rehacerlo, y su `op` se añade a `DeltaReplay` con un test.
+
+### Siguiente paso
+1. **E2 – editor de estancias**: estancia en blanco o a partir de una generada, con herramientas de terreno, aristas, objetos, luces y escaleras. Cada herramienta será un comando nuevo con su delta reaplicable.
+2. E3: id corto y código para compartir (decidido: los dos). E4: integración.
+
+### Limitaciones conocidas (E1)
+- Se guarda el mapa mostrado, no la ruta entera (aldea → edificio → estancia): eso será la campaña `*.rpgm`.
+- Abrir mapas solo en escritorio. Los mapas UVTT se guardan enteros pero sin la imagen de fondo.
+
+## Sesión anterior: 2026-11-26 (14.ª, segunda parte) — F5: turnos y plantillas de área
 Tests: **283/283 en escritorio, con el idioma forzado a inglés y en el navegador**. Nuevos: `test_turns.gd` (5), `test_template_tool.gd` (2) y `test_area_template.gd` (15, de `cartografo`). CI de GitHub en verde otra vez desde `fix(ci)`.
 
 ### Hecho (ADR 035)

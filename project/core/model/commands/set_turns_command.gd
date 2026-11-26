@@ -28,7 +28,8 @@ func apply(doc: Object) -> bool:
 		return false
 	_old = d.turns
 	d.turns = turns.copy()
-	d.deltas.append(MapDelta.make(DELTA_OP, {"round": turns.round, "token": turns.current_token_id()}))
+	# Estado entero, para recrearlo (ADR 036); la etiqueta, para el historial.
+	d.deltas.append(MapDelta.make(DELTA_OP, {"turns": turns.to_dict(), "label": _label}))
 	_applied = true
 	d.notify_changed(-1, MapDocument.LAYER_TURNS)
 	return true

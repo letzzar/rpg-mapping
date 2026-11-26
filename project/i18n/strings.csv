@@ -399,3 +399,14 @@ TPL_EMANATION,Emanación,Emanation
 TPL_LINE,Línea,Line
 TPL_SPHERE,Esfera,Sphere
 TPL_BURST,Explosión,Burst
+UI_MAP_SAVE,Guardar mapa,Save map
+UI_MAP_SAVE_TIP,"Guarda el mapa mostrado como su código más tus cambios (fichas, puertas, niebla, turnos). Ocupa poco y se vuelve a abrir igual.","Saves the shown map as its code plus your changes (tokens, doors, fog, turns). Small, and reopens exactly."
+UI_MAP_OPEN,Abrir mapa,Open map
+UI_MAP_FILE_KIND,Mapa de RPG Mapping,RPG Mapping map
+UI_MAP_SAVED,Mapa guardado en {path},Map saved to {path}
+UI_MAP_SAVE_FAILED,No se pudo guardar el mapa.,Could not save the map.
+UI_MAP_OPENED,Abierto {path} ({edits} cambios reaplicados),Opened {path} ({edits} changes reapplied)
+MAP_ERR_FILE,Ese fichero no es un mapa de RPG Mapping válido.,That file is not a valid RPG Mapping map.
+MAP_ERR_VERSION,Ese mapa es de otra versión del formato.,That map uses another format version.
+MAP_ERR_GENERATOR,"El generador de ese código ya no da el mismo mapa; no se reaplican los cambios para no estropearlo (es un fallo del programa: avísalo).","The generator for that code no longer gives the same map; changes are not reapplied to avoid damaging it (this is a program bug: please report it)."
+MAP_ERR_DELTA,No se pudo reaplicar uno de los cambios guardados.,One of the saved changes could not be reapplied.

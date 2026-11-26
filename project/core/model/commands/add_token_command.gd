@@ -22,9 +22,9 @@ func apply(doc: Object) -> bool:
 		return false
 	if not d.add_token(token.copy()):
 		return false
-	d.deltas.append(MapDelta.make(DELTA_OP, {
-		"token": token.id, "level": token.level, "x": token.cell.x, "y": token.cell.y,
-		"side": token.side, "size": token.size_id, "name": token.name}))
+	# La ficha entera (personaje incluido): con esto se recrea al reaplicar
+	# los deltas (DeltaReplay, ADR 036).
+	d.deltas.append(MapDelta.make(DELTA_OP, {"token": token.id, "data": token.to_dict()}))
 	d.notify_changed(token.level, MapDocument.LAYER_TOKENS)
 	return true
 

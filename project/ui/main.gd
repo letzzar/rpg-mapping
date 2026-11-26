@@ -45,6 +45,8 @@ var _save_dialog: FileDialog
 var _uvtt_save_dialog: FileDialog
 var _uvtt_open_dialog: FileDialog
 var _char_open_dialog: FileDialog = null
+var _map_save_dialog: FileDialog = null
+var _map_open_dialog: FileDialog = null
 var _designer: CharacterDesigner
 var _turn_panel: TurnPanel
 var _turns_btn: Button
@@ -198,6 +200,16 @@ func _build_ui() -> void:
 	bar.add_child(_undo_btn)
 	bar.add_child(_redo_btn)
 	bar.add_child(_button("UI_FIT", _fit))
+	# Guardar y abrir mapas (código + ediciones, ADR 036). En web, guardar
+	# descarga el fichero; abrir, de momento, solo en escritorio.
+	var save_map_btn: Button = _button("UI_MAP_SAVE", _save_map)
+	save_map_btn.tooltip_text = tr("UI_MAP_SAVE_TIP")
+	bar.add_child(save_map_btn)
+	_dm_only.append(save_map_btn)
+	if not OS.has_feature("web"):
+		var open_map_btn: Button = _button("UI_MAP_OPEN", _open_map)
+		bar.add_child(open_map_btn)
+		_dm_only.append(open_map_btn)
 	bar.add_child(_button("UI_EXPORT_PNG", _export_png))
 	var uvtt_btn: Button = _button("UI_EXPORT_UVTT", _export_uvtt)
 	bar.add_child(uvtt_btn)
@@ -326,6 +338,14 @@ func _build_ui() -> void:
 	_uvtt_save_dialog.file_selected.connect(_save_uvtt_to)
 	_uvtt_open_dialog = _file_dialog(FileDialog.FILE_MODE_OPEN_FILE, "UI_IMPORT_UVTT", OS.SYSTEM_DIR_DOCUMENTS)
 	_uvtt_open_dialog.file_selected.connect(_load_uvtt_from)
+
+	if not OS.has_feature("web"):
+		_map_save_dialog = _file_dialog(FileDialog.FILE_MODE_SAVE_FILE, "UI_MAP_SAVE", OS.SYSTEM_DIR_DOCUMENTS)
+		_map_save_dialog.filters = PackedStringArray(["*.rpgm-map.json ; " + tr("UI_MAP_FILE_KIND")])
+		_map_save_dialog.file_selected.connect(save_map_to)
+		_map_open_dialog = _file_dialog(FileDialog.FILE_MODE_OPEN_FILE, "UI_MAP_OPEN", OS.SYSTEM_DIR_DOCUMENTS)
+		_map_open_dialog.filters = PackedStringArray(["*.rpgm-map.json ; " + tr("UI_MAP_FILE_KIND")])
+		_map_open_dialog.file_selected.connect(open_map_from)
 
 	_designer = CharacterDesigner.new()
 	_designer.format_ft = func(ft: int) -> String: return _view._format_ft(ft)
@@ -914,6 +934,59 @@ func _place_token(t: MapToken) -> bool:
 			t.id = _doc.allocate_id()
 			return _stack.execute(AddTokenCommand.new(t))
 	return false
+
+
+# --- Guardar y abrir mapas (ADR 036) ------------------------------------------
+
+func _map_file_name() -> String:
+	var base: String = _doc.seed_code if not _doc.seed_code.is_empty() else "mapa"
+	return base.validate_filename() + MapFile.EXTENSION
+
+
+func _save_map() -> void:
+	if _doc == null:
+		return
+	if OS.has_feature("web"):
+		JavaScriptBridge.download_buffer(MapFile.to_json(_doc).to_utf8_buffer(), _map_file_name(), "application/json")
+		_status.text = tr("UI_MAP_SAVED").replace("{path}", _map_file_name())
+		return
+	_map_save_dialog.current_file = _map_file_name()
+	_map_save_dialog.popup_centered_ratio(0.6)
+
+
+## Guarda el mapa mostrado (el del edificio o estancia en que se esté). true
+## si se pudo.
+func save_map_to(path: String) -> bool:
+	if _doc == null:
+		return false
+	var f: FileAccess = FileAccess.open(path, FileAccess.WRITE)
+	if f == null:
+		_status.text = tr("UI_MAP_SAVE_FAILED")
+		return false
+	f.store_string(MapFile.to_json(_doc))
+	f.close()
+	_status.text = tr("UI_MAP_SAVED").replace("{path}", path)
+	return true
+
+
+func _open_map() -> void:
+	_map_open_dialog.popup_centered_ratio(0.6)
+
+
+## Abre un mapa guardado como raíz de una ruta nueva. true si se pudo.
+func open_map_from(path: String) -> bool:
+	var res: MapFile.LoadResult = MapFile.from_json(FileAccess.get_file_as_string(path))
+	if res.doc == null:
+		if not res.detail.is_empty():
+			push_warning("%s: %s" % [path, res.detail])
+		_status.text = tr(res.error)
+		return false
+	_token_counter = res.doc.tokens.size()
+	_code_edit.text = res.doc.seed_code
+	_show_frame(_nav.open_root(res.doc), -1)
+	_status.text = tr("UI_MAP_OPENED").replace("{path}", path.get_file()) \
+		.replace("{edits}", str(res.doc.deltas.size()))
+	return true
 
 
 # --- Personajes (F5, ADR 034) -------------------------------------------------
