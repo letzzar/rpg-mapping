@@ -12,7 +12,8 @@ extends Node2D
 ##     Si el coste supera la velocidad, avisa pero no bloquea (§10.3).
 ##   - Clic izquierdo cerca de una puerta: abre/cierra (SetEdgeCommand).
 ##   - Doble clic en una ficha que está sobre una escalera: la lleva a la
-##     casilla y nivel de destino (MoveTokenCommand con otro nivel).
+##     casilla y nivel de destino (MoveTokenCommand con otro nivel); en otra
+##     casilla, la UI centra la vista en ella (	oken_activated).
 ##   - Arrastrar con el botón derecho: regla de medir (distancia o banda).
 ##   - Botón central: desplazar. Rueda: zoom alrededor del puntero.
 ##
@@ -27,6 +28,8 @@ signal user_command_done
 signal cell_activated(cell: Vector2i)
 ## Una ficha tomó una escalera hacia otro nivel (la UI muestra ese nivel).
 signal stairs_taken(token_id: int, level: int)
+## Doble clic en una ficha que no está en una escalera (la UI centra en ella).
+signal token_activated(token_id: int)
 
 const ZOOM_MIN: float = 0.2
 const ZOOM_MAX: float = 4.0
@@ -618,8 +621,11 @@ func _handle_button(mb: InputEventMouseButton) -> void:
 			if mb.pressed and mb.double_click and _token_at(cell) == null:
 				if document.grid.in_bounds(cell):
 					cell_activated.emit(cell)
-			elif mb.pressed and mb.double_click and take_stairs(_token_at(cell)):
+			elif mb.pressed and mb.double_click:
+				var tk: MapToken = _token_at(cell)
 				_cancel_drag()
+				if not take_stairs(tk):
+					token_activated.emit(tk.id)
 			elif mb.pressed:
 				_on_left_press(cell)
 			else:
@@ -679,6 +685,15 @@ func _on_left_release(_cell: Vector2i) -> void:
 			# Sin esto la barra seguía mostrando el mensaje anterior.
 			status_changed.emit(tr("UI_NO_ROUTE_STATUS"))
 	_cancel_drag()
+
+
+## Desplaza la vista (sin cambiar el zoom) para que la casilla quede en el
+## centro de ect (el área del mapa, en coordenadas del padre).
+func center_on_cell(cell: Vector2i, rect: Rect2) -> void:
+	if document == null:
+		return
+	var p: Vector2 = document.grid.cell_to_pixel(cell, cell_px)
+	position = rect.position + rect.size * 0.5 - p * scale.x
 
 
 ## Escalera bajo la ficha que lleva a otro nivel de este mapa (las que salen

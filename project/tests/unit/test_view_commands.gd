@@ -94,6 +94,22 @@ func test_take_stairs_moves_token_to_other_level() -> void:
 			ev.position = at
 			view.process_input(ev, false)
 	assert_eq(d.token(t.id).level, 1, "doble clic en la ficha sobre la escalera")
+	# Fuera de una escalera, el doble clic pide centrar la vista en la ficha.
+	assert_true(s.execute(MoveTokenCommand.new(t.id, Vector2i(2, 2), 0)))
+	view.level_index = 0
+	at = d.grid.cell_to_pixel(Vector2i(2, 2), view.cell_px)
+	for dbl: bool in [false, true]:
+		for pressed: bool in [true, false]:
+			var ev2: InputEventMouseButton = InputEventMouseButton.new()
+			ev2.button_index = MOUSE_BUTTON_LEFT
+			ev2.pressed = pressed
+			ev2.double_click = dbl and pressed
+			ev2.position = at
+			view.process_input(ev2, false)
+	assert_signal_emitted_with_parameters(view, "token_activated", [t.id])
+	assert_eq(d.token(t.id).cell, Vector2i(2, 2), "no se mueve")
+	view.center_on_cell(Vector2i(2, 2), Rect2(0, 0, 800, 600))
+	assert_almost_eq(view.position + at * view.scale.x, Vector2(400, 300), Vector2(0.01, 0.01))
 
 
 func test_toggle_door_open_and_undo() -> void:

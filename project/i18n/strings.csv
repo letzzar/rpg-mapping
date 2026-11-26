@@ -46,7 +46,7 @@ UI_GENERATED,Mapa generado: {code},Map generated: {code}
 UI_OVER_SPEED,(supera la velocidad),(exceeds speed)
 UI_NO_ROUTE,Sin ruta,No route
 UI_MOVED,Ficha movida ({cost}),Token moved ({cost})
-UI_HELP,"Arrastra una ficha para moverla · clic en una puerta para abrirla · botón derecho para medir · rueda para zoom · botón central para desplazar","Drag a token to move it · click a door to open it · right button to measure · wheel to zoom · middle button to pan"
+UI_HELP,"Arrastra una ficha para moverla · doble clic en ella para centrarla · clic en una puerta para abrirla · botón derecho para medir · rueda para zoom · botón central para desplazar","Drag a token to move it · double-click it to center it · click a door to open it · right button to measure · wheel to zoom · middle button to pan"
 ROOM_KIND_ROOM,Sala,Room
 ROOM_KIND_CORRIDOR,Pasillo,Corridor
 ROOM_KIND_CAVE,Cueva,Cave
@@ -137,7 +137,7 @@ UI_CARRY_TORCH,Antorchas,Torches
 UI_TOKEN_SELECTED,Ficha {name} seleccionada,Token {name} selected
 UI_FP_NEEDS_TOKEN,Añade una ficha para verla en 1ª persona,Add a token to see it in first person
 UI_FP_HELP,"W/S o flechas: avanzar y retroceder · A/D: girar · Espacio o E: abrir/cerrar puerta · botón derecho: mirar","W/S or arrows: forward and back · A/D: turn · Space or E: open/close door · right button: look around"
-UI_3D_HELP,"Arrastra una ficha para moverla · clic en una puerta · rueda: zoom · botón derecho: girar e inclinar · central: desplazar · Q/E R/F · O: ortográfica","Drag a token to move it · click a door · wheel: zoom · right button: rotate and tilt · middle: pan · Q/E R/F · O: orthographic"
+UI_3D_HELP,"Arrastra una ficha para moverla · doble clic: centrar · clic en una puerta · rueda: zoom · botón derecho: girar e inclinar · central: desplazar · Q/E R/F · O: ortográfica","Drag a token to move it · double-click: center · click a door · wheel: zoom · right button: rotate and tilt · middle: pan · Q/E R/F · O: orthographic"
 UI_SCALE_ALD,Asentamiento,Settlement
 UI_SETTLEMENT_INFO,"{size}: {buildings} edificios, unos {population} habitantes · {code}","{size}: {buildings} buildings, about {population} inhabitants · {code}"
 ROOM_KIND_STREET,Calle,Street

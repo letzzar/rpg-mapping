@@ -217,6 +217,7 @@ func _build_ui() -> void:
 		_selected_token = id)
 	_view.cell_activated.connect(_on_cell_activated)
 	_view.stairs_taken.connect(_on_stairs_taken)
+	_view.token_activated.connect(_on_token_activated)
 
 	# Vista 3D en su propio SubViewport (mundo 3D propio). El contenedor
 	# recoge ratón y teclado y se los pasa a la vista, como en 2D.
@@ -241,6 +242,7 @@ func _build_ui() -> void:
 	_view3d.status_changed.connect(func(t: String) -> void: _status.text = t)
 	_view3d.user_command_done.connect(_on_user_command)
 	_view3d.cell_activated.connect(_on_cell_activated)
+	_view3d.token_activated.connect(_on_token_activated)
 	_view3d.token_selected.connect(func(id: int) -> void:
 		_selected_token = id
 		_status.text = tr("UI_TOKEN_SELECTED").replace("{name}", _doc.token(id).name))
@@ -456,6 +458,28 @@ func _on_stairs_taken(token_id: int, level: int) -> void:
 	_level_opt.select(level)
 	_on_level_selected(level)
 	_on_user_command()
+	_center_on_token(_doc.token(token_id))
+
+
+## Doble clic en una ficha (2D o 3D): si está en una escalera, la toma; si
+## no, centra las vistas en ella.
+func _on_token_activated(token_id: int) -> void:
+	var t: MapToken = _doc.token(token_id) if _doc != null else null
+	if t == null:
+		return
+	if _view_opt.selected != VIEW_2D and _view.take_stairs(t):
+		return
+	_center_on_token(t)
+
+
+## Centra las vistas 2D y 3D en la ficha (las dos, para que al cambiar de
+## vista siga en el centro), sin cambiar el zoom.
+func _center_on_token(t: MapToken) -> void:
+	if t == null:
+		return
+	_view.center_on_cell(t.cell, Rect2(Vector2.ZERO, _map_area.size))
+	_view.queue_redraw()
+	_view3d.center_on_cell(t.cell)
 
 
 ## Estancia del edificio mostrado (si es EDI G1) que contiene la casilla.
@@ -1044,7 +1068,7 @@ func _follow_after_stairs(_level: int, layer: String) -> void:
 	_follow_token = -1
 	_level_opt.select(t.level)
 	_on_level_selected(t.level)
-	_fit.call_deferred()
+	_center_on_token.call_deferred(t)
 
 
 ## La primera vez que llegan las fichas (después de los niveles), muestra el

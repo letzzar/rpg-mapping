@@ -26,6 +26,9 @@ signal token_selected(token_id: int)
 ## Doble clic izquierdo (vista cenital) en una casilla sin ficha (la UI entra
 ## en el edificio que haya ahí, F3).
 signal cell_activated(cell: Vector2i)
+## Doble clic en una ficha (la UI centra las vistas en ella o la lleva por
+## la escalera en la que esté).
+signal token_activated(token_id: int)
 
 enum Mode { TOP, FIRST_PERSON }
 
@@ -319,6 +322,15 @@ func fit() -> void:
 	_update_camera()
 
 
+## Lleva el centro de la vista cenital a la casilla (sin cambiar zoom ni giro).
+func center_on_cell(cell: Vector2i) -> void:
+	if document == null:
+		return
+	var p: Vector2 = document.grid.cell_to_pixel(cell, cell_m)
+	_target = Vector3(p.x, 0.0, p.y)
+	_update_camera()
+
+
 ## Encuadra solo ese rectángulo de casillas (modo jugador: lo explorado; el
 ## resto del mapa está vacío y el encuadre del mapa entero lo dejaba diminuto).
 func fit_region(cells: Rect2i) -> void:
@@ -493,6 +505,9 @@ func _handle_button(mb: InputEventMouseButton) -> void:
 			if mb.pressed and mb.double_click and _token_at(cell) == null:
 				if document.grid.in_bounds(cell):
 					cell_activated.emit(cell)
+			elif mb.pressed and mb.double_click:
+				_drag_token = -1
+				token_activated.emit(_token_at(cell).id)
 			elif mb.pressed:
 				_on_left_press(cell, mb.position)
 			else:
