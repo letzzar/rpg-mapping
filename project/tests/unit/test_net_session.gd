@@ -337,6 +337,68 @@ func test_doors_are_validated_by_the_server() -> void:
 	assert_true(MapEdge.has_flag(lvl.get_edge_by_id(near), MapEdge.FLAG_OPEN))
 
 
+## Escaleras: cambiar de nivel solo desde la casilla de una escalera y a su
+## destino exacto; el destino puede estar sin explorar.
+func test_stairs_change_level_only_from_the_stair() -> void:
+	var doc: MapDocument = MapDocument.create("square", 6, 6, 2)
+	for li: int in 2:
+		doc.level(li).fill_terrain(Terrain.FLOOR)
+	var s: MapStair = MapStair.new()
+	s.id = doc.allocate_id()
+	s.cell = Vector2i(1, 1)
+	s.to_level = 1
+	s.to_cell = Vector2i(4, 4)
+	assert_true(doc.level(0).add_stair(s))
+	var hero: MapToken = MapToken.new()
+	hero.id = doc.allocate_id()
+	hero.name = "Héroe"
+	hero.cell = Vector2i(2, 1)
+	hero.side = MapToken.SIDE_PLAYER
+	assert_true(doc.add_token(hero))
+	var wire: Wire = Wire.new()
+	var ses: GameSession = GameSession.new()
+	ses.send_bytes = wire.send
+	ses.close_peer = wire.close
+	ses.deny_close_delay_ms = 0
+	ses.set_document(doc, _profile, "Torre")
+	ses.set_vision_options(_opts)
+	var ana: GameSession.Player = ses.add_player("Ana")
+	hero.character_ref = ana.ref()
+	var stack: CommandStack = CommandStack.new(doc)
+	var r: PartyVision.Result = PartyVision.compute(doc, 0, _profile, _opts)
+	assert_true(stack.execute(ExploreCommand.from_visible(doc, 0, PartyVision.VIEWER_PARTY, r.visible)))
+	var approved: Array[MoveTokenCommand] = []
+	ses.move_approved.connect(func(cmd: MoveTokenCommand) -> void: approved.append(cmd))
+	ses.flush()
+	_hello(ses, 1, ses.room_code, ana.code)
+	wire.take(1)
+	# Fuera de la escalera, no.
+	ses.receive(1, NetMessage.encode({"t": NetMessage.MOVE, "token": hero.id, "level": 1, "x": 4, "y": 4}))
+	assert_eq(_s(wire.take(1)[0], "key"), "NET_MOVE_NO_STAIRS")
+	assert_true(stack.execute(MoveTokenCommand.new(hero.id, Vector2i(1, 1), 0)))
+	ses.mark_dirty()
+	ses.flush()
+	wire.take(1)
+	# A otra casilla del destino, no; al destino exacto, sí.
+	ses.receive(1, NetMessage.encode({"t": NetMessage.MOVE, "token": hero.id, "level": 1, "x": 3, "y": 4}))
+	assert_eq(_s(wire.take(1)[0], "key"), "NET_MOVE_NO_STAIRS")
+	ses.receive(1, NetMessage.encode({"t": NetMessage.MOVE, "token": hero.id, "level": 1, "x": 4, "y": 4}))
+	assert_eq(approved.size(), 1)
+	assert_true(stack.execute(approved[0]))
+	assert_eq(doc.token(hero.id).level, 1)
+	# El DM explora el nivel de destino y al jugador le llega.
+	var r1: PartyVision.Result = PartyVision.compute(doc, 1, _profile, _opts)
+	stack.execute_attached(ExploreCommand.from_visible(doc, 1, PartyVision.VIEWER_PARTY, r1.visible))
+	ses.mark_dirty()
+	ses.flush()
+	var c: NetClient = NetClient.new()
+	c.handle_message({"t": NetMessage.MAP, "grid": {"kind": "square", "width": 6, "height": 6}, "levels": 2, "title": "Torre"})
+	for m: Dictionary in wire.take(1):
+		c.handle_message(m)
+	assert_eq(c.document.token(hero.id).level, 1)
+	assert_true(c.document.level(1).is_explored(PartyVision.VIEWER_PARTY, Vector2i(4, 4)))
+
+
 func test_pings_reach_everyone_and_reconnect_replaces_old_peer() -> void:
 	var wire: Wire = Wire.new()
 	var s: GameSession = _session(wire)

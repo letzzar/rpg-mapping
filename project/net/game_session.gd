@@ -323,7 +323,7 @@ func _move(p: Player, msg: Dictionary) -> void:
 
 
 ## "" si el jugador puede mover su ficha ahí; si no, la clave i18n del motivo.
-## No cambia de nivel (las escaleras las gestiona el DM).
+## Para cambiar de nivel, la ficha tiene que estar en una escalera que lleve ahí.
 func validate_move(p: Player, token_id: int, level_index: int, cell: Vector2i) -> String:
 	if _doc == null or _profile == null:
 		return "NET_MOVE_NO_MAP"
@@ -331,7 +331,9 @@ func validate_move(p: Player, token_id: int, level_index: int, cell: Vector2i) -
 	if t == null or t.hidden or t.character_ref != p.ref():
 		return "NET_MOVE_NOT_YOURS"
 	var lvl: MapLevel = _doc.level(t.level)
-	if level_index != t.level or not _doc.grid.in_bounds(cell) or cell == t.cell:
+	if level_index != t.level:
+		return _validate_stairs(t, level_index, cell)
+	if not _doc.grid.in_bounds(cell) or cell == t.cell:
 		return "NET_MOVE_INVALID"
 	if not lvl.is_explored(PartyVision.VIEWER_PARTY, cell):
 		return "NET_MOVE_UNKNOWN_CELL"
@@ -343,6 +345,24 @@ func validate_move(p: Player, token_id: int, level_index: int, cell: Vector2i) -
 	var route: MovementCost.Route = MovementCost.find_route(_profile, lvl, t.cell, cell)
 	if route == null or not route.found:
 		return "NET_MOVE_NO_ROUTE"
+	return ""
+
+
+## Cambio de nivel: solo por una escalera en la casilla de la ficha que lleve
+## exactamente a ese nivel y casilla (el destino puede estar sin explorar:
+## al llegar se explora). Ocupado solo por fichas que el jugador ve.
+func _validate_stairs(t: MapToken, level_index: int, cell: Vector2i) -> String:
+	if _doc.level(level_index) == null:
+		return "NET_MOVE_INVALID"
+	var found: bool = false
+	for s: MapStair in _doc.level(t.level).stairs_at(t.cell):
+		if s.to_level == level_index and s.to_cell == cell:
+			found = true
+	if not found:
+		return "NET_MOVE_NO_STAIRS"
+	for other: MapToken in _doc.tokens_at(level_index, cell, _profile):
+		if other.id != t.id and _seen_tokens.has(other.id):
+			return "NET_MOVE_OCCUPIED"
 	return ""
 
 

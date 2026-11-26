@@ -61,6 +61,8 @@ var _client: NetClient = null
 var _proposals: ProposalStack = null
 ## Última ficha seleccionada en las vistas (para dársela a un jugador).
 var _selected_token: int = -1
+## Modo jugador: ficha que tomó una escalera y cuyo nivel hay que seguir.
+var _follow_token: int = -1
 
 
 func _ready() -> void:
@@ -211,6 +213,7 @@ func _build_ui() -> void:
 		_view3d.selected_token = id
 		_selected_token = id)
 	_view.cell_activated.connect(_on_cell_activated)
+	_view.stairs_taken.connect(_on_stairs_taken)
 
 	# Vista 3D en su propio SubViewport (mundo 3D propio). El contenedor
 	# recoge ratón y teclado y se los pasa a la vista, como en 2D.
@@ -426,6 +429,9 @@ func _on_cell_activated(cell: Vector2i) -> void:
 			child = ref.to_map_child()
 			room = true
 	if child == null:
+		# Partida abierta: el doble clic del DM señala la casilla a todos.
+		if _net_panel != null and _net_panel.is_hosting():
+			_net_panel.session.send_ping(_view.level_index, cell, tr("UI_NET_DM"))
 		return
 	var f: MapNavigator.Frame = _nav.enter(child, _view.level_index, _current_profile(), room)
 	if f == null:
@@ -435,6 +441,18 @@ func _on_cell_activated(cell: Vector2i) -> void:
 	_explore_after_navigation()
 	var key: String = "UI_NAV_ENTERED_ROOM" if room else "UI_NAV_ENTERED"
 	_status.text = tr(key).replace("{name}", _frame_name(f)).replace("{code}", f.doc.seed_code)
+
+
+## Una ficha tomó una escalera. El DM pasa a ver ese nivel y explora lo que
+## ve allí el grupo; el jugador espera a que el servidor apruebe el cambio
+## (lo sigue cuando su ficha aparece en el otro nivel).
+func _on_stairs_taken(token_id: int, level: int) -> void:
+	if _client != null:
+		_follow_token = token_id
+		return
+	_level_opt.select(level)
+	_on_level_selected(level)
+	_on_user_command()
 
 
 ## Estancia del edificio mostrado (si es EDI G1) que contiene la casilla.
@@ -517,6 +535,8 @@ func _fit() -> void:
 		var known: Rect2i = _explored_bounds(_view.level_index)
 		if known.size.x > 0:
 			_view.fit_region(known, Rect2(Vector2.ZERO, _map_area.size))
+			if _view3d != null and _view_opt.selected == VIEW_3D:
+				_view3d.fit_region(known)
 			return
 	_view.fit_to(Rect2(Vector2.ZERO, _map_area.size))
 	if _view3d != null and _view_opt.selected == VIEW_3D:
@@ -535,6 +555,12 @@ func _apply_view() -> int:
 	_view3d.active = sel != VIEW_2D
 	if sel != VIEW_2D:
 		_view3d.level_index = _view.level_index
+		if _client != null:
+			# Modo jugador: la 1.ª persona es la de su propia ficha.
+			for t: MapToken in _doc.tokens:
+				if _client.owns(t) and t.level == _view.level_index:
+					_view3d.selected_token = t.id
+					break
 		_view3d.set_mode(MapView3D.Mode.FIRST_PERSON if sel == VIEW_FP else MapView3D.Mode.TOP)
 		_view3d.rebuild()
 		_release_text_focus()
@@ -544,6 +570,8 @@ func _apply_view() -> int:
 			_status.text = tr("UI_FP_HELP")
 		else:
 			_status.text = tr("UI_3D_HELP")
+			if _client != null:
+				_fit()
 	else:
 		_status.text = tr("UI_HELP")
 	return Time.get_ticks_msec() - t0
@@ -627,9 +655,15 @@ func _refresh_vision() -> void:
 ## Tras mover una ficha, abrir una puerta o añadir una ficha: explora lo que
 ## ve ahora el grupo, unido al mismo paso de deshacer.
 func _on_user_command() -> void:
-	if _doc == null or _stack == null or _client != null:
+	_explore_level(_view.level_index)
+
+
+## Explora lo que ve el grupo en ese nivel (unido al último paso de
+## deshacer). Lo que propone un jugador puede ser en otro nivel que el que
+## mira el DM: antes solo se exploraba el mostrado y su visión se perdía.
+func _explore_level(lvl_i: int) -> void:
+	if _doc == null or _stack == null or _client != null or _doc.level(lvl_i) == null:
 		return
-	var lvl_i: int = _view.level_index
 	var r: PartyVision.Result = PartyVision.compute(_doc, lvl_i, _current_profile(), _vision_options())
 	_stack.execute_attached(ExploreCommand.from_visible(_doc, lvl_i, PartyVision.VIEWER_PARTY, r.visible))
 	_refresh_vision()
@@ -870,7 +904,7 @@ func _on_net_move_approved(cmd: MoveTokenCommand) -> void:
 	if _stack == null or _doc == null or _doc.token(cmd.token_id) == null:
 		return
 	if _stack.execute(cmd):
-		_on_user_command()
+		_explore_level(cmd.to_level)
 
 
 ## Puerta abierta o cerrada por un jugador (validada por la sesión): igual
@@ -879,7 +913,7 @@ func _on_net_door_approved(cmd: SetEdgeCommand) -> void:
 	if _stack == null or _doc == null or _doc.level(cmd.level_index) == null:
 		return
 	if _stack.execute(cmd):
-		_on_user_command()
+		_explore_level(cmd.level_index)
 
 
 func _assign_token_to_player(player_ref: String, player_name: String) -> void:
@@ -959,6 +993,21 @@ func _on_client_map() -> void:
 	# Las fichas llegan después del mapa: al llegar, se va al nivel de la propia.
 	if not _client.document.changed.is_connected(_follow_own_token):
 		_client.document.changed.connect(_follow_own_token)
+	_client.document.changed.connect(_follow_after_stairs)
+
+
+## Tras proponer una escalera: cuando el servidor mueve la ficha al otro
+## nivel, se muestra ese nivel.
+func _follow_after_stairs(_level: int, layer: String) -> void:
+	if layer != MapDocument.LAYER_TOKENS or _follow_token < 0:
+		return
+	var t: MapToken = _client.document.token(_follow_token)
+	if t == null or t.level == _view.level_index:
+		return
+	_follow_token = -1
+	_level_opt.select(t.level)
+	_on_level_selected(t.level)
+	_fit.call_deferred()
 
 
 ## La primera vez que llegan las fichas (después de los niveles), muestra el
@@ -994,8 +1043,8 @@ func _explored_bounds(level: int) -> Rect2i:
 
 
 ## Lo que una vista "ejecuta" en modo jugador se envía como propuesta: mover
-## fichas propias y abrir o cerrar puertas (el DM las valida; las escaleras y
-## lo demás lo hace el DM).
+## fichas propias (también por escaleras) y abrir o cerrar puertas; el DM las
+## valida. Lo demás lo hace el DM.
 func _propose(cmd: MapCommand) -> bool:
 	if _client == null:
 		return false

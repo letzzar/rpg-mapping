@@ -1,6 +1,25 @@
 # SESSION_HANDOFF — RPG Mapping
 
-## Última sesión: 2026-11-26 (12.ª) — F4: prueba en Chrome real, puertas de los jugadores y QR
+## Última sesión: 2026-11-26 (13.ª) — F4: escaleras, señal del DM y 3D del jugador
+Tests: **248/248 en escritorio (32745 asserts) y 248/248 en el navegador** (escaleras en `test_net_session.gd` y `test_view_commands.gd`, con eventos de ratón reales). 45 seeds doradas sin cambios.
+
+**Probado en Chrome real** con la mazmorra de dos niveles `RPGM1-DND5-MAZ-G1-35040-M6SC7N75-W`: Ana baja y sube por la escalera (doble clic en su ficha; el DM aprueba; su vista cambia sola de nivel y lo explora); ve la señal del DM (anillos "DM"); vista 3D solo con lo explorado; 1.ª persona desde su ficha.
+
+### Hecho (ADR 033)
+- **Escaleras para todos**: antes nadie podía cambiar de nivel con una ficha. Doble clic en una ficha sobre una escalera → `MapView2D.take_stairs` (`MoveTokenCommand` con otro nivel, se deshace) y señal `stairs_taken`; el DM pasa a ver ese nivel. Jugador: propuesta validada por `GameSession._validate_stairs` (`NET_MOVE_NO_STAIRS`) y su vista sigue a la ficha (`main._follow_after_stairs`).
+- **Señal del DM**: con la partida abierta, su doble clic en una casilla sin edificio la señala a todos con el nombre "DM".
+- **Error corregido**: lo que aprobaba el DM explorando el nivel **que él miraba**; ahora `main._explore_level(nivel del comando)`.
+- **3D del jugador**: `MapView3D.fit_region` encuadra lo explorado; la 1.ª persona usa la ficha propia.
+- Para pruebas: Chrome detiene el bucle de una página tapada por otra ventana (la conexión parecía tardar minutos). Lanzarlo con `--disable-backgrounding-occluded-windows --disable-renderer-backgrounding --disable-background-timer-throttling`. No es un fallo del juego.
+
+### Siguiente paso
+1. **Prueba de Víctor**: escanear el QR con el móvil y probar el táctil (arrastrar, tocar puertas, doble toque en escalera y para señalar).
+2. Pendiente de F4: imagen Docker (ADR 016, alternativa). Después, F5.
+
+### Limitaciones conocidas (F4)
+- Visión compartida por el grupo; escaleras solo en 2D (en 3D/1.ª persona no hay doble clic de escalera).
+- Las escaleras que salen del mapa (estancia EST G2 → edificio) siguen siendo del DM ("← Volver").
+## Sesión anterior: 2026-11-26 (12.ª) — F4: prueba en Chrome real, puertas de los jugadores y QR
 Tests: **246/246 en escritorio (32712 asserts) y 246/246 en el navegador** (7 nuevos: `test_qr_code.gd` ×5, puertas en `test_net_session.gd`, direcciones en `test_net_protocol.gd`). 45 seeds doradas sin cambios.
 
 **Probado en Chrome real** (con ventana, perfil aislado, manejado por CDP): Ana entra con su enlace; arrastrar una ficha ajena → "Esa ficha no es tuya"; doble clic → anillos con "Ana" en el navegador y `PING Ana` en el DM; su ficha tras una puerta cerrada → "Sin ruta"; clic en la puerta → el DM la aprueba y se abre; arrastrar su ficha a la sala → el DM aprueba el movimiento, la ficha llega y lo explorado crece. La sesión anterior decía que Chrome sin ventana "no pasa los clics": era el arnés de pruebas (mandaba un campo `delay` en cada orden CDP y Chrome descartaba la orden entera), no el juego.

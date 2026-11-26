@@ -192,10 +192,10 @@ UI_NET_REMOVE,Quitar,Remove
 UI_NET_LINK_COPIED,"Enlace de {name} copiado: envíaselo.","{name}'s link copied: send it to them."
 UI_NET_ASSIGNED,"{token} es ahora de {name}.","{token} now belongs to {name}."
 UI_NET_SELECT_TOKEN,"Selecciona antes una ficha (clic sobre ella).","Select a token first (click on it)."
-UI_NET_HELP,"Envía a cada jugador su enlace. La primera vez su navegador avisará de que el certificado no es de confianza: hay que aceptarlo (es el de esta partida; la huella está arriba).","Send each player their link. The first time, their browser will warn that the certificate is not trusted: they must accept it (it is this game's; the fingerprint is above)."
+UI_NET_HELP,"Envía a cada jugador su enlace. La primera vez su navegador avisará de que el certificado no es de confianza: hay que aceptarlo (es el de esta partida; la huella está arriba). Con la partida abierta, tu doble clic en una casilla la señala a todos.","Send each player their link. The first time, their browser will warn that the certificate is not trusted: they must accept it (it is this game's; the fingerprint is above). While the game is open, your double-click on a square points at it for everyone."
 UI_NET_PING,{name} señala aquí,{name} points here
 NET_CONNECTING,Conectando con la partida…,Connecting to the game…
-NET_WELCOME,"Conectado como {name} · {title}. Arrastra tu ficha para moverla; clic en una puerta junto a ella para abrirla o cerrarla; doble clic para señalar una casilla.","Connected as {name} · {title}. Drag your token to move it; click a door next to it to open or close it; double-click to point at a square."
+NET_WELCOME,"Conectado como {name} · {title}. Arrastra tu ficha para moverla; clic en una puerta junto a ella para abrirla o cerrarla; doble clic en ella sobre una escalera para cambiar de nivel; doble clic en una casilla para señalarla.","Connected as {name} · {title}. Drag your token to move it; click a door next to it to open or close it; double-click it on stairs to change level; double-click a square to point at it."
 NET_CLOSED,"Se perdió la conexión con la partida. Recarga la página para volver.","Lost connection to the game. Reload the page to rejoin."
 NET_ERR_ROOM,"El enlace no es de esta partida (sala distinta). Pide uno nuevo al DM.","The link is not for this game (different room). Ask the DM for a new one."
 NET_ERR_TOKEN,"Ese enlace de jugador no existe (el DM lo quitó o abrió otra partida).","That player link does not exist (the DM removed it or opened another game)."
@@ -217,3 +217,6 @@ UI_NET_QR_TITLE,Enlace de {name},{name}'s link
 UI_NET_ADDRESS,Dirección:,Address:
 UI_NET_ADDRESS_TIP,"Dirección de este equipo que va en los enlaces y el QR. La primera suele ser la de la red local; las de máquinas virtuales y VPN van al final (una VPN como Tailscale sirve para jugar a distancia).","This computer's address used in links and the QR. The first is usually the local network one; virtual machine and VPN addresses come last (a VPN like Tailscale works for remote play)."
 UI_NET_QR_HELP,Escanéalo con el móvil o la tableta del jugador (en la misma red).,Scan it with the player's phone or tablet (on the same network).
+UI_STAIRS_TAKEN,{name} toma la escalera al nivel {level}.,{name} takes the stairs to level {level}.
+UI_NET_DM,DM,DM
+NET_MOVE_NO_STAIRS,Para cambiar de nivel tu ficha tiene que estar en esa escalera.,To change level your token must be on those stairs.

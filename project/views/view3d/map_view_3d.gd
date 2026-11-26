@@ -314,6 +314,24 @@ func fit() -> void:
 	_update_camera()
 
 
+## Encuadra solo ese rectángulo de casillas (modo jugador: lo explorado; el
+## resto del mapa está vacío y el encuadre del mapa entero lo dejaba diminuto).
+func fit_region(cells: Rect2i) -> void:
+	if document == null or cells.size.x <= 0 or cells.size.y <= 0:
+		fit()
+		return
+	var g: GridGeometry = document.grid
+	var a: Vector2 = g.cell_to_pixel(cells.position, cell_m) - Vector2(cell_m, cell_m)
+	var b: Vector2 = g.cell_to_pixel(cells.end - Vector2i.ONE, cell_m) + Vector2(cell_m, cell_m)
+	var size: Vector2 = b - a
+	var mid: Vector2 = a + size * 0.5
+	_target = Vector3(mid.x, 0.0, mid.y)
+	_dist = clampf(maxf(size.x, size.y) * 1.1, DIST_MIN, DIST_MAX)
+	_yaw = 0.0
+	_tilt = 35.0
+	_update_camera()
+
+
 func set_mode(m: Mode) -> void:
 	mode = m
 	if mode == Mode.FIRST_PERSON:

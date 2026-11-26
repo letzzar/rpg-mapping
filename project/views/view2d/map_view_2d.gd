@@ -11,6 +11,8 @@ extends Node2D
 ##     y su coste según el perfil; al soltar, mueve la ficha (MoveTokenCommand).
 ##     Si el coste supera la velocidad, avisa pero no bloquea (§10.3).
 ##   - Clic izquierdo cerca de una puerta: abre/cierra (SetEdgeCommand).
+##   - Doble clic en una ficha que está sobre una escalera: la lleva a la
+##     casilla y nivel de destino (MoveTokenCommand con otro nivel).
 ##   - Arrastrar con el botón derecho: regla de medir (distancia o banda).
 ##   - Botón central: desplazar. Rueda: zoom alrededor del puntero.
 ##
@@ -23,6 +25,8 @@ signal user_command_done
 ## Doble clic izquierdo en una casilla sin ficha (la UI entra en el edificio
 ## que haya ahí, F3).
 signal cell_activated(cell: Vector2i)
+## Una ficha tomó una escalera hacia otro nivel (la UI muestra ese nivel).
+signal stairs_taken(token_id: int, level: int)
 
 const ZOOM_MIN: float = 0.2
 const ZOOM_MAX: float = 4.0
@@ -614,6 +618,8 @@ func _handle_button(mb: InputEventMouseButton) -> void:
 			if mb.pressed and mb.double_click and _token_at(cell) == null:
 				if document.grid.in_bounds(cell):
 					cell_activated.emit(cell)
+			elif mb.pressed and mb.double_click and take_stairs(_token_at(cell)):
+				_cancel_drag()
 			elif mb.pressed:
 				_on_left_press(cell)
 			else:
@@ -673,6 +679,34 @@ func _on_left_release(_cell: Vector2i) -> void:
 			# Sin esto la barra seguía mostrando el mensaje anterior.
 			status_changed.emit(tr("UI_NO_ROUTE_STATUS"))
 	_cancel_drag()
+
+
+## Escalera bajo la ficha que lleva a otro nivel de este mapa (las que salen
+## del mapa, EST G2, no cuentan); null si no hay.
+func stairs_under(t: MapToken) -> MapStair:
+	if t == null or document == null:
+		return null
+	var lvl: MapLevel = document.level(t.level)
+	if lvl == null:
+		return null
+	for s: MapStair in lvl.stairs_at(t.cell):
+		if s.to_level >= 0 and s.to_level < document.level_count() and s.to_level != t.level:
+			return s
+	return null
+
+
+## Lleva la ficha por la escalera en la que está. false si no hay escalera o
+## el comando no se ejecutó.
+func take_stairs(t: MapToken) -> bool:
+	var s: MapStair = stairs_under(t)
+	if s == null or command_stack == null:
+		return false
+	if not command_stack.execute(MoveTokenCommand.new(t.id, s.to_cell, s.to_level)):
+		return false
+	status_changed.emit(tr("UI_STAIRS_TAKEN").replace("{name}", t.name).replace("{level}", str(s.to_level + 1)))
+	user_command_done.emit()
+	stairs_taken.emit(t.id, s.to_level)
+	return true
 
 
 func _cancel_drag() -> void:
