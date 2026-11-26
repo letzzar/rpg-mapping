@@ -20,6 +20,8 @@ const VIEW_FP: int = 2
 ## Luz que lleva cada ficha del grupo con "Antorcha": la del objeto del
 ## catálogo (reglas como datos; no se fija en código).
 const CARRIED_LIGHT_OBJECT: String = "torch_sconce"
+## Herramientas de MapView2D.edit_tool que pone el panel del proyector.
+const PROJECTOR_TOOLS: PackedStringArray = ["reveal", "reveal_room", "conceal"]
 
 var _view: MapView2D
 var _view3d: MapView3D
@@ -50,6 +52,9 @@ var _map_open_dialog: FileDialog = null
 var _designer: CharacterDesigner
 var _turn_panel: TurnPanel
 var _turns_btn: Button
+var _proj_btn: Button = null
+var _proj_panel: ProjectorPanel = null
+var _projector: ProjectorWindow = null
 var _edit_btn: Button
 var _editor_panel: RoomEditorPanel
 var _tpl_btn: Button
@@ -230,6 +235,16 @@ func _build_ui() -> void:
 		_net_btn = _button("UI_NET_HOST", _toggle_net_panel)
 		_net_btn.toggle_mode = true
 		bar.add_child(_net_btn)
+		# Modo proyectado (ADR 039): otra ventana, así que solo en escritorio.
+		_proj_btn = _button("UI_PROJ", func() -> void:
+			_proj_panel.visible = _proj_btn.button_pressed
+			if not _proj_panel.visible:
+				_proj_panel.select_tool("")
+			_fit.call_deferred())
+		_proj_btn.toggle_mode = true
+		_proj_btn.tooltip_text = tr("UI_PROJ_TIP")
+		bar.add_child(_proj_btn)
+		_dm_only.append(_proj_btn)
 
 	_view_opt = OptionButton.new()
 	for k: String in VIEW_OPTIONS:
@@ -282,6 +297,10 @@ func _build_ui() -> void:
 		_on_user_command()
 		return true
 	_editor_panel.tool_changed.connect(func(t: String) -> void:
+		if t.is_empty() and PROJECTOR_TOOLS.has(_view.edit_tool):
+			return
+		if not t.is_empty() and _proj_panel != null:
+			_proj_panel.select_tool("")
 		if not t.is_empty() and _view_opt.selected != VIEW_2D:
 			_view_opt.select(VIEW_2D)
 			_apply_view()
@@ -291,6 +310,8 @@ func _build_ui() -> void:
 	_editor_panel.status.connect(func(t: String) -> void: _status.text = t)
 	_editor_panel.room_opened.connect(_open_room_doc)
 	middle.add_child(_editor_panel)
+	if not OS.has_feature("web"):
+		_build_projector(middle)
 	if not OS.has_feature("web"):
 		_net_panel = NetHostPanel.new()
 		_net_panel.visible = false
@@ -313,6 +334,7 @@ func _build_ui() -> void:
 	_view.cell_activated.connect(_on_cell_activated)
 	_view.stairs_taken.connect(_on_stairs_taken)
 	_view.token_activated.connect(_on_token_activated)
+	_view.door_toggled.connect(_on_door_toggled)
 
 	# Vista 3D en su propio SubViewport (mundo 3D propio). El contenedor
 	# recoge ratón y teclado y se los pasa a la vista, como en 2D.
@@ -561,6 +583,9 @@ func _announce_turn() -> void:
 
 func _on_doc_changed(_level: int, layer: String) -> void:
 	if layer != MapDocument.LAYER_FOG and layer != MapDocument.LAYER_TURNS:
+		_queue_vision()
+	elif layer == MapDocument.LAYER_FOG and _proj_panel != null and _proj_panel.is_open():
+		# Revelar u ocultar (o deshacerlo) cambia lo que se ve en la mesa.
 		_queue_vision()
 	if layer == MapDocument.LAYER_TURNS or layer == MapDocument.LAYER_TOKENS:
 		_turn_panel.profile = _current_profile()
@@ -914,6 +939,7 @@ func _refresh_vision() -> void:
 	_view.set_fog(players, r.visible, explored)
 	_view3d.dm_view = not players
 	_view3d.set_fog(players, r.visible, explored)
+	_sync_projector()
 
 
 ## Tras mover una ficha, abrir una puerta o añadir una ficha: explora lo que
@@ -973,6 +999,100 @@ func _place_token(t: MapToken) -> bool:
 	return false
 
 
+# --- Modo proyectado (ADR 039) ------------------------------------------------
+
+func _build_projector(middle: HBoxContainer) -> void:
+	_projector = ProjectorWindow.new()
+	_projector.visible = false
+	# Cerrar la ventana (Alt+F4 o la X) = apagar el proyector.
+	_projector.close_requested.connect(func() -> void: _proj_panel.set_open(false))
+	add_child(_projector)
+	_proj_panel = ProjectorPanel.new()
+	_proj_panel.visible = false
+	_proj_panel.projector = _projector
+	_proj_panel.tool_changed.connect(func(t: String) -> void:
+		# Al soltar su herramienta, no apagar la del editor si es otra.
+		if t.is_empty() and not PROJECTOR_TOOLS.has(_view.edit_tool):
+			return
+		if not t.is_empty():
+			_editor_panel.select_tool("")
+			if _view_opt.selected != VIEW_2D:
+				_view_opt.select(VIEW_2D)
+				_apply_view()
+		_view.edit_tool = t)
+	_proj_panel.center_requested.connect(_center_projector)
+	_proj_panel.party_marker_requested.connect(_add_party_marker)
+	_proj_panel.layout_changed.connect(_sync_projector)
+	_proj_panel.status.connect(func(t: String) -> void: _status.text = t)
+	middle.add_child(_proj_panel)
+
+
+## Pasa al proyector el mapa, el nivel y la niebla de los jugadores, y dibuja
+## en la vista del DM la zona proyectada.
+func _sync_projector() -> void:
+	if _projector == null or _doc == null:
+		return
+	if not _proj_panel.is_open():
+		_view.projector_area = PackedVector2Array()
+		return
+	if _projector.view.document != _doc or _projector.view.level_index != _view.level_index:
+		_projector.set_document(_doc, _view.level_index)
+	var r: PartyVision.Result = PartyVision.compute(_doc, _view.level_index, _current_profile(), _vision_options())
+	var explored: PackedByteArray = _doc.level(_view.level_index).explored(PartyVision.VIEWER_PARTY)
+	var visible: PackedByteArray = r.visible
+	# Sin ficha del grupo (el DM descubre a mano) no hay "lo que ven ahora":
+	# en la mesa, lo descubierto se ve entero (y sus fichas, si se muestran).
+	if PartyVision.party_tokens(_doc, _view.level_index).is_empty():
+		visible = PackedByteArray()
+		visible.resize(explored.size())
+		for i: int in explored.size():
+			visible[i] = Visibility.BRIGHT if explored[i] != 0 else 0
+	_projector.view.profile = _current_profile()
+	_projector.view.set_fog(true, visible, explored)
+	_projector.apply_layout()
+	_view.projector_area = _projector.area_polygon()
+
+
+## Centra el proyector en la ficha seleccionada o, si no hay, en el grupo.
+func _center_projector() -> void:
+	if _projector == null or _doc == null:
+		return
+	var t: MapToken = _doc.token(_selected_token) if _selected_token >= 0 else null
+	if t == null or t.level != _view.level_index:
+		var party: Array[MapToken] = PartyVision.party_tokens(_doc, _view.level_index)
+		t = party[0] if not party.is_empty() else null
+	if t != null:
+		_projector.center_on(t.cell)
+	else:
+		var b: Rect2i = _explored_bounds(_view.level_index)
+		_projector.center_cell = Vector2(b.position) + Vector2(b.size) * 0.5
+	_sync_projector()
+
+
+## Ficha del grupo: la que el DM mueve para descubrir por visión. Como
+## cualquier ficha de jugador; el proyector no dibuja fichas por defecto.
+func _add_party_marker() -> void:
+	if _doc == null:
+		return
+	var t: MapToken = MapToken.new()
+	t.name = tr("UI_PROJ_PARTY_NAME")
+	t.side = MapToken.SIDE_PLAYER
+	if _place_token(t):
+		_selected_token = t.id
+		_on_user_command()
+		_status.text = tr("UI_PROJ_PARTY_ADDED")
+
+
+## Al abrir una puerta con el proyector encendido: se revelan las zonas de
+## los dos lados, en el mismo paso de deshacer que la puerta.
+func _on_door_toggled(edge_id: int, opened: bool) -> void:
+	if not opened or _proj_panel == null or not _proj_panel.is_open() or not _proj_panel.reveal_on_door:
+		return
+	var cells: Array[Vector2i] = FogReveal.door_cells(_doc, _view.level_index, edge_id)
+	if not cells.is_empty():
+		_stack.execute_attached(ExploreCommand.new(_view.level_index, PartyVision.VIEWER_PARTY, cells))
+
+
 # --- Editor de estancias (E2, ADR 037) ----------------------------------------
 
 func _toggle_editor() -> void:
@@ -982,7 +1102,8 @@ func _toggle_editor() -> void:
 		_status.text = tr("UI_EDIT_HELP")
 	else:
 		_editor_panel.select_tool("")
-		_view.edit_tool = ""
+		if not PROJECTOR_TOOLS.has(_view.edit_tool):
+			_view.edit_tool = ""
 	_fit.call_deferred()
 
 

@@ -1,6 +1,24 @@
 # SESSION_HANDOFF — RPG Mapping
 
-## Última sesión: 2026-11-26 (14.ª, quinta parte) — Editor de estancias E3: id corto y código para compartir
+## Última sesión: 2026-11-26 (14.ª, sexta parte) — Modo proyectado
+Tests: **323/323 en escritorio, en inglés y en el navegador** (5 nuevos en `test_projector.gd`; el de la pantalla principal queda pendiente en web: allí no hay proyector). Probado con capturas: sala revelada, puerta abierta que revela el pasillo, rectángulo del proyector en la pantalla del DM y cuadrado de calibración.
+
+### Hecho (ADR 039)
+- Botón "Proyector" (DM, escritorio) con `ProjectorPanel`: encender/apagar en la pantalla elegida, píxeles por casilla y "Calibrar con una regla" (4×4 casillas = 10 cm), giro, flechas y centrar, mostrar fichas (no por defecto).
+- `ProjectorWindow`: ventana del sistema a pantalla completa, vista de jugadores a escala, fondo negro; no se mueve sola.
+- Descubrir: al abrir una puerta (proyector encendido) se revelan los dos lados; "Revelar zona" (clic), pincel de revelar y de ocultar (`ConcealCommand` + `FogReveal`); o "Añadir ficha del grupo" y moverla (visión normal).
+- La vista 2D ahora tiene fondo, velo de lo explorado y color de rejilla configurables, y la señal `door_toggled`.
+- Decisión de Víctor: sin QR para estancias (viajan en los guardados); QR solo para que entren los jugadores.
+
+### Siguiente paso
+1. **Que Víctor lo pruebe con su proyector**: calibrar con una regla y comprobar que las miniaturas caben en las casillas; ver si revelar al abrir puertas descubre demasiado en mazmorras con pasillos largos (el pasillo es una "zona" entera).
+2. E4 (estancias propias dentro de edificios y aldeas, en el guardado y en red).
+
+### Limitaciones conocidas (modo proyectado)
+- Solo 2D y escritorio; una sola ventana de proyector.
+- No hay que mover el mapa del DM para nada: el proyector va aparte; pero cambiar de nivel en el DM cambia también el del proyector.
+
+## Sesión anterior: 2026-11-26 (14.ª, quinta parte) — Editor de estancias E3: id corto y código para compartir
 Tests: **318/318 en escritorio, en inglés y en el navegador** (nuevos: `test_room_code.gd` ×16, de `cartografo`, y `test_room_library.gd` ×4). Víctor aprobó el esquema de EST G3 (congelado).
 
 ### Hecho (ADR 038, formatos en PROYECTO §5.5)

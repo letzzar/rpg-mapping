@@ -62,6 +62,8 @@ static func command_for(r: JsonReader, doc: MapDocument, dl: MapDelta) -> MapCom
 			cmd = SetEdgeCommand.new(r.get_int(d, "level"), r.get_int(d, "edge"), r.get_int(d, "value"))
 		ExploreCommand.DELTA_OP:
 			cmd = ExploreCommand.new(r.get_int(d, "level"), r.get_str(d, "viewer"), _cells(r, d))
+		ConcealCommand.DELTA_OP:
+			cmd = ConcealCommand.new(r.get_int(d, "level"), r.get_str(d, "viewer"), _cells(r, d))
 		SetTerrainCommand.DELTA_OP:
 			cmd = SetTerrainCommand.new(r.get_int(d, "level"), _cells(r, d), r.get_int(d, "terrain"))
 		AddObjectCommand.DELTA_OP:

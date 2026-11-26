@@ -470,3 +470,42 @@ ROOM_ERR_FORMAT,El código de estancia no tiene un formato válido.,The room cod
 ROOM_ERR_CHECK,El código de estancia tiene una errata (no cuadra el carácter de control).,The room code has a typo (the check character does not match).
 ROOM_ERR_TOO_BIG,El código de estancia es demasiado grande.,The room code is too large.
 ROOM_ERR_VERSION,El código de estancia es de otra versión de la aplicación.,The room code is from a different version of the app.
+UI_PROJ,Proyector,Projector
+UI_PROJ_TIP,"Modo proyectado: la vista de los jugadores a escala real en un proyector sobre la mesa, para jugar con miniaturas físicas.","Projected mode: the players' view at real scale on a projector over the table, to play with physical miniatures."
+UI_PROJ_TITLE,Modo proyectado,Projected mode
+UI_PROJ_HELP,"En tu pantalla lo ves todo; en el proyector, solo lo que ven los jugadores, a escala real y sin fichas: las miniaturas las ponen ellos en la mesa.","You see everything on your screen; the projector shows only what the players see, at real scale and without tokens: they place their miniatures on the table."
+UI_PROJ_SCREEN,Pantalla:,Screen:
+UI_PROJ_SCREEN_N,Pantalla {n} ({w}×{h}),Screen {n} ({w}×{h})
+UI_PROJ_OPEN,Encender el proyector,Turn on the projector
+UI_PROJ_CLOSE,Apagar el proyector,Turn off the projector
+UI_PROJ_OPENED,"Proyector encendido. Calibra la escala con una regla la primera vez.","Projector on. Calibrate the scale with a ruler the first time."
+UI_PROJ_SCALE,Escala,Scale
+UI_PROJ_PX,Píxeles por casilla:,Pixels per cell:
+UI_PROJ_TURN,Giro:,Rotation:
+UI_PROJ_TURN_0,Sin girar,No rotation
+UI_PROJ_TURN_1,90°,90°
+UI_PROJ_TURN_2,180°,180°
+UI_PROJ_TURN_3,270°,270°
+UI_PROJ_CALIBRATE,Calibrar con una regla,Calibrate with a ruler
+UI_PROJ_CALIBRATE_TIP,"Muestra un cuadrado en la mesa: ajusta los píxeles por casilla hasta que mida lo que dice (cada casilla, la base de una miniatura: 2,5 cm).","Shows a square on the table: adjust the pixels per cell until it measures what it says (each cell, a miniature base: 2.5 cm)."
+UI_PROJ_CALIBRATE_HINT,Este cuadrado de {n}×{n} casillas tiene que medir {cm} cm en la mesa.,This {n}×{n} cell square must measure {cm} cm on the table.
+UI_PROJ_MOVE,Mover la imagen,Move the image
+UI_PROJ_SHIFT_TIP,Desplaza una casilla la zona proyectada.,Shifts the projected area by one cell.
+UI_PROJ_CENTER_TIP,Centra el proyector en la ficha seleccionada (o en el grupo).,Centers the projector on the selected token (or the party).
+UI_PROJ_MOVE_WARN,"Ojo: al mover la imagen, las miniaturas de la mesa dejan de estar en su casilla. Muévela solo cuando el grupo llegue al borde.","Careful: moving the image takes the miniatures on the table off their cells. Move it only when the party reaches the edge."
+UI_PROJ_SHOW_TOKENS,Mostrar las fichas en el proyector,Show tokens on the projector
+UI_PROJ_SHOW_TOKENS_TIP,"Para los monstruos que no tengas en miniatura (las fichas ocultas nunca salen).","For monsters you have no miniature for (hidden tokens never show)."
+UI_PROJ_REVEAL,Descubrir el mapa,Reveal the map
+UI_PROJ_REVEAL_DOORS,Al abrir una puerta, revelar lo que hay detrás,"When opening a door, reveal what is behind"
+UI_PROJ_TOOL_REVEAL_ROOM,Revelar zona,Reveal area
+UI_PROJ_TOOL_REVEAL_ROOM_TIP,"Clic en una casilla: revela su sala (o lo que se alcanza sin cruzar puertas cerradas).","Click a cell: reveals its room (or what can be reached without crossing closed doors)."
+UI_PROJ_TOOL_REVEAL,Revelar (pincel),Reveal (brush)
+UI_PROJ_TOOL_REVEAL_TIP,Arrastra para revelar casillas sueltas.,Drag to reveal individual cells.
+UI_PROJ_TOOL_CONCEAL,Ocultar (pincel),Hide (brush)
+UI_PROJ_TOOL_CONCEAL_TIP,Arrastra para volver a tapar lo revelado de más.,Drag to cover again what was revealed by mistake.
+UI_PROJ_PARTY_MARKER,Añadir ficha del grupo,Add party token
+UI_PROJ_PARTY_MARKER_TIP,"Una ficha que mueves tú donde va el grupo: descubre lo que verían (luz, visión) como en el modo normal. No sale en el proyector.","A token you move to where the party goes: it reveals what they would see (light, vision) as in normal mode. It does not show on the projector."
+UI_PROJ_PARTY_NAME,Grupo,Party
+UI_PROJ_PARTY_ADDED,Ficha del grupo añadida: muévela donde esté el grupo en la mesa.,Party token added: move it to where the party is on the table.
+UI_PROJ_AREA,Proyector,Projector
+CMD_CONCEAL,Ocultar a los jugadores,Hide from players

@@ -30,6 +30,8 @@ signal cell_activated(cell: Vector2i)
 signal stairs_taken(token_id: int, level: int)
 ## Doble clic en una ficha que no está en una escalera (la UI centra en ella).
 signal token_activated(token_id: int)
+## Se abrió o cerró una puerta con el ratón (ya ejecutado el comando).
+signal door_toggled(edge_id: int, opened: bool)
 
 const ZOOM_MIN: float = 0.2
 const ZOOM_MAX: float = 4.0
@@ -87,6 +89,12 @@ var level_index: int = 0
 ## Distancia en píxeles entre centros de casilla (a zoom 1).
 var cell_px: float = 48.0
 var show_grid: bool = true
+## Color de fondo y de lo no explorado (negro en el proyector, ADR 039).
+var background: Color = COL_BG
+## Velo de lo explorado que no se ve ahora (0 = nada; en el proyector, poco:
+## con miniaturas físicas, lo ya recorrido tiene que leerse bien).
+var explored_veil: float = 0.65
+var grid_color: Color = COL_GRID
 ## Vista del DM: muestra puertas secretas y trampas ocultas.
 var dm_view: bool = true
 var interactive: bool = true
@@ -132,6 +140,12 @@ var _tpl_origin: Vector2i = Vector2i(-1, -1)
 var _tpl_toward: Vector2i = Vector2i(-1, -1)
 var _tpl_dragging: bool = false
 var _tpl_cells: Array[Vector2i] = []
+## Zona que se ve en el proyector (esquinas en coordenadas del mapa; vacío =
+## sin proyector). Solo en la pantalla del DM (ADR 039).
+var projector_area: PackedVector2Array = PackedVector2Array():
+	set(v):
+		projector_area = v
+		queue_redraw()
 var _ruler_from: Vector2i = Vector2i(-1, -1)
 var _ruler_to: Vector2i = Vector2i(-1, -1)
 var _panning: bool = false
@@ -194,7 +208,7 @@ func _draw() -> void:
 		return
 	var g: GridGeometry = document.grid
 	var lvl: MapLevel = document.level(level_index)
-	draw_rect(Rect2(Vector2.ZERO, g.map_pixel_size(cell_px)), COL_BG)
+	draw_rect(Rect2(Vector2.ZERO, g.map_pixel_size(cell_px)), background)
 	# Mapa importado (UVTT): su imagen de fondo sustituye al color del suelo.
 	var bg: Texture2D = _background_texture() if level_index == 0 else null
 	if bg != null:
@@ -209,7 +223,7 @@ func _draw() -> void:
 		var c: Vector2i = g.cell_at(i)
 		var t: int = lvl.get_terrain(c)
 		var poly: PackedVector2Array = g.cell_polygon(c, cell_px)
-		var fill: Color = TERRAIN_COLORS[t] if t >= 0 and t < TERRAIN_COLORS.size() else COL_BG
+		var fill: Color = TERRAIN_COLORS[t] if t >= 0 and t < TERRAIN_COLORS.size() else background
 		if outdoor[i] != 0 and t == Terrain.FLOOR:
 			fill = MapMeshBuilder.COL_OUTDOOR
 		if t == Terrain.FLOOR and zone_cols.has(lvl.room_ids[i]):
@@ -220,7 +234,7 @@ func _draw() -> void:
 			# Ancho negativo = línea fina de 1 px de pantalla a cualquier zoom;
 			# con 1.0 en coordenadas locales, al alejar quedaba < 1 px y las
 			# líneas verticales u horizontales desaparecían según el redondeo.
-			_draw_outline(poly, COL_GRID, -1.0)
+			_draw_outline(poly, grid_color, -1.0)
 	_draw_outlines(g, lvl)
 	_draw_edges(g, lvl)
 	_draw_features(g, lvl)
@@ -314,7 +328,7 @@ func _draw_fog(g: GridGeometry) -> void:
 		elif vis == Visibility.DIM:
 			a = 0.3
 		elif i < fog_explored.size() and fog_explored[i] != 0:
-			a = 0.65
+			a = explored_veil
 		else:
 			a = 1.0
 		var c: Vector2i = g.cell_at(i)
@@ -324,7 +338,7 @@ func _draw_fog(g: GridGeometry) -> void:
 			var center: Vector2 = g.cell_to_pixel(c, cell_px)
 			for k: int in poly.size():
 				poly[k] = center.lerp(poly[k], 1.12)
-			draw_colored_polygon(poly, COL_BG)
+			draw_colored_polygon(poly, background)
 		else:
 			draw_colored_polygon(poly, Color(0.05, 0.03, 0.02, a))
 
@@ -563,6 +577,11 @@ func _portrait_texture(t: MapToken) -> Texture2D:
 
 func _draw_overlays(g: GridGeometry) -> void:
 	var font: Font = ThemeDB.fallback_font
+	if projector_area.size() == 4:
+		var closed: PackedVector2Array = projector_area.duplicate()
+		closed.append(projector_area[0])
+		draw_polyline(closed, Color(0.37, 0.71, 0.84, 0.9), maxf(2.0, cell_px * 0.06))
+		_draw_label(font, projector_area[0] + Vector2(cell_px * 0.2, cell_px * 0.5), tr("UI_PROJ_AREA"), Color("1d4f7c"))
 	if _drag_token >= 0 and _drag_route != null and _drag_route.found:
 		var t: MapToken = document.token(_drag_token)
 		var budget: int = document.turns.remaining_ft(t, profile) if t != null else 0
@@ -730,8 +749,7 @@ func _on_left_press(cell: Vector2i) -> void:
 	# de una casilla con fichas a los dos lados no había forma de pulsarla.
 	var on_door: int = _door_edge_near(_pointer_local, DOOR_OVER_TOKEN_FRAC)
 	if on_door >= 0 and command_stack != null:
-		if command_stack.execute(SetEdgeCommand.toggle_flag(document, level_index, on_door, MapEdge.FLAG_OPEN)):
-			user_command_done.emit()
+		_toggle_door(on_door)
 		return
 	var t: MapToken = _token_at(cell)
 	if t != null:
@@ -743,8 +761,16 @@ func _on_left_press(cell: Vector2i) -> void:
 		return
 	var edge: int = _door_edge_near(_pointer_local)
 	if edge >= 0 and command_stack != null:
-		if command_stack.execute(SetEdgeCommand.toggle_flag(document, level_index, edge, MapEdge.FLAG_OPEN)):
-			user_command_done.emit()
+		_toggle_door(edge)
+
+
+func _toggle_door(edge: int) -> void:
+	if not command_stack.execute(SetEdgeCommand.toggle_flag(document, level_index, edge, MapEdge.FLAG_OPEN)):
+		return
+	# Antes que user_command_done: quien revela la sala de detrás lo une al
+	# mismo paso de deshacer que la puerta (modo proyectado, ADR 039).
+	door_toggled.emit(edge, MapEdge.has_flag(document.level(level_index).get_edge_by_id(edge), MapEdge.FLAG_OPEN))
+	user_command_done.emit()
 
 
 func _on_left_release(_cell: Vector2i) -> void:
@@ -799,7 +825,7 @@ func _edit_button(pressed: bool, cell: Vector2i) -> void:
 	if command_stack == null:
 		return
 	match _tool_kind():
-		"terrain", "edge":
+		"terrain", "edge", "reveal", "conceal":
 			if pressed:
 				_edit_dragging = true
 				_edit_cells.clear()
@@ -814,6 +840,9 @@ func _edit_button(pressed: bool, cell: Vector2i) -> void:
 		"erase_object":
 			if pressed:
 				erase_object_at(cell)
+		"reveal_room":
+			if pressed:
+				reveal_region(cell)
 
 
 func _edit_motion(cell: Vector2i) -> void:
@@ -823,7 +852,8 @@ func _edit_motion(cell: Vector2i) -> void:
 		_hover_edge = _edge_near(_pointer_local)
 		if _edit_dragging and _hover_edge >= 0 and not _edit_edges.has(_hover_edge):
 			_edit_edges.append(_hover_edge)
-	elif _tool_kind() == "terrain" and _edit_dragging and g.in_bounds(cell) and not _edit_cells.has(cell):
+	elif (_tool_kind() == "terrain" or _tool_kind() == "reveal" or _tool_kind() == "conceal") \
+			and _edit_dragging and g.in_bounds(cell) and not _edit_cells.has(cell):
 		_edit_cells.append(cell)
 	queue_redraw()
 
@@ -831,7 +861,11 @@ func _edit_motion(cell: Vector2i) -> void:
 ## Aplica la pincelada (terreno o aristas) como un solo paso de deshacer.
 func _commit_stroke() -> void:
 	var done: bool = false
-	if _tool_kind() == "terrain" and not _edit_cells.is_empty():
+	if _tool_kind() == "reveal" and not _edit_cells.is_empty():
+		done = command_stack.execute(ExploreCommand.new(level_index, PartyVision.VIEWER_PARTY, _edit_cells))
+	elif _tool_kind() == "conceal" and not _edit_cells.is_empty():
+		done = command_stack.execute(ConcealCommand.new(level_index, PartyVision.VIEWER_PARTY, _edit_cells))
+	elif _tool_kind() == "terrain" and not _edit_cells.is_empty():
 		var t: int = Terrain.IDS.find(_tool_arg())
 		done = t >= 0 and command_stack.execute(SetTerrainCommand.new(level_index, _edit_cells, t))
 	elif _tool_kind() == "edge" and not _edit_edges.is_empty() and EDGE_TOOL_KINDS.has(_tool_arg()):
@@ -873,6 +907,18 @@ func place_object(catalog_id: String, cell: Vector2i, facing: int) -> bool:
 	if not command_stack.execute(AddObjectCommand.new(level_index, o)):
 		return false
 	status_changed.emit(tr("UI_EDIT_OBJECT_PLACED").replace("{name}", tr("OBJ_" + catalog_id.to_upper())))
+	user_command_done.emit()
+	return true
+
+
+## Revela a los jugadores la zona de `cell` (su sala o lo que se alcanza sin
+## cruzar puertas cerradas; FogReveal). true si descubrió algo.
+func reveal_region(cell: Vector2i) -> bool:
+	if command_stack == null:
+		return false
+	var cells: Array[Vector2i] = FogReveal.region_cells(document, level_index, cell)
+	if cells.is_empty() or not command_stack.execute(ExploreCommand.new(level_index, PartyVision.VIEWER_PARTY, cells)):
+		return false
 	user_command_done.emit()
 	return true
 
@@ -924,7 +970,7 @@ func _draw_edit(g: GridGeometry) -> void:
 		var seg: PackedVector2Array = g.edge_segment(Vector2i(e.x, e.y), e.z, cell_px)
 		if seg.size() >= 2:
 			draw_line(seg[0], seg[1], Color(0.36, 0.71, 0.84, 0.95), maxf(2.0, cell_px * 0.12))
-	if _hover_cell.x >= 0 and (_tool_kind() == "terrain" or _tool_kind() == "object" or _tool_kind() == "erase_object"):
+	if _hover_cell.x >= 0 and _tool_kind() != "edge":
 		var poly: PackedVector2Array = g.cell_polygon(_hover_cell, cell_px)
 		poly.append(poly[0])
 		draw_polyline(poly, Color(0.36, 0.71, 0.84, 0.95), maxf(1.0, cell_px * 0.05))
