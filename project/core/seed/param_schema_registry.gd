@@ -78,6 +78,8 @@ static func _ensure_builtins() -> void:
 	assert(problem.is_empty(), "ParamSchemaRegistry: ALD G1 no válido: " + problem)
 	problem = _add(est_g2())
 	assert(problem.is_empty(), "ParamSchemaRegistry: EST G2 no válido: " + problem)
+	problem = _add(est_g3())
+	assert(problem.is_empty(), "ParamSchemaRegistry: EST G3 no válido: " + problem)
 
 
 ## MAZ G1 — PROPUESTA DEFINITIVA, PENDIENTE DE APROBAR (F1, etapa 2). Se
@@ -217,3 +219,27 @@ static func est_g2() -> ParamSchema:
 		ParamSchema.int_field("room", 0, 63, 0),
 	]
 	return ParamSchema.new("EST", 2, fields)
+
+
+## EST G3 — PROPUESTA, PENDIENTE DE APROBAR (editor de estancias E2): ESTANCIA
+## EN BLANCO, base de las estancias hechas a mano (código + deltas). No
+## sustituye a EST G1 ni a EST G2. La semilla no se usa (canónica: 0). Detalle
+## en EstGeneratorG3 y PROYECTO §6.5. Orden de más a menos usado:
+## - width, height: interior en casillas, [3, 48] (3 = lo mínimo con una
+##   casilla a cada lado de la puerta; 48 = el ancho de un mapa MAZ "medium",
+##   con el anillo 50×50 = 2500 casillas); defecto 9×7, el "medium" de EST G1.
+## - grid: rejilla (ADR 012), mismos ids que el resto.
+## - room_type: tipo de la zona de la estancia (nombre y color en las vistas).
+##   "room" (Sala, el tipo de sala de MAZ) es el defecto neutro y va primero;
+##   después, los ids de EST G1 en su orden. capacity 64: caben los 32 de EST
+##   G1 (su capacity) más "room" y holgura; con width/height/grid a cualquier
+##   valor sigue ocupando como mucho 4 caracteres (46·46·4·64 < 32⁴).
+static func est_g3() -> ParamSchema:
+	var fields: Array[ParamSchema.Field] = [
+		ParamSchema.int_field("width", 3, 48, 9),
+		ParamSchema.int_field("height", 3, 48, 7),
+		ParamSchema.enum_field("grid", PackedStringArray(["square", "hex_flat", "hex_pointy"]), "square", 4),
+		ParamSchema.enum_field("room_type", PackedStringArray(["room", "tavern", "bedroom", "storage", "temple", "library", "kitchen", "forge", "crypt",
+			"hall", "living", "shop", "barracks", "armory", "cell", "guardroom"]), "room", 64),
+	]
+	return ParamSchema.new("EST", 3, fields)

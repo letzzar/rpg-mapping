@@ -79,3 +79,14 @@ RPGM1-DND5-EST-G2-AA3-QN75YR3H-Y 4b266b3687950252841b7feec54b686ce6a93fa2769075a
 RPGM1-DND5-EST-G2-1CQE04-SSFP0WC2-N 44326561df7383b38d0e1f3dd7efa819e779c03f249e18f206e71b8833343ebd
 RPGM1-PF2E-EST-G2-2MP015-VXG730MK-X 9a4a7a009fcc7728f1344c4e8c568955a9f05ea38d9cb27bd04b32c9646c3bc5
 RPGM1-DND5-EST-G2-A46-W1RR54X4-J 5fd9e6d05ee53e4e08163ea19da71382b58705a1be1428d4db6671af8542109d
+# EST G3 (estancia en blanco, base del editor de estancias E2): esquema
+# width, height, grid, room_type; semilla sin uso (canónica 0). Propuesta
+# pendiente de aprobar; cualquier cambio que altere estos hashes exige G4.
+# (9×7 cuadrada por defecto, 12×10 hex plana y hex punta, 3×3 mínima,
+#  48×48 máxima, cripta 6×5 hex punta en PF2E)
+RPGM1-DND5-EST-G3-0-0-B 9dc206bf472a549e3a9b636c42a447d90ed0d718750df42559a508dd3fccab4b
+RPGM1-DND5-EST-G3-26H-0-G 40e5f74c6000d51fdc600d1ee3e4eeb9558de9ac9714a0fa2bfdd8c52d96f83d
+RPGM1-DND5-EST-G3-48N-0-G ea020150505c9f179276b6576c5cb75b6bbc62dea99b11054c1d24a5503058f9
+RPGM1-DND5-EST-G3-1XM-0-Y bc7408ca0a084de92ec762ff341c09ded41c63976d00fe67f7413abf0f67b3fa
+RPGM1-DND5-EST-G3-1W5-0-J 2ed0bdd7c38a5fb11a9f3ed04255cb81b7f41ce2aacbf58ed6422b4ca7ff8b71
+RPGM1-PF2E-EST-G3-288V-0-N 04085d6cc0d34127c126cc820cd7187cea3db252048aacc1a7b48cc8193bf155

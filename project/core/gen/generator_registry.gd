@@ -11,7 +11,7 @@ extends RefCounted
 ## documento devuelto, así que el generador no tiene que hacerlo.
 ##
 ## Incorporados: MAZ G1 y EST G1 (F1, etapas 2 y 3), EDI G1, ALD G1 y EST G2
-## (estancia de edificio, ADR 029) (F3). Los tests
+## (estancia de edificio, ADR 029) (F3), EST G3 (estancia en blanco, E2). Los tests
 ## registran generadores de prueba y llaman a reset().
 
 ## Resultado de generate().
@@ -130,3 +130,6 @@ static func _ensure_builtins() -> void:
 	problem = _add(EstGeneratorG2.SCALE, EstGeneratorG2.GEN, Callable(EstGeneratorG2, "generate"))
 	assert(problem.is_empty(), "GeneratorRegistry: " + problem)
 	_explainers[_key(EstGeneratorG2.SCALE, EstGeneratorG2.GEN)] = Callable(EstGeneratorG2, "explain")
+	# EST G3 (estancia en blanco, base del editor de estancias E2).
+	problem = _add(EstGeneratorG3.SCALE, EstGeneratorG3.GEN, Callable(EstGeneratorG3, "generate"))
+	assert(problem.is_empty(), "GeneratorRegistry: " + problem)
