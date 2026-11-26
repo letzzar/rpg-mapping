@@ -33,6 +33,11 @@ const TILT_MIN: float = 0.0
 const TILT_MAX: float = 60.0
 const DIST_MIN: float = 4.0
 const DIST_MAX: float = 400.0
+## Lado mínimo (en casillas) de lo que enseña fit_region.
+const FIT_MIN_CELLS: float = 12.0
+## Inclinación de fit_region (0 = cenital): con la de fit() (35°) los muros
+## de un pasillo tapaban las fichas.
+const FIT_REGION_TILT: float = 15.0
 const ZOOM_STEP: float = 1.15
 const FOV_TOP: float = 40.0
 const DEFAULT_FOV_FP: float = 75.0
@@ -323,12 +328,14 @@ func fit_region(cells: Rect2i) -> void:
 	var g: GridGeometry = document.grid
 	var a: Vector2 = g.cell_to_pixel(cells.position, cell_m) - Vector2(cell_m, cell_m)
 	var b: Vector2 = g.cell_to_pixel(cells.end - Vector2i.ONE, cell_m) + Vector2(cell_m, cell_m)
-	var size: Vector2 = b - a
-	var mid: Vector2 = a + size * 0.5
+	var mid: Vector2 = (a + b) * 0.5
+	# Un pasillo de una casilla daba un encuadre diminuto con la cámara
+	# pegada a los muros: como mínimo se ven FIT_MIN_CELLS de lado.
+	var span: float = maxf(maxf(b.x - a.x, b.y - a.y), FIT_MIN_CELLS * cell_m)
 	_target = Vector3(mid.x, 0.0, mid.y)
-	_dist = clampf(maxf(size.x, size.y) * 1.1, DIST_MIN, DIST_MAX)
+	_dist = clampf(span * 1.3, DIST_MIN, DIST_MAX)
 	_yaw = 0.0
-	_tilt = 35.0
+	_tilt = FIT_REGION_TILT
 	_update_camera()
 
 

@@ -9,11 +9,11 @@ Tests: **248/248 en escritorio (32745 asserts) y 248/248 en el navegador** (esca
 - **Escaleras para todos**: antes nadie podía cambiar de nivel con una ficha. Doble clic en una ficha sobre una escalera → `MapView2D.take_stairs` (`MoveTokenCommand` con otro nivel, se deshace) y señal `stairs_taken`; el DM pasa a ver ese nivel. Jugador: propuesta validada por `GameSession._validate_stairs` (`NET_MOVE_NO_STAIRS`) y su vista sigue a la ficha (`main._follow_after_stairs`).
 - **Señal del DM**: con la partida abierta, su doble clic en una casilla sin edificio la señala a todos con el nombre "DM".
 - **Error corregido**: lo que aprobaba el DM explorando el nivel **que él miraba**; ahora `main._explore_level(nivel del comando)`.
-- **3D del jugador**: `MapView3D.fit_region` encuadra lo explorado; la 1.ª persona usa la ficha propia.
+- **3D del jugador**: `MapView3D.fit_region` encuadra lo que el grupo **ve ahora** y sus fichas (`main._party_focus`; antes, todo lo explorado, que con zonas lejanas quedaba enorme), mínimo 12 casillas y cámara casi cenital (15°) para que los muros no tapen las fichas. Igual en la 3D del DM con "Ve: jugadores". La 1.ª persona usa la ficha propia.
 - Para pruebas: Chrome detiene el bucle de una página tapada por otra ventana (la conexión parecía tardar minutos). Lanzarlo con `--disable-backgrounding-occluded-windows --disable-renderer-backgrounding --disable-background-timer-throttling`. No es un fallo del juego.
 
 ### Siguiente paso
-1. **Prueba de Víctor**: escanear el QR con el móvil y probar el táctil (arrastrar, tocar puertas, doble toque en escalera y para señalar).
+1. Víctor probó con el móvil: **QR y táctil funcionan**. Pidió mejorar el encuadre 3D (hecho, pendiente de que lo vuelva a mirar).
 2. Pendiente de F4: imagen Docker (ADR 016, alternativa). Después, F5.
 
 ### Limitaciones conocidas (F4)

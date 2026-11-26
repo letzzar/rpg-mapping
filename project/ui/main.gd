@@ -168,7 +168,10 @@ func _build_ui() -> void:
 	_audience_opt = OptionButton.new()
 	_audience_opt.add_item(tr("UI_AUDIENCE_DM"))
 	_audience_opt.add_item(tr("UI_AUDIENCE_PLAYERS"))
-	_audience_opt.item_selected.connect(func(_i: int) -> void: _refresh_vision())
+	_audience_opt.item_selected.connect(func(_i: int) -> void:
+		_refresh_vision()
+		if _view_opt.selected == VIEW_3D:
+			_fit())
 	bar.add_child(_audience_opt)
 	_ambient_chk = CheckBox.new()
 	_ambient_chk.text = tr("UI_AMBIENT_LIT")
@@ -531,17 +534,51 @@ func _on_level_selected(i: int) -> void:
 func _fit() -> void:
 	if _client != null and _doc != null:
 		# Modo jugador: el mapa entero es casi todo desconocido; se encuadra
-		# lo explorado en el nivel mostrado.
-		var known: Rect2i = _explored_bounds(_view.level_index)
-		if known.size.x > 0:
-			_view.fit_region(known, Rect2(Vector2.ZERO, _map_area.size))
+		# lo que ve ahora el grupo (antes, todo lo explorado: con zonas
+		# exploradas lejos unas de otras el encuadre quedaba enorme).
+		var focus: Rect2i = _party_focus(_view.level_index)
+		if focus.size.x > 0:
+			_view.fit_region(focus, Rect2(Vector2.ZERO, _map_area.size))
 			if _view3d != null and _view_opt.selected == VIEW_3D:
-				_view3d.fit_region(known)
+				_view3d.fit_region(focus)
 			return
 	_view.fit_to(Rect2(Vector2.ZERO, _map_area.size))
 	if _view3d != null and _view_opt.selected == VIEW_3D:
-		_view3d.fit()
+		var dm_focus: Rect2i = _party_focus(_view.level_index) if _players_view() else Rect2i()
+		if dm_focus.size.x > 0:
+			_view3d.fit_region(dm_focus)
+		else:
+			_view3d.fit()
 
+
+## Casillas en las que centrar la vista de los jugadores: lo que el grupo ve
+## ahora en ese nivel y sus fichas; si no ve nada, alrededor de sus fichas;
+## sin fichas, lo explorado. Rect2i vacío si no hay nada.
+func _party_focus(level: int) -> Rect2i:
+	if _doc == null or _doc.level(level) == null:
+		return Rect2i()
+	var seen: PackedByteArray
+	if _client != null:
+		seen = _client.visible_of(level)
+	else:
+		seen = PartyVision.compute(_doc, level, _current_profile(), _vision_options()).visible
+	var lo: Vector2i = Vector2i(1 << 30, 1 << 30)
+	var hi: Vector2i = Vector2i(-1, -1)
+	for i: int in seen.size():
+		if seen[i] != 0:
+			var c: Vector2i = _doc.grid.cell_at(i)
+			lo = Vector2i(mini(lo.x, c.x), mini(lo.y, c.y))
+			hi = Vector2i(maxi(hi.x, c.x), maxi(hi.y, c.y))
+	var party: Array[MapToken] = PartyVision.party_tokens(_doc, level)
+	var pad: int = 0 if hi.x >= 0 else 3
+	for t: MapToken in party:
+		if _client != null and not _client.owns(t) and hi.x < 0:
+			continue
+		lo = Vector2i(mini(lo.x, t.cell.x - pad), mini(lo.y, t.cell.y - pad))
+		hi = Vector2i(maxi(hi.x, t.cell.x + pad), maxi(hi.y, t.cell.y + pad))
+	if hi.x < 0:
+		return _explored_bounds(level)
+	return Rect2i(lo, hi - lo + Vector2i.ONE)
 
 # --- Vistas y niebla (F2) -----------------------------------------------------
 
@@ -570,7 +607,7 @@ func _apply_view() -> int:
 			_status.text = tr("UI_FP_HELP")
 		else:
 			_status.text = tr("UI_3D_HELP")
-			if _client != null:
+			if _client != null or _players_view():
 				_fit()
 	else:
 		_status.text = tr("UI_HELP")
