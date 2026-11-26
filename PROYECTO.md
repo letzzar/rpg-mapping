@@ -178,7 +178,7 @@ Cada generador declara: parámetros de entrada (con valores por defecto), salida
 - Algoritmo: ruido fractal + placas simplificadas → mapa de altura; erosión hidráulica ligera; ríos por flujo descendente; humedad y temperatura → biomas (Whittaker); regiones políticas por Voronoi ponderado con fronteras naturales; caminos por A* sobre coste de terreno entre asentamientos.
 - Vista 2D: estilo "pergamino" (coherente con el icono). Vista 3D: relieve con exageración vertical configurable.
 
-**MUN G1** (`core/gen/mun/`, F6; esquema **propuesto, pendiente de aprobar por Víctor**; 7 seeds doradas, una de ellas 2048×1024):
+**MUN G1** (`core/gen/mun/`, F6; esquema **aprobado por Víctor el 2026-11-27 y congelado**; 7 seeds doradas, una de ellas 2048×1024):
 
 | # | Campo | Tipo / rango | Defecto | Significado |
 |---|-------|--------------|---------|-------------|
@@ -221,7 +221,7 @@ Limitaciones de G1: hidrología, reinos y caminos no cruzan el meridiano 0 (el r
 ### 6.2 Región (`REG`)
 - Hexcrawl con hexágonos de **6 millas / 10 km** (configurable). Contiene asentamientos, puntos de interés, encuentros por bioma (solo tablas abiertas o del usuario).
 
-**REG G1** (`core/gen/reg/`, hexcrawl **independiente**; esquema propuesto, pendiente de aprobar por Víctor; 5 seeds doradas) y **REG G2** (región **de un mundo** MUN G1, como EST G2 respecto a EDI G1; 6 seeds doradas). Hexágono fijo de 6 mi en G1/G2 (un tamaño configurable sería un campo nuevo al final).
+**REG G1** (`core/gen/reg/`, hexcrawl **independiente**; 5 seeds doradas) y **REG G2** (región **de un mundo** MUN G1, como EST G2 respecto a EDI G1; 6 seeds doradas); esquemas **aprobados por Víctor el 2026-11-27 y congelados**. Hexágono fijo de 6 mi en G1/G2 (un tamaño configurable sería un campo nuevo al final).
 
 REG G1:
 

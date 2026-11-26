@@ -10,7 +10,7 @@ Tests: **350/350 en escritorio, en inglés y en el navegador** (el de rendimient
 - Rendimiento: abrir el mundo grande pasó de 14,5 s a unos 5 s (3,7 generar + 0,6 imagen + 0,8 primer dibujo): el panel del editor comprobaba la conectividad de 2 millones de casillas aunque estuviera cerrado.
 
 ### Siguiente paso
-1. **Que Víctor apruebe los esquemas de MUN G1, REG G1 y REG G2** (PROYECTO §6.1 y §6.2); hasta entonces sus seeds doradas se pueden regrabar.
+1. Esquemas de MUN G1, REG G1 y REG G2 **aprobados por Víctor el 2026-11-27 y congelados** (sus seeds doradas ya no se regraban: un cambio exige GEN nuevo).
 2. Probar el modo proyectado con proyector; imagen Docker al final.
 
 ### Limitaciones conocidas (F6)
