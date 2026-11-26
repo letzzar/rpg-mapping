@@ -349,3 +349,53 @@ CHAR_PRESET_WOLF,Lobo,Wolf
 CHAR_PRESET_HORSE,Caballo,Horse
 CHAR_PRESET_EAGLE,Águila,Eagle
 UI_CANCEL,Cancelar,Cancel
+UI_TURNS,Turnos,Turns
+UI_TURNS_TIP,"Orden de iniciativa y turnos: quién va, cuánto le queda de movimiento. Solo el orden; el combate se lleva en la mesa.","Initiative order and turns: who goes and how much movement is left. Order only; combat is run at the table."
+UI_TURNS_TITLE,Iniciativa,Initiative
+UI_TURNS_ROUND,Ronda {round},Round {round}
+UI_TURNS_NOW,Turno de {name} (ronda {round}),{name}'s turn (round {round})
+UI_TURNS_YOURS,"¡Te toca, {name}!","Your turn, {name}!"
+UI_TURNS_LEFT,quedan {left},{left} left
+UI_TURNS_EMPTY,"Añade las fichas del nivel, tira o escribe la iniciativa y pulsa Empezar.","Add the level's tokens, roll or type initiative and press Start."
+UI_TURNS_EMPTY_PLAYER,No hay combate en marcha.,No combat in progress.
+UI_TURNS_ADD_LEVEL,Añadir fichas del nivel,Add level tokens
+UI_TURNS_ADD_LEVEL_TIP,Añade al orden las fichas de este nivel que aún no están (las ocultas no las ven los jugadores).,Adds this level's tokens that are not yet in the order (players do not see hidden ones).
+UI_TURNS_ROLL,Tirar iniciativa,Roll initiative
+UI_TURNS_ROLL_TIP,d20 + modificador del personaje a las fichas sin resultado; luego ordena.,d20 + the character's modifier for tokens without a result; then sorts.
+UI_TURNS_SORT,Ordenar,Sort
+UI_TURNS_START,Empezar,Start
+UI_TURNS_RESTART,Volver a empezar,Restart
+UI_TURNS_NEXT,Siguiente turno,Next turn
+UI_TURNS_END,Terminar combate,End combat
+UI_TURNS_BLOCK,No dejar pasar de la velocidad,Do not allow exceeding speed
+UI_TURNS_BLOCK_TIP,"Si está marcado, la ficha del turno no puede moverse más de lo que le queda (también los jugadores en red). Si no, solo se avisa.","If checked, the token whose turn it is cannot move more than it has left (network players too). Otherwise, only a warning."
+UI_TURNS_INITIATIVE_TIP,Resultado de iniciativa,Initiative result
+UI_TURNS_REMOVE,Quitar del orden,Remove from the order
+UI_TURNS_HIDDEN,(oculta),(hidden)
+UI_SPEED_LEFT,(quedan {left}),({left} left)
+UI_OVER_SPEED_BLOCKED,(supera la velocidad: no se puede),(exceeds speed: not allowed)
+UI_OVER_SPEED_STATUS,"No se mueve: supera lo que le queda de velocidad en este turno.","Not moved: it exceeds the speed left this turn."
+NET_MOVE_NOT_YOUR_TURN,No es el turno de esa ficha.,It is not that token's turn.
+NET_MOVE_TOO_FAR,Supera lo que te queda de velocidad en este turno.,It exceeds the speed you have left this turn.
+CMD_SET_TURNS,Turnos,Turns
+CMD_TURNS_ADD,Añadir fichas a la iniciativa,Add tokens to initiative
+CMD_TURNS_ROLL,Tirar iniciativa,Roll initiative
+CMD_TURNS_SORT,Ordenar la iniciativa,Sort initiative
+CMD_TURNS_INITIATIVE,Cambiar iniciativa,Change initiative
+CMD_TURNS_REMOVE,Quitar de la iniciativa,Remove from initiative
+CMD_TURNS_START,Empezar combate,Start combat
+CMD_TURNS_NEXT,Pasar turno,Next turn
+CMD_TURNS_END,Terminar combate,End combat
+CMD_TURNS_BLOCK,Bloqueo de velocidad,Speed block
+UI_TEMPLATE,Plantilla,Template
+UI_TEMPLATE_TIP,"Plantilla de área del sistema activo (solo en 2D): con el botón pulsado, arrastra desde el origen hacia donde apunta; se marcan las casillas cubiertas.","Area template of the active system (2D only): with the button on, drag from the origin towards where it points; covered cells are highlighted."
+UI_TEMPLATE_SIZE_TIP,"Radio, lado o longitud de la plantilla (en pies, como en las reglas).","Template radius, side or length (in feet, as in the rules)."
+UI_TEMPLATE_HELP,Arrastra desde el origen de la plantilla hacia donde apunta.,Drag from the template's origin towards where it points.
+UI_TEMPLATE_STATUS,{name} de {size}: {cells} casillas · {tokens} fichas dentro,{name} {size}: {cells} cells · {tokens} tokens inside
+TPL_CONE,Cono,Cone
+TPL_CUBE,Cubo,Cube
+TPL_CYLINDER,Cilindro,Cylinder
+TPL_EMANATION,Emanación,Emanation
+TPL_LINE,Línea,Line
+TPL_SPHERE,Esfera,Sphere
+TPL_BURST,Explosión,Burst

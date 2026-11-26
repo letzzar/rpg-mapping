@@ -98,6 +98,21 @@ func footprint(anchor: Vector2i, _side_cells: int, hex_cells: int = 1) -> Array[
 	return one
 
 
+## Red entera de centros (ver GridGeometry.center_lattice). Con axiales (q, r)
+## el centro real es, en unidades de media distancia entre vecinos:
+## - hex_pointy: x = 2q + r, y = √3·r  -> (2q + r, r) con pesos (1, 3);
+## - hex_flat:   x = √3·q,   y = 2r + q -> (q, 2r + q) con pesos (3, 1).
+func center_lattice(cell: Vector2i) -> Vector2i:
+	var ax: Vector2i = to_axial(cell)
+	if pointy:
+		return Vector2i(2 * ax.x + ax.y, ax.y)
+	return Vector2i(ax.x, 2 * ax.y + ax.x)
+
+
+func lattice_weights() -> Vector2i:
+	return Vector2i(1, 3) if pointy else Vector2i(3, 1)
+
+
 ## Interpolación en cúbicas con aritmética entera (equivalente a la de Red Blob
 ## Games con lerp + redondeo cúbico): N = distancia; para i = 0..N el punto
 ## a + (b - a)·i/N se escala por 8N y se le suma el empujón (1, 2, -3), que

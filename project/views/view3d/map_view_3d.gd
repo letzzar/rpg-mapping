@@ -741,10 +741,16 @@ func _on_left_release(cell: Vector2i) -> void:
 		status_changed.emit(tr("UI_NO_ROUTE_STATUS"))
 		mark_dirty()
 		return
-	if command_stack.execute(MoveTokenCommand.new(t.id, cell, level_index)):
+	if document.turns.blocks_move(t, profile, route.cost_ft):
+		status_changed.emit(tr("UI_OVER_SPEED_STATUS"))
+		mark_dirty()
+		return
+	var budget: int = document.turns.remaining_ft(t, profile)
+	if command_stack.execute(MoveTokenCommand.new(t.id, cell, level_index, route.cost_ft)):
 		var text: String = tr("UI_MOVED").replace("{cost}", _format_ft(route.cost_ft))
-		var speed: int = t.speed_ft(profile)
-		if speed > 0 and route.cost_ft > speed:
+		if t.id == document.turns.current_token_id() and t.speed_ft(profile) > 0:
+			text += "  " + tr("UI_SPEED_LEFT").replace("{left}", _format_ft(maxi(0, budget - route.cost_ft)))
+		if t.speed_ft(profile) > 0 and route.cost_ft > budget:
 			text += "  " + tr("UI_OVER_SPEED")
 		status_changed.emit(text)
 		user_command_done.emit()

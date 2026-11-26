@@ -1,6 +1,23 @@
 # SESSION_HANDOFF — RPG Mapping
 
-## Última sesión: 2026-11-26 (14.ª) — F5: personajes (primera entrega)
+## Última sesión: 2026-11-26 (14.ª, segunda parte) — F5: turnos y plantillas de área
+Tests: **283/283 en escritorio, con el idioma forzado a inglés y en el navegador**. Nuevos: `test_turns.gd` (5), `test_template_tool.gd` (2) y `test_area_template.gd` (15, de `cartografo`). CI de GitHub en verde otra vez desde `fix(ci)`.
+
+### Hecho (ADR 035)
+- **Turnos**: `TurnTracker` en la sesión del documento, `SetTurnsCommand` con deshacer, y `MoveTokenCommand` con el coste de la ruta, que se suma a lo gastado en el turno de esa ficha. Panel "Turnos" (`TurnPanel`): el DM lo maneja y los jugadores lo ven en solo lectura, filtrado (`PlayerView.filter_turns`). La vista muestra "(quedan X)" y, con el bloqueo activado, no deja pasarse. En red: `NET_MOVE_NOT_YOUR_TURN` y `NET_MOVE_TOO_FAR`.
+- **Plantillas**: geometría como datos en los perfiles (`area_templates` con forma, tamaño inicial, origen, anchura de cono y de línea), `AreaTemplate.cells` en enteros y medida igual que la regla (en 5e los círculos salen cuadrados, en PF2e octógonos). Herramienta "Plantilla" en la barra (solo 2D, local) con forma y tamaño; cuenta las fichas que quedan dentro.
+- Pendiente de verificar con el texto oficial: si en las emanaciones cuenta el espacio de la propia criatura (`includes_origin: true` en los dos perfiles; es un dato del JSON).
+
+### Siguiente paso
+1. Que Víctor pruebe turnos y plantillas.
+2. Editor de estancias (PROYECTO §6.7, E1–E4). Lo primero es E1: reaplicar deltas y guardar y abrir mapas. Víctor quiere **los dos** identificadores: id corto y código para compartir.
+3. Resto de F5: modelos CC0 y animaciones (necesitan permiso de descarga).
+
+### Limitaciones conocidas
+- Las plantillas no se comparten con los jugadores y no salen en 3D.
+- El turno no cambia solo de nivel si la ficha está en otro (el DM sí salta a ella al pasar turno).
+
+## Sesión anterior: 2026-11-26 (14.ª) — F5: personajes (primera entrega)
 Tests: **259/259 en escritorio (33097 asserts) y 259/259 en el navegador** (11 nuevos en `tests/unit/test_characters.gd`, incluido el criterio de F5 por la pantalla principal). 45 seeds doradas sin cambios. Víctor decidió dejar la imagen Docker (F4) para el final y seguir con las fases.
 
 **Criterio de F5 cumplido** ("crear un personaje y verlo en las 3 vistas"): probado con capturas de la app (9 modelos tipo en 2D, 3D y diseñador) y en el test.

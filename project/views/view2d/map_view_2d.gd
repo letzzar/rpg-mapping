@@ -53,6 +53,8 @@ const COL_ROOF: Color = Color("b9785a")
 const COL_PATH_OK: Color = Color(0.11, 0.31, 0.49, 0.9)
 const COL_PATH_FAR: Color = Color(0.70, 0.15, 0.10, 0.9)
 const COL_RULER: Color = Color(0.55, 0.37, 0.12, 0.95)
+const COL_TEMPLATE: Color = Color(0.85, 0.42, 0.10, 0.35)
+const COL_TEMPLATE_EDGE: Color = Color(0.62, 0.25, 0.05, 0.9)
 const COL_PING: Color = Color("5fb4d6")
 const COL_PING_TEXT: Color = Color("1d4f7c")
 ## Duración de una señal en pantalla.
@@ -107,6 +109,17 @@ var _portraits: Dictionary[int, Texture2D] = {}
 var _portrait_keys: Dictionary[int, int] = {}
 var _drag_route: MovementCost.Route = null
 var _drag_target: Vector2i = Vector2i(-1, -1)
+## Plantilla de área activa (id del perfil; "" = herramienta apagada). Con
+## ella, el botón izquierdo arrastrado marca origen y dirección (ADR 035).
+var template_id: String = "":
+	set = set_template
+## Tamaño de la plantilla (radio, lado o longitud) en pies.
+var template_ft: int = 0:
+	set = set_template_ft
+var _tpl_origin: Vector2i = Vector2i(-1, -1)
+var _tpl_toward: Vector2i = Vector2i(-1, -1)
+var _tpl_dragging: bool = false
+var _tpl_cells: Array[Vector2i] = []
 var _ruler_from: Vector2i = Vector2i(-1, -1)
 var _ruler_to: Vector2i = Vector2i(-1, -1)
 var _panning: bool = false
@@ -203,6 +216,7 @@ func _draw() -> void:
 	_draw_children(g, lvl)
 	if fog:
 		_draw_fog(g)
+	_draw_template(g)
 	_draw_overlays(g)
 	if show_tokens:
 		_draw_tokens(g)
@@ -538,8 +552,8 @@ func _draw_overlays(g: GridGeometry) -> void:
 	var font: Font = ThemeDB.fallback_font
 	if _drag_token >= 0 and _drag_route != null and _drag_route.found:
 		var t: MapToken = document.token(_drag_token)
-		var speed: int = t.speed_ft(profile) if t != null else 0
-		var too_far: bool = speed > 0 and _drag_route.cost_ft > speed
+		var budget: int = document.turns.remaining_ft(t, profile) if t != null else 0
+		var too_far: bool = t != null and t.speed_ft(profile) > 0 and _drag_route.cost_ft > budget
 		var col: Color = COL_PATH_FAR if too_far else COL_PATH_OK
 		var pts: PackedVector2Array = PackedVector2Array()
 		for c: Vector2i in _drag_route.cells:
@@ -548,8 +562,10 @@ func _draw_overlays(g: GridGeometry) -> void:
 			draw_polyline(pts, col, cell_px * 0.08)
 		draw_circle(pts[pts.size() - 1], cell_px * 0.15, col)
 		var text: String = _format_ft(_drag_route.cost_ft)
+		if t != null and t.id == document.turns.current_token_id() and t.speed_ft(profile) > 0:
+			text += "  " + tr("UI_SPEED_LEFT").replace("{left}", _format_ft(maxi(0, budget - _drag_route.cost_ft)))
 		if t != null and too_far:
-			text += "  " + tr("UI_OVER_SPEED")
+			text += "  " + tr("UI_OVER_SPEED_BLOCKED" if document.turns.block_over_speed else "UI_OVER_SPEED")
 		_draw_label(font, pts[pts.size() - 1] + Vector2(cell_px * 0.3, -cell_px * 0.3), text, col)
 	elif _drag_token >= 0 and _drag_target.x >= 0:
 		var p: Vector2 = g.cell_to_pixel(_drag_target, cell_px)
@@ -649,6 +665,10 @@ func _handle_button(mb: InputEventMouseButton) -> void:
 			queue_redraw()
 			get_viewport().set_input_as_handled()
 		MOUSE_BUTTON_LEFT:
+			if not template_id.is_empty():
+				_template_button(mb.pressed, cell)
+				get_viewport().set_input_as_handled()
+				return
 			if mb.pressed and mb.double_click and _token_at(cell) == null:
 				if document.grid.in_bounds(cell):
 					cell_activated.emit(cell)
@@ -669,6 +689,11 @@ func _handle_motion(mm: InputEventMouseMotion) -> void:
 		position += mm.relative
 		return
 	var cell: Vector2i = document.grid.pixel_to_cell(_pointer_local, cell_px)
+	if _tpl_dragging:
+		if document.grid.in_bounds(cell) and cell != _tpl_toward:
+			_tpl_toward = cell
+			_update_template()
+		return
 	if _ruler_from.x >= 0:
 		if document.grid.in_bounds(cell) and cell != _ruler_to:
 			_ruler_to = cell
@@ -707,7 +732,10 @@ func _on_left_release(_cell: Vector2i) -> void:
 		return
 	if _drag_route != null and _drag_route.found and command_stack != null:
 		var cost: int = _drag_route.cost_ft
-		if command_stack.execute(MoveTokenCommand.new(_drag_token, _drag_target, level_index)):
+		var mt: MapToken = document.token(_drag_token)
+		if mt != null and document.turns.blocks_move(mt, profile, cost):
+			status_changed.emit(tr("UI_OVER_SPEED_STATUS"))
+		elif command_stack.execute(MoveTokenCommand.new(_drag_token, _drag_target, level_index, cost)):
 			status_changed.emit(tr("UI_MOVED").replace("{cost}", _format_ft(cost)))
 			user_command_done.emit()
 	elif (_drag_route == null or not _drag_route.found) and _drag_target.x >= 0:
@@ -716,6 +744,91 @@ func _on_left_release(_cell: Vector2i) -> void:
 			# Sin esto la barra seguía mostrando el mensaje anterior.
 			status_changed.emit(tr("UI_NO_ROUTE_STATUS"))
 	_cancel_drag()
+
+
+# --- Plantillas de área (ADR 035) ---------------------------------------------
+
+func set_template(id: String) -> void:
+	template_id = id
+	if id.is_empty():
+		clear_template()
+	else:
+		_update_template()
+
+
+func set_template_ft(ft: int) -> void:
+	template_ft = maxi(0, ft)
+	_update_template()
+
+
+## Borra la plantilla dibujada (la herramienta sigue como esté).
+func clear_template() -> void:
+	_tpl_origin = Vector2i(-1, -1)
+	_tpl_toward = Vector2i(-1, -1)
+	_tpl_dragging = false
+	_tpl_cells.clear()
+	queue_redraw()
+
+
+## Casillas que cubre la plantilla dibujada (vacío si no hay).
+func template_cells() -> Array[Vector2i]:
+	return _tpl_cells.duplicate()
+
+
+func _template_button(pressed: bool, cell: Vector2i) -> void:
+	if pressed:
+		if not document.grid.in_bounds(cell):
+			return
+		_tpl_origin = cell
+		_tpl_toward = cell
+		_tpl_dragging = true
+		_update_template()
+	else:
+		_tpl_dragging = false
+		_update_template()
+
+
+## Recalcula las casillas cubiertas. En una emanación, el origen es la huella
+## de la ficha que haya en la casilla de origen.
+func _update_template() -> void:
+	_tpl_cells.clear()
+	if document == null or profile == null or template_id.is_empty() or _tpl_origin.x < 0:
+		queue_redraw()
+		return
+	var origin_cells: Array[Vector2i] = []
+	var t: MapToken = _token_at(_tpl_origin)
+	if t != null:
+		origin_cells = _token_cells(t)
+	_tpl_cells = AreaTemplate.cells(profile, document.grid, template_id, _tpl_origin, _tpl_toward, template_ft, origin_cells, diagonal_variant)
+	status_changed.emit(_template_text())
+	queue_redraw()
+
+
+## "Cono de 15 ft: 6 casillas · 2 fichas dentro".
+func _template_text() -> String:
+	var inside: Dictionary[int, bool] = {}
+	for c: Vector2i in _tpl_cells:
+		for t: MapToken in document.tokens_at(level_index, c, profile):
+			if (not t.hidden or dm_view) and (not fog or _cell_visible(c) or PartyVision.SIDES_IN_PARTY.has(t.side)):
+				inside[t.id] = true
+	return tr("UI_TEMPLATE_STATUS").replace("{name}", tr("TPL_" + template_id.to_upper())) \
+		.replace("{size}", _format_ft(template_ft)).replace("{cells}", str(_tpl_cells.size())) \
+		.replace("{tokens}", str(inside.size()))
+
+
+func _draw_template(g: GridGeometry) -> void:
+	if _tpl_cells.is_empty():
+		return
+	for c: Vector2i in _tpl_cells:
+		var poly: PackedVector2Array = g.cell_polygon(c, cell_px)
+		draw_colored_polygon(poly, COL_TEMPLATE)
+		var closed: PackedVector2Array = poly.duplicate()
+		closed.append(poly[0])
+		draw_polyline(closed, COL_TEMPLATE_EDGE, maxf(1.0, cell_px * 0.03))
+	var o: Vector2 = g.cell_to_pixel(_tpl_origin, cell_px)
+	draw_circle(o, cell_px * 0.12, COL_TEMPLATE_EDGE)
+	if _tpl_toward != _tpl_origin:
+		draw_line(o, g.cell_to_pixel(_tpl_toward, cell_px), COL_TEMPLATE_EDGE, maxf(1.0, cell_px * 0.04))
 
 
 ## Desplaza la vista (sin cambiar el zoom) para que la casilla quede en el

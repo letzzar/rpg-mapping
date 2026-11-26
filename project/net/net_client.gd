@@ -154,7 +154,13 @@ func handle_message(msg: Dictionary) -> void:
 			document.tokens.clear()
 			for td: Dictionary in r.get_dicts(msg, "list"):
 				document.add_token(MapToken.from_dict(r, td))
+			# Opcional: un servidor anterior a ADR 035 no lo manda.
+			if msg.has("turns"):
+				var tt: TurnTracker = TurnTracker.from_dict(r, r.get_dict(msg, "turns"))
+				if r.ok():
+					document.turns = tt
 			document.notify_changed(-1, MapDocument.LAYER_TOKENS)
+			document.notify_changed(-1, MapDocument.LAYER_TURNS)
 		NetMessage.PING:
 			pinged.emit(r.get_int(msg, "level"), Vector2i(r.get_int(msg, "x"), r.get_int(msg, "y")), r.get_str(msg, "name"))
 		NetMessage.NOTICE:

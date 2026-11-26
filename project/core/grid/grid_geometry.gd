@@ -115,6 +115,20 @@ func footprint(anchor: Vector2i, _side_cells: int, _hex_cells: int = 1) -> Array
 	return out
 
 
+## Centro de la casilla en una red entera auxiliar para geometría exacta sin
+## float (plantillas de área): dos casillas vecinas por un lado distan 2
+## unidades y el cuadrado de la distancia euclídea de un vector (X, Y) es
+## w.x·X² + w.y·Y², con w = lattice_weights(). En la cuadrada w = (1, 1); en
+## hex, uno de los pesos es 3 (el √3 del hexágono queda al cuadrado).
+func center_lattice(_cell: Vector2i) -> Vector2i:
+	return Vector2i.ZERO
+
+
+## Pesos de la métrica de center_lattice().
+func lattice_weights() -> Vector2i:
+	return Vector2i(1, 1)
+
+
 ## Línea entre `a` y `b` (incluidas), casilla a casilla, para la línea de
 ## visión. Consecutivas siempre vecinas. SIMÉTRICA: line(b, a) es line(a, b)
 ## al revés (se calcula siempre desde el extremo menor por filas). No recorta.

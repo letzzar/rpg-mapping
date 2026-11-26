@@ -11,6 +11,42 @@ const SCHEMA_VERSION: int = 1
 const CORNER_ANY_SIDE_FREE: String = "any_side_free"
 const CORNER_BOTH_SIDES_FREE: String = "both_sides_free"
 
+## Formas de plantilla de área (area_templates[].shape).
+const SHAPE_CIRCLE: String = "circle"
+const SHAPE_CONE: String = "cone"
+const SHAPE_SQUARE: String = "square"
+const SHAPE_LINE: String = "line"
+const SHAPE_EMANATION: String = "emanation"
+const SHAPES: PackedStringArray = ["circle", "cone", "square", "line", "emanation"]
+## Origen de un círculo (area_templates[].origin).
+const ORIGIN_CORNER: String = "corner"
+const ORIGIN_CELL: String = "cell"
+
+
+## Geometría de una plantilla de área del perfil (area_templates[]). Las
+## casillas que cubre las calcula AreaTemplate.cells().
+class AreaTemplateSpec:
+	extends RefCounted
+	var id: String = ""
+	## Uno de SHAPE_*.
+	var shape: String = ""
+	## Tamaño inicial en la interfaz: radio, lado o longitud según la forma.
+	var default_ft: int = 0
+	## Solo circle: ORIGIN_CORNER (intersección) u ORIGIN_CELL (centro).
+	var origin: String = ""
+	## Solo cone: anchura a cada distancia, en % de esa distancia.
+	var cone_width_pct: int = 0
+	## Solo line: anchura total en pies.
+	var line_width_ft: int = 0
+	## Solo emanation: si la huella de la criatura forma parte del área.
+	var includes_origin: bool = false
+
+	## SOLO VISTAS (float). Semiabertura del cono en radianes; 0 si no es cono.
+	func cone_half_angle_rad() -> float:
+		if shape != SHAPE_CONE:
+			return 0.0
+		return atan(cone_width_pct / 200.0)
+
 var id: String = ""
 var seed_code: String = ""
 var name_key: String = ""
@@ -52,7 +88,10 @@ var band_ids: PackedStringArray = PackedStringArray()
 var band_max_cells: PackedInt32Array = PackedInt32Array()
 
 var senses: PackedStringArray = PackedStringArray()
+## Ids de las plantillas de área en el orden del fichero (el de la interfaz).
 var area_templates: PackedStringArray = PackedStringArray()
+## id de plantilla → su geometría (ver AreaTemplateSpec y AreaTemplate).
+var area_template_specs: Dictionary[String, AreaTemplateSpec] = {}
 
 ## Mensaje técnico (para el log) si la carga falló; "" si es válido.
 var error: String = ""
@@ -137,6 +176,20 @@ func size_hex_cells_of(size_id: String) -> int:
 	return size_hex_cells[size_id]
 
 
+## Geometría de la plantilla de área `template_id`; null si el perfil no la
+## tiene.
+func area_template(template_id: String) -> AreaTemplateSpec:
+	if not area_template_specs.has(template_id):
+		return null
+	return area_template_specs[template_id]
+
+
+## Tamaño inicial (pies) de la plantilla `template_id`; 0 si no existe.
+func area_template_default_ft(template_id: String) -> int:
+	var spec: AreaTemplateSpec = area_template(template_id)
+	return spec.default_ft if spec != null else 0
+
+
 ## Banda de alcance para una distancia en casillas ("" si el perfil no usa
 ## bandas o la distancia es negativa).
 func band_for_cells(cells: int) -> String:
@@ -214,9 +267,51 @@ func _read(d: Dictionary) -> void:
 		last_max = m
 
 	senses = _str_array(d, "senses")
-	area_templates = _str_array(d, "area_templates")
+	for t: Dictionary in _dict_array(d, "area_templates"):
+		_read_area_template(t)
 	if id.is_empty() or seed_code.is_empty() or name_key.is_empty():
 		_fail("faltan id, seed_code o name_key")
+
+
+## Cada forma exige sus campos y rechaza los de las demás (como el esquema),
+## para que un error de datos no pase desapercibido.
+func _read_area_template(t: Dictionary) -> void:
+	var spec: AreaTemplateSpec = AreaTemplateSpec.new()
+	spec.id = _str(t, "id")
+	spec.shape = _str(t, "shape")
+	spec.default_ft = _int(t, "default_ft")
+	if not SHAPES.has(spec.shape):
+		_fail("area_templates.shape debe ser uno de %s" % ", ".join(SHAPES))
+	if spec.default_ft < 1:
+		_fail("area_templates.default_ft debe ser >= 1")
+	if area_template_specs.has(spec.id):
+		_fail("area_templates: id repetido '%s'" % spec.id)
+	var own: Dictionary[String, String] = {
+		"origin": SHAPE_CIRCLE,
+		"cone_width_pct": SHAPE_CONE,
+		"line_width_ft": SHAPE_LINE,
+		"includes_origin": SHAPE_EMANATION,
+	}
+	for key: String in own.keys():
+		if t.has(key) and own[key] != spec.shape:
+			_fail("area_templates.%s solo vale para la forma '%s'" % [key, own[key]])
+	match spec.shape:
+		SHAPE_CIRCLE:
+			spec.origin = _str(t, "origin")
+			if spec.origin != ORIGIN_CORNER and spec.origin != ORIGIN_CELL:
+				_fail("area_templates.origin debe ser '%s' o '%s'" % [ORIGIN_CORNER, ORIGIN_CELL])
+		SHAPE_CONE:
+			spec.cone_width_pct = _int(t, "cone_width_pct")
+			if spec.cone_width_pct < 1 or spec.cone_width_pct > 1000:
+				_fail("area_templates.cone_width_pct debe estar entre 1 y 1000")
+		SHAPE_LINE:
+			spec.line_width_ft = _int(t, "line_width_ft")
+			if spec.line_width_ft < 1:
+				_fail("area_templates.line_width_ft debe ser >= 1")
+		SHAPE_EMANATION:
+			spec.includes_origin = _bool(t, "includes_origin")
+	area_templates.append(spec.id)
+	area_template_specs[spec.id] = spec
 
 
 func _fail(msg: String) -> void:

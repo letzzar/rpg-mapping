@@ -46,6 +46,13 @@ var _uvtt_save_dialog: FileDialog
 var _uvtt_open_dialog: FileDialog
 var _char_open_dialog: FileDialog = null
 var _designer: CharacterDesigner
+var _turn_panel: TurnPanel
+var _turns_btn: Button
+var _tpl_btn: Button
+var _tpl_opt: OptionButton
+var _tpl_ft: SpinBox
+## Ficha del turno anunciado por última vez (para avisar al cambiar).
+var _announced_turn: int = -1
 var _mapping_dialog: CharacterMappingDialog
 ## Ficha que se edita en el diseñador (-1 = personaje nuevo).
 var _designer_token: int = -1
@@ -149,6 +156,34 @@ func _build_ui() -> void:
 
 	var add_btn: Button = _button("UI_ADD_TOKEN", _add_token)
 	bar.add_child(add_btn)
+	_turns_btn = _button("UI_TURNS", func() -> void:
+		_turn_panel.visible = _turns_btn.button_pressed
+		_turn_panel.refresh()
+		_fit.call_deferred())
+	_turns_btn.toggle_mode = true
+	_turns_btn.tooltip_text = tr("UI_TURNS_TIP")
+	bar.add_child(_turns_btn)
+	# Plantillas de área (ADR 035): solo en 2D; también para los jugadores
+	# (se dibujan en su pantalla, no se comparten).
+	_tpl_btn = _button("UI_TEMPLATE", _apply_template)
+	_tpl_btn.toggle_mode = true
+	_tpl_btn.tooltip_text = tr("UI_TEMPLATE_TIP")
+	bar.add_child(_tpl_btn)
+	_tpl_opt = OptionButton.new()
+	_tpl_opt.item_selected.connect(func(i: int) -> void:
+		var p: SystemProfile = _current_profile()
+		if p != null and i >= 0 and i < p.area_templates.size():
+			_tpl_ft.set_value_no_signal(p.area_template_default_ft(p.area_templates[i]))
+		_apply_template())
+	bar.add_child(_tpl_opt)
+	_tpl_ft = SpinBox.new()
+	_tpl_ft.min_value = 5
+	_tpl_ft.max_value = 500
+	_tpl_ft.step = 5
+	_tpl_ft.suffix = "ft"
+	_tpl_ft.tooltip_text = tr("UI_TEMPLATE_SIZE_TIP")
+	_tpl_ft.value_changed.connect(func(_v: float) -> void: _apply_template())
+	bar.add_child(_tpl_ft)
 	var char_btn: Button = _button("UI_CHARACTER", _open_designer)
 	char_btn.tooltip_text = tr("UI_CHARACTER_TIP")
 	bar.add_child(char_btn)
@@ -212,6 +247,13 @@ func _build_ui() -> void:
 	# evento subía hasta este Control raíz (STOP) y la vista no lo recibía.
 	_map_area.mouse_filter = Control.MOUSE_FILTER_STOP
 	middle.add_child(_map_area)
+	_turn_panel = TurnPanel.new()
+	_turn_panel.visible = false
+	_turn_panel.execute = func(cmd: MapCommand) -> bool:
+		return _stack != null and _stack.execute(cmd)
+	_turn_panel.format_ft = func(ft: int) -> String: return _view._format_ft(ft)
+	_turn_panel.turn_started.connect(_on_turn_started)
+	middle.add_child(_turn_panel)
 	if not OS.has_feature("web"):
 		_net_panel = NetHostPanel.new()
 		_net_panel.visible = false
@@ -430,11 +472,47 @@ func _set_document(doc: MapDocument, stack: CommandStack, level: int) -> void:
 	_refresh_buttons()
 	_refresh_vision()
 	_share_document()
+	_turn_panel.profile = _current_profile()
+	_turn_panel.level_index = start
+	_turn_panel.read_only = _client != null
+	_turn_panel.set_document(doc)
+	_announced_turn = doc.turns.current_token_id()
+
+
+## Empieza un turno (lo pasó el DM): se selecciona la ficha y se centra.
+func _on_turn_started(token_id: int) -> void:
+	var t: MapToken = _doc.token(token_id) if _doc != null else null
+	if t == null:
+		return
+	_selected_token = t.id
+	_view3d.selected_token = t.id
+	if t.level != _view.level_index:
+		_level_opt.select(t.level)
+		_on_level_selected(t.level)
+	_center_on_token(t)
+
+
+## Avisa en la barra de estado cuando cambia el turno (también a los
+## jugadores, con lo que manda el servidor).
+func _announce_turn() -> void:
+	var cur: int = _doc.turns.current_token_id() if _doc != null else -1
+	if cur == _announced_turn:
+		return
+	_announced_turn = cur
+	var text: String = _turn_panel.status_text()
+	if not text.is_empty():
+		if _client != null and _doc.token(cur) != null and _client.owns(_doc.token(cur)):
+			text = tr("UI_TURNS_YOURS").replace("{name}", _doc.token(cur).name)
+		_status.text = text
 
 
 func _on_doc_changed(_level: int, layer: String) -> void:
-	if layer != MapDocument.LAYER_FOG:
+	if layer != MapDocument.LAYER_FOG and layer != MapDocument.LAYER_TURNS:
 		_queue_vision()
+	if layer == MapDocument.LAYER_TURNS or layer == MapDocument.LAYER_TOKENS:
+		_turn_panel.profile = _current_profile()
+		_turn_panel.refresh()
+		_announce_turn()
 	if _net_panel != null:
 		_net_panel.mark_dirty()
 		if layer == MapDocument.LAYER_TOKENS:
@@ -551,6 +629,9 @@ func _entrance_level(doc: MapDocument) -> int:
 
 func _apply_profile() -> void:
 	_share_document()
+	if _turn_panel != null:
+		_turn_panel.profile = _current_profile()
+	_fill_templates()
 	_view.profile = _current_profile()
 	_view.queue_redraw()
 	if _view3d != null:
@@ -575,10 +656,46 @@ func _apply_units() -> void:
 		_view3d.unit_mode = _view.unit_mode
 
 
+## Plantillas del sistema activo (cada sistema tiene las suyas).
+func _fill_templates() -> void:
+	if _tpl_opt == null:
+		return
+	var p: SystemProfile = _current_profile()
+	var prev: String = _view.template_id if _view != null else ""
+	_tpl_opt.clear()
+	if p == null:
+		return
+	for id: String in p.area_templates:
+		_tpl_opt.add_item(tr("TPL_" + id.to_upper()))
+	var keep: int = p.area_templates.find(prev)
+	_tpl_opt.select(maxi(0, keep) if _tpl_opt.item_count > 0 else -1)
+	if keep < 0 and _tpl_opt.item_count > 0:
+		_tpl_ft.set_value_no_signal(p.area_template_default_ft(p.area_templates[0]))
+	_apply_template()
+
+
+## Enciende o apaga la herramienta de plantillas con la forma y tamaño
+## elegidos.
+func _apply_template() -> void:
+	if _view == null or _tpl_btn == null:
+		return
+	var p: SystemProfile = _current_profile()
+	var on: bool = _tpl_btn.button_pressed and p != null and _tpl_opt.selected >= 0 \
+		and _tpl_opt.selected < p.area_templates.size()
+	_tpl_opt.disabled = not on
+	_tpl_ft.editable = on
+	_view.template_ft = int(_tpl_ft.value)
+	_view.template_id = p.area_templates[_tpl_opt.selected] if on else ""
+	if on and _view.template_cells().is_empty():
+		_status.text = tr("UI_TEMPLATE_HELP")
+
+
 func _on_level_selected(i: int) -> void:
+	_view.clear_template()
 	_view.level_index = i
 	_view.queue_redraw()
 	_view3d.level_index = i
+	_turn_panel.level_index = i
 	if _view_opt.selected == VIEW_FP:
 		_view3d.set_mode(MapView3D.Mode.FIRST_PERSON)
 	_refresh_vision()

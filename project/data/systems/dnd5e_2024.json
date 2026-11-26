@@ -39,5 +39,12 @@
 	],
 	"range_bands": [],
 	"senses": ["darkvision", "blindsight", "tremorsense", "truesight"],
-	"area_templates": ["cone", "cube", "cylinder", "emanation", "line", "sphere"]
+	"area_templates": [
+		{ "id": "cone", "shape": "cone", "default_ft": 15, "cone_width_pct": 100 },
+		{ "id": "cube", "shape": "square", "default_ft": 15 },
+		{ "id": "cylinder", "shape": "circle", "default_ft": 10, "origin": "corner" },
+		{ "id": "emanation", "shape": "emanation", "default_ft": 15, "includes_origin": true },
+		{ "id": "line", "shape": "line", "default_ft": 30, "line_width_ft": 5 },
+		{ "id": "sphere", "shape": "circle", "default_ft": 20, "origin": "corner" }
+	]
 }

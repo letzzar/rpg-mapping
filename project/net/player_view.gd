@@ -39,6 +39,8 @@ class Snapshot:
 	var levels: Array[LevelView] = []
 	## MapToken.to_dict() de las fichas que ven los jugadores.
 	var tokens: Array[Dictionary] = []
+	## TurnTracker.to_dict() reducido a esas fichas (ADR 035).
+	var turns: Dictionary = {}
 
 
 static func build(doc: MapDocument, profile: SystemProfile, opts: PartyVision.Options) -> Snapshot:
@@ -64,7 +66,33 @@ static func build(doc: MapDocument, profile: SystemProfile, opts: PartyVision.Op
 			if t.sheet != null:
 				d["sheet"] = t.sheet.public_copy().to_dict()
 		snap.tokens.append(d)
+	snap.turns = filter_turns(doc.turns, snap.tokens).to_dict()
 	return snap
+
+
+## Turnos que ven los jugadores: solo las fichas que reciben (con su
+## iniciativa), y el turno actual solo si es de una de ellas (si le toca a
+## una criatura oculta, para ellos no hay turno en marcha: no se delata).
+static func filter_turns(src: TurnTracker, tokens: Array[Dictionary]) -> TurnTracker:
+	var seen: Dictionary[int, bool] = {}
+	for td: Dictionary in tokens:
+		var tid: int = td["id"]
+		seen[tid] = true
+	var out: TurnTracker = TurnTracker.new()
+	out.round = src.round
+	out.block_over_speed = src.block_over_speed
+	var cur: int = src.current_token_id()
+	for id: int in src.order:
+		if not seen.has(id):
+			continue
+		if id == cur:
+			out.current = out.order.size()
+			out.active = true
+			out.moved_ft = src.moved_ft
+		out.order.append(id)
+		if src.initiative.has(id):
+			out.initiative[id] = src.initiative[id]
+	return out
 
 
 ## Contenido del nivel reducido a las casillas exploradas (`explored`: 1 byte

@@ -32,6 +32,7 @@ const LAYER_OBJECTS: String = "objects"
 const LAYER_FEATURES: String = "features"
 const LAYER_TOKENS: String = "tokens"
 const LAYER_FOG: String = "fog"
+const LAYER_TURNS: String = "turns"
 const LAYER_ALL: String = "all"
 
 ## Máximo de niveles por documento.
@@ -48,6 +49,8 @@ var levels: Array[MapLevel] = []
 var tokens: Array[MapToken] = []
 ## Ediciones manuales aplicadas sobre lo generado, en orden (sesión).
 var deltas: Array[MapDelta] = []
+## Turnos e iniciativa (sesión, ADR 035).
+var turns: TurnTracker = TurnTracker.new()
 ## Incrementa en cada notify_changed() (las vistas pueden compararlo).
 var revision: int = 0
 ## Imagen de fondo del nivel 0 de un mapa importado (Universal VTT, ADR 030),
@@ -196,7 +199,11 @@ func to_dict(include_session: bool = true) -> Dictionary:
 		var delta_list: Array = []
 		for dl: MapDelta in deltas:
 			delta_list.append(dl.to_dict())
-		d["session"] = {"tokens": token_list, "fog": fog_list, "deltas": delta_list}
+		var session: Dictionary = {"tokens": token_list, "fog": fog_list, "deltas": delta_list}
+		# Solo si hay algo: los mapas sin turnos guardan lo mismo que antes.
+		if not turns.equals(TurnTracker.new()):
+			session["turns"] = turns.to_dict()
+		d["session"] = session
 	return d
 
 
@@ -262,6 +269,8 @@ static func from_dict(d: Dictionary) -> LoadResult:
 			r.fail("session.fog debe tener una entrada por nivel")
 		for dd: Dictionary in r.get_dicts(s, "deltas"):
 			doc.deltas.append(MapDelta.from_dict(r, dd))
+		if s.has("turns"):
+			doc.turns = TurnTracker.from_dict(r, r.get_dict(s, "turns"))
 	for i: int in level_dicts.size():
 		var fog: Dictionary = fog_dicts[i] if i < fog_dicts.size() else {}
 		doc.levels[i].load_dicts(r, level_dicts[i], fog)

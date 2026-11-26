@@ -219,7 +219,7 @@ func flush() -> int:
 	for td: Dictionary in snap.tokens:
 		var tid: int = td["id"]
 		_seen_tokens[tid] = true
-	var tm: PackedByteArray = NetMessage.encode({"t": NetMessage.TOKENS, "list": snap.tokens})
+	var tm: PackedByteArray = NetMessage.encode({"t": NetMessage.TOKENS, "list": snap.tokens, "turns": snap.turns})
 	if tm != _tokens_msg:
 		_tokens_msg = tm
 		sent += _broadcast(tm)
@@ -319,7 +319,7 @@ func _move(p: Player, msg: Dictionary) -> void:
 		# Que vuelva a ver la ficha donde está de verdad.
 		_send(p.peer, _tokens_msg)
 		return
-	move_approved.emit(MoveTokenCommand.new(token_id, cell, level_index))
+	move_approved.emit(MoveTokenCommand.new(token_id, cell, level_index, _route_cost(token_id, level_index, cell)))
 
 
 ## "" si el jugador puede mover su ficha ahí; si no, la clave i18n del motivo.
@@ -345,7 +345,29 @@ func validate_move(p: Player, token_id: int, level_index: int, cell: Vector2i) -
 	var route: MovementCost.Route = MovementCost.find_route(_profile, lvl, t.cell, cell)
 	if route == null or not route.found:
 		return "NET_MOVE_NO_ROUTE"
+	return _validate_turn(t, route.cost_ft)
+
+
+## Con combate en marcha (ADR 035): una ficha que está en el orden de turnos
+## solo se mueve en su turno, y sin pasar de su velocidad si el DM lo bloquea.
+## Las que no están en el orden se mueven como siempre.
+func _validate_turn(t: MapToken, cost_ft: int) -> String:
+	var tt: TurnTracker = _doc.turns
+	if tt.active and tt.has_token(t.id) and tt.current_token_id() != t.id:
+		return "NET_MOVE_NOT_YOUR_TURN"
+	if tt.blocks_move(t, _profile, cost_ft):
+		return "NET_MOVE_TOO_FAR"
 	return ""
+
+
+## Coste en pies de la ruta de la ficha a `cell` en su nivel (0 si cambia de
+## nivel o no hay ruta): lo que se suma a lo gastado en el turno.
+func _route_cost(token_id: int, level_index: int, cell: Vector2i) -> int:
+	var t: MapToken = _doc.token(token_id)
+	if t == null or t.level != level_index:
+		return 0
+	var route: MovementCost.Route = MovementCost.find_route(_profile, _doc.level(t.level), t.cell, cell)
+	return route.cost_ft if route != null and route.found else 0
 
 
 ## Cambio de nivel: solo por una escalera en la casilla de la ficha que lleve
@@ -363,7 +385,7 @@ func _validate_stairs(t: MapToken, level_index: int, cell: Vector2i) -> String:
 	for other: MapToken in _doc.tokens_at(level_index, cell, _profile):
 		if other.id != t.id and _seen_tokens.has(other.id):
 			return "NET_MOVE_OCCUPIED"
-	return ""
+	return _validate_turn(t, 0)
 
 
 func _door(p: Player, msg: Dictionary) -> void:

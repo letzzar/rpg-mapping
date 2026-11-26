@@ -69,6 +69,15 @@ func footprint(anchor: Vector2i, side_cells: int, _hex_cells: int = 1) -> Array[
 	return out
 
 
+## Centro en medias casillas: los vértices caen en coordenadas pares.
+func center_lattice(cell: Vector2i) -> Vector2i:
+	return Vector2i(2 * cell.x + 1, 2 * cell.y + 1)
+
+
+func lattice_weights() -> Vector2i:
+	return Vector2i(1, 1)
+
+
 ## Muestreo del segmento entre centros: N = max(|dx|, |dy|) pasos y, en cada
 ## uno, el eje menor redondeado (mitades hacia +inf). El eje mayor avanza 1
 ## por paso, así que las casillas consecutivas son siempre vecinas.
