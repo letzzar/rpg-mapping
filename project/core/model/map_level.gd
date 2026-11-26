@@ -176,6 +176,21 @@ func add_object(o: MapObject) -> bool:
 	return true
 
 
+## Posición del objeto en `objects` (-1 si no está).
+func object_index(id: int) -> int:
+	return _find_object(id)
+
+
+## Vuelve a poner un objeto en la posición `index` de la lista (al deshacer
+## un borrado): el orden de la lista entra en el hash y los generadores no
+## siempre la dejan ordenada por id. false si el id ya está.
+func insert_object_at(o: MapObject, index: int) -> bool:
+	if _find_object(o.id) >= 0:
+		return false
+	objects.insert(clampi(index, 0, objects.size()), o)
+	return true
+
+
 func remove_object(id: int) -> MapObject:
 	var k: int = _find_object(id)
 	if k < 0:

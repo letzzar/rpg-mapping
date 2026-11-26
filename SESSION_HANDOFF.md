@@ -1,6 +1,24 @@
 # SESSION_HANDOFF — RPG Mapping
 
-## Última sesión: 2026-11-26 (14.ª, tercera parte) — Editor de estancias E1: guardar y abrir mapas
+## Última sesión: 2026-11-26 (14.ª, cuarta parte) — Editor de estancias E2
+Tests: **298/298 en escritorio, en inglés y en el navegador** (nuevos: `test_room_editor.gd` ×4 y `test_est_g3.gd` ×7, de `cartografo`). 51 seeds doradas: las 45 de antes sin cambios + 6 de EST G3. Probado con capturas de la app: estancia en blanco 11×8 con agua, ventanas, tabique con puerta y muebles, en 2D y 3D.
+
+### Hecho (ADR 037)
+- Botón "Editar" (DM) con `RoomEditorPanel` y herramientas en `MapView2D.edit_tool`: terreno (arrastrar), aristas (arrastrar por los bordes: muro, puerta, secreta, vano, ventana, quitar), objetos del catálogo con giro (R) y borrar, tipo y nombre de sala, y aviso de suelo sin acceso desde la entrada.
+- Comandos nuevos con delta reaplicable: `SetTerrainCommand`, `AddObjectCommand`, `RemoveObjectCommand`, `SetRoomCommand` (en `DeltaReplay` y en el esquema de `map_file`).
+- "Crear estancia en blanco" → EST G3 (de `cartografo`, ver su nota abajo).
+- Error encontrado por el test: al deshacer el borrado de un objeto, volvía al final de la lista (el orden entra en el hash). Ahora vuelve a su posición (`MapLevel.insert_object_at`).
+- **Pendiente de aprobar por Víctor**: el esquema de EST G3 (al aprobarlo queda congelado, como el de G1).
+
+### Siguiente paso
+1. E3: id corto y código para compartir de una estancia (código + deltas).
+2. E4: usar una estancia propia dentro de un edificio o aldea, y en red.
+
+### Limitaciones conocidas (E2)
+- Sin escaleras ni niveles en el editor; luces = objetos del catálogo que dan luz.
+- Las celdas pintadas de suelo fuera de la sala no pasan a formar parte de ella.
+
+## Sesión anterior: 2026-11-26 (14.ª, tercera parte) — Editor de estancias E1: guardar y abrir mapas
 Tests: **287/287 en escritorio, en inglés y en el navegador** (4 nuevos en `test_delta_replay.gd`: ida y vuelta con los 8 tipos de delta, errores, mapa sin código, botones).
 
 ### Hecho (ADR 036)
@@ -14,6 +32,10 @@ Tests: **287/287 en escritorio, en inglés y en el navegador** (4 nuevos en `tes
 ### Limitaciones conocidas (E1)
 - Se guarda el mapa mostrado, no la ruta entera (aldea → edificio → estancia): eso será la campaña `*.rpgm`.
 - Abrir mapas solo en escritorio. Los mapas UVTT se guardan enteros pero sin la imagen de fondo.
+
+### Nota de `cartografo` (E2): generador nuevo EST G3 (estancia en blanco)
+- `core/gen/est/est_generator_g3.gd` + esquema `ParamSchemaRegistry.est_g3()` (`width` 3-48 = 9, `height` 3-48 = 7, `grid`, `room_type` con `room` por defecto + ids de EST G1, capacity 64), registrado en `GeneratorRegistry`. Sin azar: código canónico con semilla 0 (`EstGeneratorG3.canonical_code()`). PROYECTO §6.5. Ningún generador existente cambió (las 45 seeds doradas anteriores siguen iguales).
+- Seeds doradas nuevas (esquema **pendiente de aprobar**): `RPGM1-DND5-EST-G3-0-0-B`, `RPGM1-DND5-EST-G3-26H-0-G`, `RPGM1-DND5-EST-G3-48N-0-G`, `RPGM1-DND5-EST-G3-1XM-0-Y` (3×3), `RPGM1-DND5-EST-G3-1W5-0-J` (48×48), `RPGM1-PF2E-EST-G3-288V-0-N` (cripta 6×5 hex punta). Tests en `tests/unit/test_est_g3.gd`.
 
 ## Sesión anterior: 2026-11-26 (14.ª, segunda parte) — F5: turnos y plantillas de área
 Tests: **283/283 en escritorio, con el idioma forzado a inglés y en el navegador**. Nuevos: `test_turns.gd` (5), `test_template_tool.gd` (2) y `test_area_template.gd` (15, de `cartografo`). CI de GitHub en verde otra vez desde `fix(ci)`.

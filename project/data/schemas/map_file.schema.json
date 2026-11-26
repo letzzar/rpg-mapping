@@ -19,7 +19,7 @@
 				"required": ["op", "data"],
 				"additionalProperties": false,
 				"properties": {
-					"op": { "enum": ["add_token", "remove_token", "move_token", "set_edge", "explore", "set_token_character", "set_token_sheet", "set_turns"] },
+					"op": { "enum": ["add_token", "remove_token", "move_token", "set_edge", "explore", "set_token_character", "set_token_sheet", "set_turns", "set_terrain", "add_object", "remove_object", "set_room"] },
 					"data": { "type": "object" }
 				}
 			}

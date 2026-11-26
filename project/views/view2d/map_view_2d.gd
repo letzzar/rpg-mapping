@@ -116,6 +116,18 @@ var template_id: String = "":
 ## Tamaño de la plantilla (radio, lado o longitud) en pies.
 var template_ft: int = 0:
 	set = set_template_ft
+## Herramienta del editor de estancias (ADR 037); "" = apagado. Formas:
+## "terrain:<id de Terrain.IDS>", "edge:<none|wall|door|secret_door|arch|window>",
+## "object:<id del catálogo>", "erase_object".
+var edit_tool: String = "":
+	set = set_edit_tool
+## Orientación de los objetos que se colocan (0-3, como MapObject.facing).
+var edit_facing: int = 0
+var _edit_dragging: bool = false
+var _edit_cells: Array[Vector2i] = []
+var _edit_edges: PackedInt64Array = PackedInt64Array()
+var _hover_edge: int = -1
+var _hover_cell: Vector2i = Vector2i(-1, -1)
 var _tpl_origin: Vector2i = Vector2i(-1, -1)
 var _tpl_toward: Vector2i = Vector2i(-1, -1)
 var _tpl_dragging: bool = false
@@ -217,6 +229,7 @@ func _draw() -> void:
 	if fog:
 		_draw_fog(g)
 	_draw_template(g)
+	_draw_edit(g)
 	_draw_overlays(g)
 	if show_tokens:
 		_draw_tokens(g)
@@ -665,6 +678,10 @@ func _handle_button(mb: InputEventMouseButton) -> void:
 			queue_redraw()
 			get_viewport().set_input_as_handled()
 		MOUSE_BUTTON_LEFT:
+			if not edit_tool.is_empty():
+				_edit_button(mb.pressed, cell)
+				get_viewport().set_input_as_handled()
+				return
 			if not template_id.is_empty():
 				_template_button(mb.pressed, cell)
 				get_viewport().set_input_as_handled()
@@ -689,6 +706,9 @@ func _handle_motion(mm: InputEventMouseMotion) -> void:
 		position += mm.relative
 		return
 	var cell: Vector2i = document.grid.pixel_to_cell(_pointer_local, cell_px)
+	if not edit_tool.is_empty():
+		_edit_motion(cell)
+		return
 	if _tpl_dragging:
 		if document.grid.in_bounds(cell) and cell != _tpl_toward:
 			_tpl_toward = cell
@@ -744,6 +764,170 @@ func _on_left_release(_cell: Vector2i) -> void:
 			# Sin esto la barra seguía mostrando el mensaje anterior.
 			status_changed.emit(tr("UI_NO_ROUTE_STATUS"))
 	_cancel_drag()
+
+
+# --- Editor de estancias (ADR 037) --------------------------------------------
+
+const EDGE_TOOL_KINDS: Dictionary[String, int] = {
+	"none": 0, "wall": MapEdge.KIND_WALL, "door": MapEdge.KIND_DOOR,
+	"secret_door": MapEdge.KIND_SECRET_DOOR, "arch": MapEdge.KIND_ARCH, "window": MapEdge.KIND_WINDOW,
+}
+## Distancia máxima (en casillas) del puntero a una arista para tomarla.
+const EDGE_PICK_FRAC: float = 0.3
+
+
+func set_edit_tool(tool: String) -> void:
+	edit_tool = tool
+	_edit_dragging = false
+	_edit_cells.clear()
+	_edit_edges.clear()
+	_hover_edge = -1
+	if not tool.is_empty():
+		_cancel_drag()
+	queue_redraw()
+
+
+func _tool_kind() -> String:
+	return edit_tool.get_slice(":", 0)
+
+
+func _tool_arg() -> String:
+	return edit_tool.get_slice(":", 1) if edit_tool.contains(":") else ""
+
+
+func _edit_button(pressed: bool, cell: Vector2i) -> void:
+	if command_stack == null:
+		return
+	match _tool_kind():
+		"terrain", "edge":
+			if pressed:
+				_edit_dragging = true
+				_edit_cells.clear()
+				_edit_edges.clear()
+				_edit_motion(cell)
+			else:
+				_edit_dragging = false
+				_commit_stroke()
+		"object":
+			if pressed:
+				place_object(_tool_arg(), cell, edit_facing)
+		"erase_object":
+			if pressed:
+				erase_object_at(cell)
+
+
+func _edit_motion(cell: Vector2i) -> void:
+	var g: GridGeometry = document.grid
+	_hover_cell = cell if g.in_bounds(cell) else Vector2i(-1, -1)
+	if _tool_kind() == "edge":
+		_hover_edge = _edge_near(_pointer_local)
+		if _edit_dragging and _hover_edge >= 0 and not _edit_edges.has(_hover_edge):
+			_edit_edges.append(_hover_edge)
+	elif _tool_kind() == "terrain" and _edit_dragging and g.in_bounds(cell) and not _edit_cells.has(cell):
+		_edit_cells.append(cell)
+	queue_redraw()
+
+
+## Aplica la pincelada (terreno o aristas) como un solo paso de deshacer.
+func _commit_stroke() -> void:
+	var done: bool = false
+	if _tool_kind() == "terrain" and not _edit_cells.is_empty():
+		var t: int = Terrain.IDS.find(_tool_arg())
+		done = t >= 0 and command_stack.execute(SetTerrainCommand.new(level_index, _edit_cells, t))
+	elif _tool_kind() == "edge" and not _edit_edges.is_empty() and EDGE_TOOL_KINDS.has(_tool_arg()):
+		var kind: int = EDGE_TOOL_KINDS[_tool_arg()]
+		var value: int = MapEdge.make(kind) if kind != 0 else 0
+		var lvl: MapLevel = document.level(level_index)
+		var parts: Array[MapCommand] = []
+		for id: int in _edit_edges:
+			if lvl.get_edge_by_id(id) != value:
+				parts.append(SetEdgeCommand.new(level_index, id, value))
+		if parts.size() == 1:
+			done = command_stack.execute(parts[0])
+		elif parts.size() > 1:
+			done = command_stack.execute(CompositeCommand.new(parts))
+	_edit_cells.clear()
+	_edit_edges.clear()
+	if done:
+		user_command_done.emit()
+	queue_redraw()
+
+
+## Coloca un objeto del catálogo con su esquina en `cell`. true si cabe (toda
+## la huella dentro del mapa y en casillas transitables sin otro objeto que
+## bloquee).
+func place_object(catalog_id: String, cell: Vector2i, facing: int) -> bool:
+	var cat: ObjectCatalog = ObjectCatalog.load_default()
+	var e: ObjectCatalog.Entry = cat.entry(catalog_id)
+	if e == null or command_stack == null or not document.grid.in_bounds(cell):
+		return false
+	var lvl: MapLevel = document.level(level_index)
+	var o: MapObject = cat.instantiate(e, 0, cell, posmod(facing, 4), "")
+	var mask: PackedByteArray = lvl.movement_mask()
+	for c: Vector2i in lvl.object_cells(o):
+		var i: int = document.grid.index_of(c)
+		if i < 0 or (mask[i] & MapLevel.MOVE_PASSABLE) == 0:
+			status_changed.emit(tr("UI_EDIT_NO_ROOM"))
+			return false
+	o.id = document.allocate_id()
+	if not command_stack.execute(AddObjectCommand.new(level_index, o)):
+		return false
+	status_changed.emit(tr("UI_EDIT_OBJECT_PLACED").replace("{name}", tr("OBJ_" + catalog_id.to_upper())))
+	user_command_done.emit()
+	return true
+
+
+## Quita el objeto de arriba en `cell`. true si había alguno.
+func erase_object_at(cell: Vector2i) -> bool:
+	if command_stack == null or not document.grid.in_bounds(cell):
+		return false
+	var objs: Array[MapObject] = document.level(level_index).objects_at(cell)
+	if objs.is_empty():
+		return false
+	if not command_stack.execute(RemoveObjectCommand.new(level_index, objs[objs.size() - 1].id)):
+		return false
+	user_command_done.emit()
+	return true
+
+
+## Arista (cualquiera, haya o no muro) más cercana al punto, a menos de
+## EDGE_PICK_FRAC casillas; -1 si no hay.
+func _edge_near(p: Vector2) -> int:
+	var g: GridGeometry = document.grid
+	var cell: Vector2i = g.pixel_to_cell(p, cell_px)
+	if not g.in_bounds(cell):
+		return -1
+	var best: int = -1
+	var best_d: float = cell_px * EDGE_PICK_FRAC
+	for dir: int in g.edge_direction_count():
+		var seg: PackedVector2Array = g.edge_segment(cell, dir, cell_px)
+		if seg.size() < 2:
+			continue
+		var d: float = p.distance_to(Geometry2D.get_closest_point_to_segment(p, seg[0], seg[1]))
+		if d < best_d:
+			best_d = d
+			best = g.edge_id(cell, dir)
+	return best
+
+
+func _draw_edit(g: GridGeometry) -> void:
+	if edit_tool.is_empty():
+		return
+	var col: Color = Color(0.36, 0.71, 0.84, 0.45)
+	for c: Vector2i in _edit_cells:
+		draw_colored_polygon(g.cell_polygon(c, cell_px), col)
+	var edges: PackedInt64Array = _edit_edges.duplicate()
+	if _hover_edge >= 0 and not edges.has(_hover_edge):
+		edges.append(_hover_edge)
+	for id: int in edges:
+		var e: Vector3i = g.edge_from_id(id)
+		var seg: PackedVector2Array = g.edge_segment(Vector2i(e.x, e.y), e.z, cell_px)
+		if seg.size() >= 2:
+			draw_line(seg[0], seg[1], Color(0.36, 0.71, 0.84, 0.95), maxf(2.0, cell_px * 0.12))
+	if _hover_cell.x >= 0 and (_tool_kind() == "terrain" or _tool_kind() == "object" or _tool_kind() == "erase_object"):
+		var poly: PackedVector2Array = g.cell_polygon(_hover_cell, cell_px)
+		poly.append(poly[0])
+		draw_polyline(poly, Color(0.36, 0.71, 0.84, 0.95), maxf(1.0, cell_px * 0.05))
 
 
 # --- Plantillas de área (ADR 035) ---------------------------------------------

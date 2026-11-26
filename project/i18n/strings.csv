@@ -410,3 +410,42 @@ MAP_ERR_FILE,Ese fichero no es un mapa de RPG Mapping válido.,That file is not 
 MAP_ERR_VERSION,Ese mapa es de otra versión del formato.,That map uses another format version.
 MAP_ERR_GENERATOR,"El generador de ese código ya no da el mismo mapa; no se reaplican los cambios para no estropearlo (es un fallo del programa: avísalo).","The generator for that code no longer gives the same map; changes are not reapplied to avoid damaging it (this is a program bug: please report it)."
 MAP_ERR_DELTA,No se pudo reaplicar uno de los cambios guardados.,One of the saved changes could not be reapplied.
+UI_EDIT,Editar,Edit
+UI_EDIT_TIP,"Editor de estancias: pinta terreno, pon muros, puertas y ventanas, coloca objetos y cambia las salas, o crea una estancia en blanco. Todo se deshace y se guarda con «Guardar mapa».","Room editor: paint terrain, place walls, doors and windows, place objects and change rooms, or create a blank room. Everything can be undone and is saved with ""Save map""."
+UI_EDIT_HELP,"Elige una herramienta: arrastra para pintar terreno o poner aristas; clic para colocar o borrar objetos (R gira).","Pick a tool: drag to paint terrain or set edges; click to place or erase objects (R rotates)."
+UI_EDIT_TITLE,Editor de estancias,Room editor
+UI_EDIT_TERRAIN,Terreno (arrastra),Terrain (drag)
+UI_EDIT_EDGES,Aristas (arrastra por los bordes),Edges (drag along the borders)
+UI_EDIT_EDGE_WALL,Muro,Wall
+UI_EDIT_EDGE_DOOR,Puerta,Door
+UI_EDIT_EDGE_SECRET_DOOR,Puerta secreta,Secret door
+UI_EDIT_EDGE_ARCH,Vano,Opening
+UI_EDIT_EDGE_WINDOW,Ventana,Window
+UI_EDIT_EDGE_NONE,Quitar,Remove
+UI_EDIT_OBJECTS,Objetos,Objects
+UI_EDIT_PLACE,Colocar,Place
+UI_EDIT_ROTATE,Mirando al {dir},Facing {dir}
+UI_EDIT_ROTATE_TIP,Gira el objeto que se va a colocar (también con la tecla R).,Rotates the object to be placed (also with the R key).
+UI_EDIT_FACING_0,norte,north
+UI_EDIT_FACING_1,este,east
+UI_EDIT_FACING_2,sur,south
+UI_EDIT_FACING_3,oeste,west
+UI_EDIT_ERASE_OBJECT,Borrar objeto,Erase object
+UI_EDIT_NO_ROOM,El objeto no cabe ahí.,The object does not fit there.
+UI_EDIT_OBJECT_PLACED,Colocado: {name},Placed: {name}
+UI_EDIT_ROOM,Sala,Room
+UI_EDIT_ROOM_NAME,Nombre (opcional),Name (optional)
+UI_EDIT_ROOM_APPLY,Cambiar tipo y nombre,Change type and name
+UI_EDIT_NEW,Estancia en blanco,Blank room
+UI_EDIT_WIDTH,Ancho (casillas):,Width (cells):
+UI_EDIT_HEIGHT,Alto (casillas):,Height (cells):
+UI_EDIT_GRID,Rejilla:,Grid:
+UI_EDIT_NEW_BUTTON,Crear estancia en blanco,Create blank room
+UI_EDIT_NEW_TIP,"Sustituye el mapa mostrado por una estancia vacía con su entrada, para editarla desde cero.","Replaces the shown map with an empty room with its entrance, to edit from scratch."
+UI_EDIT_CHECK_OK,Todo el suelo se alcanza desde la entrada.,All floor can be reached from the entrance.
+UI_EDIT_CHECK_MISSING,"Atención: {n} casillas no se alcanzan desde la entrada.","Warning: {n} cells cannot be reached from the entrance."
+UI_EDIT_CHECK_EMPTY,No hay suelo transitable.,There is no walkable floor.
+CMD_SET_TERRAIN,Pintar terreno,Paint terrain
+CMD_ADD_OBJECT,Colocar objeto,Place object
+CMD_REMOVE_OBJECT,Borrar objeto,Erase object
+CMD_SET_ROOM,Cambiar sala,Change room

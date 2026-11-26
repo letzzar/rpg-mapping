@@ -36,9 +36,11 @@ static func replay(doc: MapDocument, deltas: Array[MapDelta]) -> Result:
 			res.error = "MAP_ERR_DELTA"
 			res.detail = "delta %d (%s): no se puede aplicar" % [i, dl.op]
 			return res
+		# El contador de ids tiene que pasar de los ids ya usados.
 		if dl.op == AddTokenCommand.DELTA_OP:
-			# El contador de ids tiene que pasar de los ids ya usados.
 			doc.reserve_ids_through(r.get_int(dl.data, "token"))
+		elif dl.op == AddObjectCommand.DELTA_OP:
+			doc.reserve_ids_through(r.get_int(dl.data, "id"))
 		res.applied += 1
 	return res
 
@@ -59,14 +61,15 @@ static func command_for(r: JsonReader, doc: MapDocument, dl: MapDelta) -> MapCom
 		SetEdgeCommand.DELTA_OP:
 			cmd = SetEdgeCommand.new(r.get_int(d, "level"), r.get_int(d, "edge"), r.get_int(d, "value"))
 		ExploreCommand.DELTA_OP:
-			var cells: Array[Vector2i] = []
-			for v: Variant in r.get_array(d, "cells"):
-				var pair: Array = r.to_array(v, "cells")
-				if pair.size() != 2:
-					r.fail("cells: se esperaba [x, y]")
-					break
-				cells.append(Vector2i(r.to_int(pair[0], "cells"), r.to_int(pair[1], "cells")))
-			cmd = ExploreCommand.new(r.get_int(d, "level"), r.get_str(d, "viewer"), cells)
+			cmd = ExploreCommand.new(r.get_int(d, "level"), r.get_str(d, "viewer"), _cells(r, d))
+		SetTerrainCommand.DELTA_OP:
+			cmd = SetTerrainCommand.new(r.get_int(d, "level"), _cells(r, d), r.get_int(d, "terrain"))
+		AddObjectCommand.DELTA_OP:
+			cmd = AddObjectCommand.new(r.get_int(d, "level"), MapObject.from_dict(r, r.get_dict(d, "object")))
+		RemoveObjectCommand.DELTA_OP:
+			cmd = RemoveObjectCommand.new(r.get_int(d, "level"), r.get_int(d, "id"))
+		SetRoomCommand.DELTA_OP:
+			cmd = SetRoomCommand.new(r.get_int(d, "level"), r.get_int(d, "room"), r.get_str(d, "kind"), r.get_str(d, "label"))
 		SetTokenCharacterCommand.DELTA_OP:
 			cmd = SetTokenCharacterCommand.new(r.get_int(d, "token"), r.get_str(d, "ref"))
 		SetTokenSheetCommand.DELTA_OP:
@@ -78,3 +81,15 @@ static func command_for(r: JsonReader, doc: MapDocument, dl: MapDelta) -> MapCom
 		_:
 			return null
 	return cmd if r.ok() else null
+
+
+## Lista "cells" de pares [x, y].
+static func _cells(r: JsonReader, d: Dictionary) -> Array[Vector2i]:
+	var cells: Array[Vector2i] = []
+	for v: Variant in r.get_array(d, "cells"):
+		var pair: Array = r.to_array(v, "cells")
+		if pair.size() != 2:
+			r.fail("cells: se esperaba [x, y]")
+			break
+		cells.append(Vector2i(r.to_int(pair[0], "cells"), r.to_int(pair[1], "cells")))
+	return cells

@@ -50,6 +50,8 @@ var _map_open_dialog: FileDialog = null
 var _designer: CharacterDesigner
 var _turn_panel: TurnPanel
 var _turns_btn: Button
+var _edit_btn: Button
+var _editor_panel: RoomEditorPanel
 var _tpl_btn: Button
 var _tpl_opt: OptionButton
 var _tpl_ft: SpinBox
@@ -186,6 +188,12 @@ func _build_ui() -> void:
 	_tpl_ft.tooltip_text = tr("UI_TEMPLATE_SIZE_TIP")
 	_tpl_ft.value_changed.connect(func(_v: float) -> void: _apply_template())
 	bar.add_child(_tpl_ft)
+	# Editor de estancias (E2, ADR 037): solo el DM.
+	_edit_btn = _button("UI_EDIT", _toggle_editor)
+	_edit_btn.toggle_mode = true
+	_edit_btn.tooltip_text = tr("UI_EDIT_TIP")
+	bar.add_child(_edit_btn)
+	_dm_only.append(_edit_btn)
 	var char_btn: Button = _button("UI_CHARACTER", _open_designer)
 	char_btn.tooltip_text = tr("UI_CHARACTER_TIP")
 	bar.add_child(char_btn)
@@ -266,6 +274,21 @@ func _build_ui() -> void:
 	_turn_panel.format_ft = func(ft: int) -> String: return _view._format_ft(ft)
 	_turn_panel.turn_started.connect(_on_turn_started)
 	middle.add_child(_turn_panel)
+	_editor_panel = RoomEditorPanel.new()
+	_editor_panel.visible = false
+	_editor_panel.execute = func(cmd: MapCommand) -> bool:
+		if _stack == null or not _stack.execute(cmd):
+			return false
+		_on_user_command()
+		return true
+	_editor_panel.tool_changed.connect(func(t: String) -> void:
+		if not t.is_empty() and _view_opt.selected != VIEW_2D:
+			_view_opt.select(VIEW_2D)
+			_apply_view()
+		_view.edit_tool = t)
+	_editor_panel.facing_changed.connect(func(f: int) -> void: _view.edit_facing = f)
+	_editor_panel.new_room_requested.connect(new_blank_room)
+	middle.add_child(_editor_panel)
 	if not OS.has_feature("web"):
 		_net_panel = NetHostPanel.new()
 		_net_panel.visible = false
@@ -497,6 +520,8 @@ func _set_document(doc: MapDocument, stack: CommandStack, level: int) -> void:
 	_turn_panel.read_only = _client != null
 	_turn_panel.set_document(doc)
 	_announced_turn = doc.turns.current_token_id()
+	_editor_panel.level_index = start
+	_editor_panel.set_document(doc)
 
 
 ## Empieza un turno (lo pasó el DM): se selecciona la ficha y se centra.
@@ -533,6 +558,8 @@ func _on_doc_changed(_level: int, layer: String) -> void:
 		_turn_panel.profile = _current_profile()
 		_turn_panel.refresh()
 		_announce_turn()
+	elif _editor_panel.visible and layer != MapDocument.LAYER_FOG:
+		_editor_panel.refresh()
 	if _net_panel != null:
 		_net_panel.mark_dirty()
 		if layer == MapDocument.LAYER_TOKENS:
@@ -716,6 +743,8 @@ func _on_level_selected(i: int) -> void:
 	_view.queue_redraw()
 	_view3d.level_index = i
 	_turn_panel.level_index = i
+	_editor_panel.level_index = i
+	_editor_panel.refresh()
 	if _view_opt.selected == VIEW_FP:
 		_view3d.set_mode(MapView3D.Mode.FIRST_PERSON)
 	_refresh_vision()
@@ -934,6 +963,34 @@ func _place_token(t: MapToken) -> bool:
 			t.id = _doc.allocate_id()
 			return _stack.execute(AddTokenCommand.new(t))
 	return false
+
+
+# --- Editor de estancias (E2, ADR 037) ----------------------------------------
+
+func _toggle_editor() -> void:
+	_editor_panel.visible = _edit_btn.button_pressed
+	if _editor_panel.visible:
+		_editor_panel.refresh()
+		_status.text = tr("UI_EDIT_HELP")
+	else:
+		_editor_panel.select_tool("")
+		_view.edit_tool = ""
+	_fit.call_deferred()
+
+
+## Crea una estancia en blanco (EST G3) de ese tamaño y rejilla, con el
+## sistema activo, y la abre para editarla. true si se generó.
+func new_blank_room(width: int, height: int, grid: String) -> bool:
+	var p: SystemProfile = _current_profile()
+	if p == null:
+		return false
+	var sc: SeedCode = SeedCode.create(p.seed_code, "EST", 3, {"width": width, "height": height, "grid": grid}, 0)
+	if not sc.is_valid():
+		_status.text = tr(sc.error).replace("{param}", sc.error_field)
+		return false
+	_code_edit.text = sc.encode()
+	_generate_from_text()
+	return _doc != null and _doc.seed_code == sc.encode()
 
 
 # --- Guardar y abrir mapas (ADR 036) ------------------------------------------
@@ -1257,6 +1314,11 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	if k == null or not k.pressed:
 		return
 	if not k.ctrl_pressed:
+		# R gira el objeto que se va a colocar en el editor de estancias.
+		if k.keycode == KEY_R and _view.edit_tool.begins_with("object:"):
+			_editor_panel.rotate()
+			get_viewport().set_input_as_handled()
+			return
 		# Teclas de cámara y de 1ª persona, solo con la vista 3D activa.
 		if _view3d != null and _view3d.active:
 			_view3d.process_input(k)
