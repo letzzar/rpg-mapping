@@ -368,7 +368,9 @@ func refresh() -> void:
 	if _room_opt.item_count > 0:
 		_room_opt.select(sel)
 	_show_room()
-	_check.text = check_text()
+	# La comprobación recorre todo el mapa: solo con el panel a la vista (en
+	# el mundo son dos millones de casillas y tardaba segundos al abrirlo).
+	_check.text = check_text() if is_visible_in_tree() else ""
 
 
 func _show_room() -> void:

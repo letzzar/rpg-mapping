@@ -1,5 +1,30 @@
 # SESSION_HANDOFF — RPG Mapping
 
+## Última sesión: 2026-11-27 (14.ª, octava parte) — F5 cerrado y F6 (mundo, región, impresión)
+Tests: **350/350 en escritorio, en inglés y en el navegador** (el de rendimiento del mundo 2048×1024 también pasa en web: < 10 s). 69 seeds doradas (51 de antes sin cambios + 18 de MUN/REG).
+
+### Hecho
+- **F5 (ADR 041 y 043)**: modelos de los 32 muebles (`data/models/objects.json`), texturas procedurales en el shader (losas, piedra, madera, hierba, agua), 16 enemigos tipo con 4 cuerpos nuevos, fichas que andan por la ruta en 3D y figuras que respiran. Solo queda, si Víctor lo autoriza, descargar modelos CC0 con esqueleto.
+- **Impresión (ADR 042)**: "Imprimir (PDF)", A4 o Carta, casilla de 1 pulgada o 25 mm, orientación automática, marcas y etiqueta por hoja, roca en gris claro. PDF propio (`PdfWriter`), comprobado con pypdf.
+- **F6 (ADR 044)**: generadores de `cartografo` (nota abajo) y su vista: el mundo se dibuja como imagen (un píxel por casilla: bioma, relieve, ríos, caminos, fronteras), la región por hexágonos con ríos, caminos, montañas y bosques; marcadores de asentamientos y lugares que se ven a cualquier zoom; clic = qué hay en la casilla; regla en km/mi; doble clic en el mundo = su región; en la región = asentamiento o mazmorra; lugares sin plano solo se describen. El mundo no tiene 3D ni niebla (demasiadas casillas).
+- Rendimiento: abrir el mundo grande pasó de 14,5 s a unos 5 s (3,7 generar + 0,6 imagen + 0,8 primer dibujo): el panel del editor comprobaba la conectividad de 2 millones de casillas aunque estuviera cerrado.
+
+### Siguiente paso
+1. **Que Víctor apruebe los esquemas de MUN G1, REG G1 y REG G2** (PROYECTO §6.1 y §6.2); hasta entonces sus seeds doradas se pueden regrabar.
+2. Probar el modo proyectado con proyector; imagen Docker al final.
+
+### Limitaciones conocidas (F6)
+- En el mundo, ríos, reinos y caminos no cruzan el meridiano 0; sin puertos ni rutas marítimas. Sin 3D del mundo (sí de la región).
+- Los encuentros por bioma (`RegEncounters`) tienen datos y textos pero aún no botón en la interfaz.
+- Las regiones no tienen niebla ni guardado propio salvo en el recorrido (se regeneran al vuelo).
+
+## Nota de `cartografo` (2026-11-26): F6, MUN G1 y REG G1/G2
+- **Generadores nuevos** (esquemas **propuestos, pendientes de aprobar por Víctor**; detalle en PROYECTO §6.1 y §6.2): `MUN G1` (mundo = planeta entero, 4 resoluciones, defecto 2048×1024 = 12 mi/casilla), `REG G1` (hexcrawl independiente) y `REG G2` (región de un mundo; campos 0-8 = los de MUN G1, + rx, ry, grid, villages, pois).
+- **Modelo**: capas opcionales `MapLevel.biome/elevation/features` (`Biome`, `GeoLayers`) y `MapChild.label`, que solo se serializan si no están vacías: las 51 seeds doradas anteriores no cambian. Ruido propio en `core/noise/lattice_noise.gd`. `MapNavigator.enter` sitúa al grupo en la zona `entrance` si la casilla de llegada no es transitable (puntos de interés con MAZ). `Units.scale_cell_mm()`.
+- **Tiempos (escritorio)**: MUN large 2048×1024 ≈ 3,5 s (criterio F6 < 10 s), su `content_hash()` ≈ 2 s; small 0,3 s; REG G1 32×24 ≈ 35 ms, 64×64 ≈ 0,3 s; REG G2 ≈ 30 ms con el mundo en caché. Web: sin medir.
+- **Seeds doradas nuevas (18)**: MUN `RPGM1-DND5-MUN-G1-5-H8ZJ3HXN-Z`, `RPGM1-DND5-MUN-G1-3Y2X-KG6M9RFJ-2`, `RPGM1-DND5-MUN-G1-QX06TD-M6SC7N75-J`, `RPGM1-DND5-MUN-G1-6-PZGN2RXA-G`, `RPGM1-DND5-MUN-G1-65B3ZGY-R3ZYW4HM-Q`, `RPGM1-DND5-MUN-G1-0-T5FABSVQ-B` (large), `RPGM1-PF2E-MUN-G1-JVX-H00128HK-X`; REG G1 `RPGM1-DND5-REG-G1-0-HW0DBRD2-1`, `…-77KS-KAYDXW0J-V`, `…-R04FM2-M2GA1850-K`, `…-430GVC-P6RV3CDH-9`, `…-56MXY-RB1C5GP2-0`; REG G2 `RPGM1-DND5-REG-G2-3HK8V5E005-H8ZJ3HXN-B` y 5 más (ver golden_seeds.txt). Mientras el esquema no esté aprobado se pueden regrabar; al aprobarlo quedan congeladas.
+- Pendiente: vistas (colores por bioma, ríos, caminos, fronteras), textos i18n (BIOME_*, POI_*, ENC_*, ROOM_KIND_KINGDOM, SETTLEMENT_*), botón de "entrar en la región" (`RegGeneratorG2.region_child`), medir en web, ADR en §17.
+
 ## Última sesión: 2026-11-26 (14.ª, séptima parte) — Editor de estancias E4
 Tests: **326/326 en escritorio, en inglés y en el navegador** (3 nuevos en `test_room_override.gd`).
 

@@ -9,7 +9,10 @@ extends Control
 ## La interfaz se construye por código para mantener la escena mínima. Todos
 ## los textos salen de i18n/strings.csv.
 
-const SCALES: Array[String] = ["MAZ", "EST", "EDI", "ALD"]
+const SCALES: Array[String] = ["MAZ", "EST", "EDI", "ALD", "REG", "MUN"]
+## Mapas con más casillas que esto (el mundo) no se ven en 3D ni calculan
+## visión: son demasiadas casillas para hacerlo por casilla (ADR 044).
+const HUGE_MAP_CELLS: int = 200000
 const GEN: int = 1
 const UNIT_OPTIONS: Array[String] = ["UI_UNITS_METRIC", "UI_UNITS_METRIC_EXACT", "UI_UNITS_IMPERIAL"]
 const GRID_OPTIONS: Array[String] = ["square", "hex_flat", "hex_pointy"]
@@ -448,8 +451,16 @@ func _generate_random() -> void:
 	var p: SystemProfile = _current_profile()
 	if p == null:
 		return
-	var params: Dictionary = {"grid": GRID_OPTIONS[maxi(0, _grid_opt.selected)]}
-	var sc: SeedCode = SeedCode.create(p.seed_code, SCALES[maxi(0, _scale_opt.selected)], GEN, params, SeedCode.random_app_seed())
+	var scale_id: String = SCALES[maxi(0, _scale_opt.selected)]
+	var grid: String = GRID_OPTIONS[maxi(0, _grid_opt.selected)]
+	var params: Dictionary = {"grid": grid}
+	# El mundo no tiene rejilla propia (la de sus regiones es otro campo) y
+	# una región es siempre hexagonal.
+	if scale_id == "MUN":
+		params = {}
+	elif scale_id == "REG":
+		params = {"grid": grid} if grid != "square" else {}
+	var sc: SeedCode = SeedCode.create(p.seed_code, scale_id, GEN, params, SeedCode.random_app_seed())
 	if not sc.is_valid():
 		_status.text = tr(sc.error).replace("{param}", sc.error_field)
 		return
@@ -479,6 +490,24 @@ func _generate_from_text() -> void:
 ## y población derivada (ADR 027) y cómo entrar en los edificios.
 func _map_summary(doc: MapDocument) -> String:
 	var parsed: SeedCode = SeedCode.parse(doc.seed_code)
+	# Mundo o región (F6): tamaño, casilla, reinos y asentamientos.
+	if parsed.is_valid() and (parsed.scale == "MUN" or parsed.scale == "REG"):
+		var lvl: MapLevel = doc.level(0)
+		var kingdoms: int = 0
+		for r: MapRoom in lvl.rooms:
+			if r.kind == "kingdom":
+				kingdoms += 1
+		var towns: int = 0
+		for ch: MapChild in lvl.children:
+			if not ch.kind.begins_with("poi_"):
+				towns += 1
+		var prof: SystemProfile = _current_profile()
+		var cell: String = Units.format_distance(Units.scale_cell_mm(parsed.scale, doc.width(), prof.cell_ft if prof != null else 5),
+			_view.unit_system, _view.unit_mode)
+		return tr("UI_GEO_WORLD_INFO" if parsed.scale == "MUN" else "UI_GEO_REGION_INFO") \
+			.replace("{w}", str(doc.width())).replace("{h}", str(doc.height())).replace("{cell}", cell) \
+			.replace("{kingdoms}", str(kingdoms)).replace("{settlements}", str(towns)) \
+			.replace("{pois}", str(lvl.children.size() - towns)).replace("{code}", doc.seed_code)
 	if parsed.is_valid() and parsed.scale == AldGeneratorG1.SCALE:
 		var size_id: String = parsed.params.get("size", "")
 		return tr("UI_SETTLEMENT_INFO").replace("{size}", tr("SETTLEMENT_" + size_id.to_upper())) \
@@ -494,6 +523,15 @@ func _map_summary(doc: MapDocument) -> String:
 ## en la raíz, el tamaño del asentamiento o la escala.
 func _frame_name(f: MapNavigator.Frame) -> String:
 	if f.child != null:
+		# Asentamiento o mazmorra del mundo o de una región (F6): su nombre.
+		if not f.child.label.is_empty():
+			return f.child.label
+		if f.child.kind == "region":
+			return tr("REGION")
+		if ["hamlet", "village", "town", "city"].has(f.child.kind):
+			return tr("SETTLEMENT_" + f.child.kind.to_upper())
+		if f.child.kind.begins_with("poi_"):
+			return tr(f.child.kind.to_upper())
 		# Estancia de edificio (paso "misma casilla") o edificio de una aldea.
 		return tr(("ROOM_KIND_" if f.keep_positions else "BUILDING_") + f.child.kind.to_upper())
 	var parsed: SeedCode = SeedCode.parse(f.doc.seed_code)
@@ -538,6 +576,9 @@ func _set_document(doc: MapDocument, stack: CommandStack, level: int) -> void:
 		_stack.changed.connect(_refresh_buttons)
 	_view.command_stack = _stack
 	_view.document = doc
+	var prof: SystemProfile = _current_profile()
+	_view.scale_cell_mm = Units.scale_cell_mm(doc.scale, doc.width(), prof.cell_ft) \
+		if prof != null and (doc.scale == "MUN" or doc.scale == "REG") else 0
 	_view3d.command_stack = _stack
 	_view3d.profile = _current_profile()
 	_view3d.document = doc
@@ -629,6 +670,15 @@ func _on_cell_activated(cell: Vector2i) -> void:
 		_client.send_ping(_view.level_index, cell)
 		return
 	var child: MapChild = _doc.level(_view.level_index).child_at(cell)
+	# Punto de interés sin mapa (ruinas, torre…): solo se dice qué es.
+	if child != null and child.seed_code.is_empty():
+		_status.text = tr("UI_GEO_POI").replace("{name}", child.label if not child.label.is_empty() else tr(child.kind.to_upper())) \
+			.replace("{kind}", tr(child.kind.to_upper()))
+		return
+	# Mundo (F6): fuera de un asentamiento, se entra en la región de esa
+	# casilla (se genera al vuelo; no se guardan las 11 000 del planeta).
+	if child == null and _doc.scale == "MUN":
+		child = RegGeneratorG2.region_child(_doc, cell)
 	# Estancia de un edificio (EST G2, ADR 029): se calcula al vuelo, el
 	# documento EDI no guarda hijos. Es el mismo sitio a la misma escala, así
 	# que las fichas que ya están en ella pasan a su misma casilla.
@@ -857,6 +907,11 @@ func _party_focus(level: int) -> Rect2i:
 func _apply_view() -> int:
 	var t0: int = Time.get_ticks_msec()
 	var sel: int = _view_opt.selected
+	# El mundo entero no se puede construir en 3D casilla a casilla.
+	var refused_3d: bool = sel != VIEW_2D and _doc != null and _doc.grid.cell_count() > HUGE_MAP_CELLS
+	if refused_3d:
+		_view_opt.select(VIEW_2D)
+		sel = VIEW_2D
 	_view.visible = sel == VIEW_2D
 	_view3d_box.visible = sel != VIEW_2D
 	_view3d.active = sel != VIEW_2D
@@ -880,7 +935,7 @@ func _apply_view() -> int:
 			if _client != null or _players_view():
 				_fit()
 	else:
-		_status.text = tr("UI_HELP")
+		_status.text = tr("UI_GEO_NO_3D") if refused_3d else tr("UI_HELP")
 	return Time.get_ticks_msec() - t0
 
 
@@ -934,6 +989,11 @@ func _refresh_vision() -> void:
 	_vision_dirty = false
 	if _doc == null:
 		return
+	# El mundo: sin niebla ni visión (dos millones de casillas).
+	if _doc.grid.cell_count() > HUGE_MAP_CELLS:
+		_view.dm_view = true
+		_view.set_fog(false, PackedByteArray(), PackedByteArray())
+		return
 	var lvl_i: int = _view.level_index
 	if _client != null:
 		# Modo jugador: lo visible lo calcula el servidor (niebla filtrada en
@@ -971,6 +1031,8 @@ func _on_user_command() -> void:
 ## mira el DM: antes solo se exploraba el mostrado y su visión se perdía.
 func _explore_level(lvl_i: int) -> void:
 	if _doc == null or _stack == null or _client != null or _doc.level(lvl_i) == null:
+		return
+	if _doc.grid.cell_count() > HUGE_MAP_CELLS:
 		return
 	var r: PartyVision.Result = PartyVision.compute(_doc, lvl_i, _current_profile(), _vision_options())
 	_stack.execute_attached(ExploreCommand.from_visible(_doc, lvl_i, PartyVision.VIEWER_PARTY, r.visible))

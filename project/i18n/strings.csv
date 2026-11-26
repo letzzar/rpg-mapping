@@ -565,3 +565,79 @@ UI_PRINT_PAGE_LABEL,"Hoja {n}/{total} · fila {row} de {rows}, columna {col} de 
 UI_PRINT_WORKING,Generando el PDF…,Generating the PDF…
 UI_PRINT_FAILED,No se pudo generar el PDF.,Could not generate the PDF.
 UI_PRINT_DONE,PDF guardado en {path} ({n} hojas).,PDF saved to {path} ({n} sheets).
+UI_SCALE_REG,Región,Region
+UI_SCALE_MUN,Mundo,World
+REGION,Región,Region
+ROOM_KIND_KINGDOM,Reino,Kingdom
+UI_GEO_WORLD_INFO,"Mundo de {w}×{h} casillas de {cell}: {kingdoms} reinos, {settlements} asentamientos, {pois} lugares de interés · doble clic en un asentamiento para entrar o en cualquier otra casilla para ver su región · clic para saber qué hay · {code}","World of {w}×{h} cells of {cell}: {kingdoms} kingdoms, {settlements} settlements, {pois} points of interest · double-click a settlement to enter it or any other cell to see its region · click to see what is there · {code}"
+UI_GEO_REGION_INFO,"Región de {w}×{h} hexágonos de {cell}: {settlements} asentamientos, {pois} lugares de interés · doble clic en un asentamiento o una mazmorra para entrar · clic para saber qué hay · {code}","Region of {w}×{h} hexes of {cell}: {settlements} settlements, {pois} points of interest · double-click a settlement or a dungeon to enter · click to see what is there · {code}"
+UI_GEO_POI,{name} ({kind}): un lugar para tu historia; no tiene plano.,{name} ({kind}): a place for your story; it has no map.
+UI_GEO_NO_3D,"El mapa del mundo solo se ve en 2D (tiene demasiadas casillas); entra en una región o un asentamiento para verlo en 3D.","The world map is 2D only (it has too many cells); enter a region or a settlement to see it in 3D."
+UI_GEO_ALTITUDE,{d} de altitud,{d} high
+UI_GEO_DEPTH,{d} de profundidad,{d} deep
+UI_GEO_RIVER_1,arroyo,stream
+UI_GEO_RIVER_2,río,river
+UI_GEO_RIVER_3,gran río,great river
+UI_GEO_ROAD,camino,road
+BIOME_OCEAN,Océano,Ocean
+BIOME_SHALLOW_SEA,Mar somero,Shallow sea
+BIOME_LAKE,Lago,Lake
+BIOME_SEA_ICE,Banquisa,Sea ice
+BIOME_ICE,Hielo,Ice
+BIOME_TUNDRA,Tundra,Tundra
+BIOME_TAIGA,Taiga,Taiga
+BIOME_COLD_DESERT,Estepa fría,Cold steppe
+BIOME_GRASSLAND,Pradera,Grassland
+BIOME_SHRUBLAND,Matorral,Shrubland
+BIOME_TEMPERATE_FOREST,Bosque templado,Temperate forest
+BIOME_TEMPERATE_RAINFOREST,Pluvisilva templada,Temperate rainforest
+BIOME_DESERT,Desierto,Desert
+BIOME_SAVANNA,Sabana,Savanna
+BIOME_TROPICAL_FOREST,Bosque tropical,Tropical forest
+BIOME_RAINFOREST,Selva,Rainforest
+BIOME_WETLAND,Humedal,Wetland
+BIOME_MOUNTAIN,Montaña,Mountain
+POI_RUINS,Ruinas,Ruins
+POI_TOWER,Torre,Tower
+POI_SHRINE,Santuario,Shrine
+POI_MONUMENT,Monumento,Monument
+POI_DUNGEON,Mazmorra,Dungeon
+POI_CAVE,Cueva,Cave
+POI_MINE,Mina,Mine
+POI_LAIR,Guarida,Lair
+POI_CAMP,Campamento,Camp
+POI_STANDING_STONES,Círculo de piedras,Standing stones
+POI_OASIS,Oasis,Oasis
+POI_SHIPWRECK,Pecio,Shipwreck
+POI_TOMB,Tumba,Tomb
+HAMLET,Caserío,Hamlet
+VILLAGE,Aldea,Village
+TOWN,Pueblo,Town
+CITY,Ciudad,City
+ENC_TRAVELERS,Viajeros,Travelers
+ENC_MERCHANTS,Mercaderes,Merchants
+ENC_PATROL,Patrulla,Patrol
+ENC_BANDITS,Bandidos,Bandits
+ENC_PREDATORS,Depredadores,Predators
+ENC_HERD,Manada,Herd
+ENC_ABANDONED_CAMP,Campamento abandonado,Abandoned camp
+ENC_STORM,Tormenta,Storm
+ENC_STRANGE_TRACKS,Huellas extrañas,Strange tracks
+ENC_NOMADS,Nómadas,Nomads
+ENC_HUNTERS,Cazadores,Hunters
+ENC_HERMIT,Ermitaño,Hermit
+ENC_LOST_TRAVELER,Viajero perdido,Lost traveler
+ENC_BLIZZARD,Ventisca,Blizzard
+ENC_CREVASSE,Grieta,Crevasse
+ENC_SANDSTORM,Tormenta de arena,Sandstorm
+ENC_MIRAGE,Espejismo,Mirage
+ENC_VENOMOUS_CREATURES,Bichos venenosos,Venomous creatures
+ENC_HIDDEN_RUINS,Ruinas ocultas,Hidden ruins
+ENC_BOG,Ciénaga,Bog
+ENC_WILL_O_WISP_LIGHTS,Luces errantes,Will-o'-wisp lights
+ENC_FOG,Niebla,Fog
+ENC_ROCKSLIDE,Desprendimiento,Rockslide
+ENC_MINERS,Mineros,Miners
+ENC_SEA_RAIDERS,Saqueadores del mar,Sea raiders
+ENC_SHIPWRECK_DEBRIS,Restos de un naufragio,Shipwreck debris
+ENC_SEA_BEAST,Bestia marina,Sea beast

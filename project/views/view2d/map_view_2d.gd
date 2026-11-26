@@ -95,6 +95,9 @@ var background: Color = COL_BG
 ## con miniaturas físicas, lo ya recorrido tiene que leerse bien).
 var explored_veil: float = 0.65
 var grid_color: Color = COL_GRID
+## Lado de una casilla en mm cuando no es la táctica (mundo y región,
+## Units.scale_cell_mm); 0 = la del perfil.
+var scale_cell_mm: int = 0
 ## Impresión: la roca maciza y el vacío en gris muy claro (ahorra tinta).
 var ink_saver: bool = false
 ## Vista del DM: muestra puertas secretas y trampas ocultas.
@@ -178,13 +181,24 @@ func _on_doc_changed(_level: int, _layer: String) -> void:
 
 
 ## Centra el mapa en un rectángulo de pantalla (coordenadas del padre).
+## Zoom mínimo: el de siempre o, en mapas enormes (el mundo), el que deja
+## verlo entero en una pantalla de unos 800 × 600 px y la mitad.
+func _zoom_min() -> float:
+	if document == null:
+		return ZOOM_MIN
+	var size: Vector2 = document.grid.map_pixel_size(cell_px)
+	if size.x <= 0.0 or size.y <= 0.0:
+		return ZOOM_MIN
+	return minf(ZOOM_MIN, minf(800.0 / size.x, 600.0 / size.y) * 0.5)
+
+
 func fit_to(rect: Rect2) -> void:
 	if document == null:
 		return
 	var size: Vector2 = document.grid.map_pixel_size(cell_px)
 	if size.x <= 0.0 or size.y <= 0.0:
 		return
-	var z: float = clampf(minf(rect.size.x / size.x, rect.size.y / size.y) * 0.95, ZOOM_MIN, ZOOM_MAX)
+	var z: float = clampf(minf(rect.size.x / size.x, rect.size.y / size.y) * 0.95, _zoom_min(), ZOOM_MAX)
 	scale = Vector2(z, z)
 	position = rect.position + (rect.size - size * z) * 0.5
 
@@ -198,7 +212,7 @@ func fit_region(cells: Rect2i, rect: Rect2) -> void:
 	var a: Vector2 = g.cell_to_pixel(cells.position, cell_px) - Vector2(cell_px, cell_px) * 1.5
 	var b: Vector2 = g.cell_to_pixel(cells.end - Vector2i.ONE, cell_px) + Vector2(cell_px, cell_px) * 1.5
 	var size: Vector2 = b - a
-	var z: float = clampf(minf(rect.size.x / size.x, rect.size.y / size.y), ZOOM_MIN, ZOOM_MAX)
+	var z: float = clampf(minf(rect.size.x / size.x, rect.size.y / size.y), _zoom_min(), ZOOM_MAX)
 	scale = Vector2(z, z)
 	position = rect.position + rect.size * 0.5 - (a + size * 0.5) * z
 
@@ -211,6 +225,18 @@ func _draw() -> void:
 	var g: GridGeometry = document.grid
 	var lvl: MapLevel = document.level(level_index)
 	draw_rect(Rect2(Vector2.ZERO, g.map_pixel_size(cell_px)), background)
+	# Mundo o región (F6, ADR 044): biomas, relieve, ríos, caminos, reinos y
+	# marcadores; sin muros, objetos ni niebla por casilla (un mundo tiene
+	# dos millones de casillas).
+	if lvl.has_geo_layers():
+		_draw_geo(g, lvl)
+		_draw_geo_children(g, lvl)
+		_draw_template(g)
+		_draw_overlays(g)
+		if show_tokens:
+			_draw_tokens(g)
+		_draw_pings(g)
+		return
 	# Mapa importado (UVTT): su imagen de fondo sustituye al color del suelo.
 	var bg: Texture2D = _background_texture() if level_index == 0 else null
 	if bg != null:
@@ -506,6 +532,194 @@ func _draw_object_label(font: Font, g: GridGeometry, cells: Array[Vector2i], lab
 
 ## Nombre del tipo de cada mapa hijo (edificios de un asentamiento) centrado
 ## en su huella, con la letra que quepa en su ancho.
+# --- Mundo y región (F6, ADR 044) ---------------------------------------------
+
+## Colores por bioma (Biome.*), los sugeridos por `cartografo`.
+const BIOME_COLORS: Array[Color] = [
+	Color8(28, 58, 110), Color8(60, 110, 160), Color8(70, 140, 190), Color8(225, 235, 245),
+	Color8(245, 248, 252), Color8(170, 175, 150), Color8(60, 100, 70), Color8(190, 180, 140),
+	Color8(150, 190, 90), Color8(165, 160, 90), Color8(70, 140, 60), Color8(40, 110, 80),
+	Color8(230, 205, 140), Color8(200, 190, 100), Color8(90, 150, 50), Color8(30, 110, 40),
+	Color8(80, 120, 100), Color8(130, 115, 100),
+]
+const COL_RIVER: Color = Color8(40, 80, 200)
+const COL_ROAD: Color = Color8(140, 40, 20)
+const COL_BORDER: Color = Color8(60, 20, 40)
+## Tamaño (en px de pantalla) mínimo de los marcadores, para verlos con el
+## mundo entero en pantalla.
+const MARKER_MIN_PX: float = 5.0
+var _geo_tex: ImageTexture = null
+var _geo_key: String = ""
+
+
+## Color de una casilla del mundo: su bioma, más oscuro cuanto más alto.
+static func geo_cell_color(lvl: MapLevel, i: int) -> Color:
+	var b: int = lvl.biome[i]
+	var col: Color = BIOME_COLORS[b] if b >= 0 and b < BIOME_COLORS.size() else Color.MAGENTA
+	if i < lvl.elevation.size():
+		var e: int = lvl.elevation[i]
+		if GeoLayers.is_land(e):
+			col = col.darkened(clampf(float(e - GeoLayers.SEA_LEVEL) / 300.0, 0.0, 0.5))
+	return col
+
+
+## Imagen del nivel, un píxel por casilla (rejilla cuadrada): bioma y
+## relieve, ríos, caminos y fronteras entre reinos.
+static func geo_image(g: GridGeometry, lvl: MapLevel) -> Image:
+	# Bytes RGB a mano (set_pixel por casilla tardaba segundos en el mundo):
+	# tabla de colores por (bioma, altura) y mezclas solo donde hace falta.
+	var n: int = g.cell_count()
+	var data: PackedByteArray = PackedByteArray()
+	data.resize(n * 3)
+	var has_e: bool = lvl.elevation.size() == n
+	var has_f: bool = lvl.features.size() == n
+	var lut: Dictionary[int, Color] = {}
+	var w: int = g.width
+	var biome: PackedByteArray = lvl.biome
+	var elev: PackedByteArray = lvl.elevation
+	var feats: PackedByteArray = lvl.features
+	var rooms: PackedInt32Array = lvl.room_ids
+	for i: int in n:
+		var e: int = elev[i] if has_e else 0
+		var key: int = biome[i] * 256 + e
+		var col: Color
+		if lut.has(key):
+			col = lut[key]
+		else:
+			col = geo_cell_color(lvl, i)
+			lut[key] = col
+		if has_f and feats[i] != 0:
+			var f: int = feats[i]
+			var rc: int = GeoLayers.river_class(f)
+			if rc > 0:
+				col = col.lerp(COL_RIVER, 0.45 + 0.18 * rc)
+			elif GeoLayers.has_road(f):
+				col = col.lerp(COL_ROAD, 0.7)
+		var rid: int = rooms[i]
+		if rid != 0:
+			var x: int = i % w
+			if (x + 1 < w and rooms[i + 1] != rid and rooms[i + 1] != 0) or (i + w < n and rooms[i + w] != rid and rooms[i + w] != 0):
+				col = col.lerp(COL_BORDER, 0.65)
+		var o: int = i * 3
+		data[o] = col.r8
+		data[o + 1] = col.g8
+		data[o + 2] = col.b8
+	return Image.create_from_data(g.width, g.height, false, Image.FORMAT_RGB8, data)
+
+
+func _draw_geo(g: GridGeometry, lvl: MapLevel) -> void:
+	if g.kind == "square":
+		var key: String = "%d:%d:%d" % [document.get_instance_id(), level_index, document.revision]
+		if _geo_tex == null or _geo_key != key:
+			_geo_tex = ImageTexture.create_from_image(geo_image(g, lvl))
+			_geo_key = key
+		texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		draw_texture_rect(_geo_tex, Rect2(Vector2.ZERO, g.map_pixel_size(cell_px)), false)
+		return
+	# Hexágonos (regiones, pocas casillas): casilla a casilla, con ríos y
+	# caminos como líneas entre centros y símbolos de montaña y bosque.
+	var has_f: bool = lvl.features.size() == g.cell_count()
+	for i: int in g.cell_count():
+		var c: Vector2i = g.cell_at(i)
+		draw_colored_polygon(g.cell_polygon(c, cell_px), geo_cell_color(lvl, i))
+		if show_grid:
+			_draw_outline(g.cell_polygon(c, cell_px), Color(0, 0, 0, 0.12), -1.0)
+	for i: int in g.cell_count():
+		var c: Vector2i = g.cell_at(i)
+		var p: Vector2 = g.cell_to_pixel(c, cell_px)
+		var b: int = lvl.biome[i]
+		if b == Biome.MOUNTAIN or (i < lvl.elevation.size() and lvl.elevation[i] >= GeoLayers.MOUNTAIN_E):
+			var r: float = cell_px * 0.32
+			draw_colored_polygon(PackedVector2Array([p + Vector2(-r, r * 0.6), p + Vector2(0, -r), p + Vector2(r, r * 0.6)]), Color(0.32, 0.27, 0.22, 0.75))
+		elif Biome.is_forest(b):
+			for o: Vector2 in [Vector2(-0.18, 0.05), Vector2(0.16, -0.1), Vector2(0.05, 0.22)]:
+				draw_circle(p + o * cell_px, cell_px * 0.11, Color(0.1, 0.3, 0.12, 0.7))
+		if not has_f:
+			continue
+		var f: int = lvl.features[i]
+		var rc: int = GeoLayers.river_class(f)
+		var dir: int = GeoLayers.flow_dir(f)
+		if rc > 0 and dir >= 0:
+			var n: Vector2i = g.neighbor(c, dir)
+			if g.in_bounds(n):
+				draw_line(p, g.cell_to_pixel(n, cell_px), COL_RIVER, cell_px * (0.06 + 0.05 * rc))
+		if GeoLayers.has_road(f):
+			# Unir con TODOS los vecinos con camino hacía redes de triángulos:
+			# cada casilla se une como mucho con los dos que mejor siguen el
+			# camino (los más opuestos entre sí).
+			var ends: Array[Vector2] = []
+			for d: int in g.direction_count():
+				var n2: Vector2i = g.neighbor(c, d)
+				if g.in_bounds(n2) and GeoLayers.has_road(lvl.features[g.index_of(n2)]):
+					ends.append(g.cell_to_pixel(n2, cell_px))
+			if ends.size() > 2:
+				var best: Array[Vector2] = [ends[0], ends[1]]
+				var best_dot: float = 2.0
+				for a: int in ends.size():
+					for bb: int in range(a + 1, ends.size()):
+						var dd: float = (ends[a] - p).normalized().dot((ends[bb] - p).normalized())
+						if dd < best_dot:
+							best_dot = dd
+							best = [ends[a], ends[bb]]
+				ends = best
+			for e2: Vector2 in ends:
+				draw_line(p, e2, COL_ROAD, cell_px * 0.08)
+
+
+## "Bosque templado · 320 m · Reino de X · río · camino" de una casilla.
+func geo_cell_text(cell: Vector2i) -> String:
+	var lvl: MapLevel = document.level(level_index)
+	var i: int = document.grid.index_of(cell)
+	var b: int = lvl.biome[i]
+	var parts: PackedStringArray = [tr("BIOME_" + Biome.IDS[b].to_upper()) if b >= 0 and b < Biome.IDS.size() else "?"]
+	if i < lvl.elevation.size():
+		var m: int = GeoLayers.meters(lvl.elevation[i])
+		var dist: String = Units.format_distance(absi(m) * 1000, unit_system, unit_mode)
+		parts.append(tr("UI_GEO_ALTITUDE" if m >= 0 else "UI_GEO_DEPTH").replace("{d}", dist))
+	var r: MapRoom = lvl.room(lvl.room_ids[i]) if lvl.room_ids[i] != 0 else null
+	if r != null and not r.label.is_empty():
+		parts.append(r.label)
+	if i < lvl.features.size():
+		var f: int = lvl.features[i]
+		if GeoLayers.river_class(f) > 0:
+			parts.append(tr("UI_GEO_RIVER_%d" % GeoLayers.river_class(f)))
+		if GeoLayers.has_road(f):
+			parts.append(tr("UI_GEO_ROAD"))
+	return " · ".join(parts)
+
+
+## Asentamientos y puntos de interés: marcador que no baja de unos píxeles
+## de pantalla y nombre cuando hay sitio (ciudades siempre).
+func _draw_geo_children(g: GridGeometry, lvl: MapLevel) -> void:
+	if lvl.children.is_empty():
+		return
+	var font: Font = ThemeDB.fallback_font
+	var k: float = 1.0 / maxf(scale.x, 0.0001)
+	var cell_screen: float = cell_px * scale.x
+	for ch: MapChild in lvl.children:
+		var center: Vector2 = g.cell_to_pixel(ch.rect.position, cell_px)
+		if ch.rect.size.x > 1 or ch.rect.size.y > 1:
+			center = (center + g.cell_to_pixel(ch.rect.end - Vector2i(1, 1), cell_px)) * 0.5
+		var poi: bool = ch.kind.begins_with("poi_")
+		var rank: int = ["hamlet", "village", "town", "city"].find(ch.kind)
+		var r: float = maxf(cell_px * (0.3 + 0.12 * maxi(rank, 0)), MARKER_MIN_PX * k * (1.0 + 0.3 * maxi(rank, 0)))
+		if poi:
+			var d: float = r * 0.9
+			draw_colored_polygon(PackedVector2Array([center + Vector2(0, -d), center + Vector2(d, 0), center + Vector2(0, d), center + Vector2(-d, 0)]),
+				Color("5a1a6a") if not ch.seed_code.is_empty() else Color("6a5a3a"))
+		else:
+			draw_circle(center, r, Color("2b1d14"))
+			draw_circle(center, r * 0.7, Color("fbf0d2") if rank < 3 else Color("d9b03c"))
+		var show_label: bool = rank == 3 or (rank == 2 and cell_screen >= 2.0) or cell_screen >= 6.0
+		if not show_label:
+			continue
+		var label: String = ch.label if not ch.label.is_empty() else tr(ch.kind.to_upper())
+		var fs: int = maxi(8, int(maxf(cell_px * 0.6, 12.0 * k)))
+		var at: Vector2 = center + Vector2(r * 1.3, fs * 0.35)
+		draw_string_outline(font, at, label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, maxi(2, fs / 5), Color("fbf0d2"))
+		draw_string(font, at, label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color("2b1d14"))
+
+
 func _draw_children(g: GridGeometry, lvl: MapLevel) -> void:
 	if lvl.children.is_empty():
 		return
@@ -624,6 +838,10 @@ func _draw_label(font: Font, at: Vector2, text: String, col: Color) -> void:
 
 func _ruler_text() -> String:
 	var ft: int = MovementCost.measure_ft(profile, document.grid, _ruler_from, _ruler_to, diagonal_variant)
+	# Mundo y región (F6): la casilla no es la táctica, sino millas.
+	if scale_cell_mm > 0 and profile.cell_ft > 0:
+		var cells: int = ft / profile.cell_ft
+		return Units.format_distance(cells * scale_cell_mm, unit_system, unit_mode)
 	if profile.measure == "bands":
 		var band: String = MovementCost.band_for_ft(profile, ft)
 		return tr("BAND_" + band.to_upper()) + "  (" + _format_ft(ft) + ")"
@@ -756,6 +974,10 @@ func _on_left_press(cell: Vector2i) -> void:
 		_toggle_door(on_door)
 		return
 	var t: MapToken = _token_at(cell)
+	# Mundo o región: un clic en una casilla dice qué hay en ella.
+	if t == null and document.level(level_index).has_geo_layers() and document.grid.in_bounds(cell):
+		status_changed.emit(geo_cell_text(cell))
+		return
 	if t != null:
 		_drag_token = t.id
 		_drag_target = t.cell
@@ -1158,13 +1380,16 @@ func _door_edge_near(p: Vector2, max_frac: float = DOOR_HIT_FRAC) -> int:
 
 func _zoom_at(screen_point: Vector2, factor: float) -> void:
 	var old: float = scale.x
-	var z: float = clampf(old * factor, ZOOM_MIN, ZOOM_MAX)
+	var z: float = clampf(old * factor, _zoom_min(), ZOOM_MAX)
 	if is_equal_approx(z, old):
 		return
 	var local: Vector2 = get_global_transform().affine_inverse() * screen_point
 	scale = Vector2(z, z)
 	# Mantiene bajo el puntero el mismo punto del mapa.
 	position = get_parent_global_mouse(screen_point) - local * z
+	# En el mundo, marcadores y nombres dependen del zoom.
+	if document != null and document.level(level_index) != null and document.level(level_index).has_geo_layers():
+		queue_redraw()
 
 
 func get_parent_global_mouse(screen_point: Vector2) -> Vector2:
