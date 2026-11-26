@@ -11,6 +11,9 @@ Tests: **259/259 en escritorio (33097 asserts) y 259/259 en el navegador** (11 n
 - Vistas: figura 3D procedural (`CharacterModelBuilder`, una malla por aspecto con caché) sobre una peana del color del bando; en 2D, retrato o silueta (`TokenPainter`).
 - UI: botón "Personaje…" (`CharacterDesigner`: edita la ficha seleccionada o crea una), "Importar personajes" en escritorio (CSV o JSON; un JSON ajeno abre `CharacterMappingDialog`). Las fichas se colocan comprobando toda su huella (`main._place_token`).
 
+### CI de GitHub (arreglado)
+Fallaban **todos** los pushes desde el 24-11 (y llegaba un correo por cada uno). Causa: 3 tests comparaban textos en español sin fijar el idioma, y el runner de Linux arranca en inglés ("9.14 m" en vez de "9,14 m", "Building" en vez de "Edificio"…). Ahora fijan `es` en `before_all` y lo restauran. `test_uvtt` ya no deja el idioma cambiado. Comprobado en local con el idioma forzado a inglés (hook temporal de GUT): 259/259. Además, el workflow ya no corre en cambios solo de `.md`, cancela las ejecuciones superadas, tiene un límite de 20 min y usa `checkout@v5`. **Regla para tests nuevos:** si comparan textos traducidos, fijar el idioma.
+
 ### Siguiente paso
 1. Que Víctor pruebe el diseñador y la importación.
 2. F5 pendiente: modelos CC0 (necesitan descarga con permiso y registro en `assets/LICENSES.md`), esqueleto y animaciones, turnos/iniciativa (§10.3) y plantillas de área.

@@ -187,9 +187,13 @@ func test_import_errors() -> void:
 	assert_eq(UvttCodec.import_text("{}").error, "UVTT_ERR_RESOLUTION")
 	assert_eq(UvttCodec.import_text(JSON.stringify({"resolution": {"map_size": {"x": 0, "y": 5}}})).error, "UVTT_ERR_SIZE")
 	assert_eq(UvttCodec.import_text(JSON.stringify({"resolution": {"map_size": {"x": 9999, "y": 5}}})).error, "UVTT_ERR_SIZE")
+	# Se restaura el idioma: dejarlo cambiado hacía que el resultado de los
+	# tests siguientes dependiera del orden.
+	var prev: String = TranslationServer.get_locale()
+	TranslationServer.set_locale("es")
 	for k: String in ["UVTT_ERR_JSON", "UVTT_ERR_RESOLUTION", "UVTT_ERR_SIZE", "UI_UVTT_IMPORTED", "UI_UVTT_DROPPED", "UI_EXPORT_UVTT", "UI_IMPORT_UVTT"]:
-		TranslationServer.set_locale("es")
 		assert_ne(tr(k), k, k)
+	TranslationServer.set_locale(prev)
 
 
 func test_image_round_trip() -> void:

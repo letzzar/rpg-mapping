@@ -4,7 +4,15 @@ name: tests
 
 on:
   push:
+    # Un cambio solo de documentación no toca lo que se prueba.
+    paths-ignore: ['**/*.md', 'assets/icon/**', 'LICENSE']
   pull_request:
+    paths-ignore: ['**/*.md', 'assets/icon/**', 'LICENSE']
+
+# Varios pushes seguidos: solo cuenta el último (menos ejecuciones y correos).
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   GODOT_VERSION: "4.7.2"
@@ -12,8 +20,10 @@ env:
 jobs:
   unit:
     runs-on: ubuntu-latest
+    # Unos 2-3 min; sin límite, un bloqueo gastaría las 6 h por defecto.
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Descargar Godot ${{ env.GODOT_VERSION }}
         run: |

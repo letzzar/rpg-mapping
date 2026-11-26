@@ -13,6 +13,19 @@ extends GutTest
 const TYPES: PackedStringArray = ["tavern", "house", "smithy", "temple", "shop", "inn", "guardhouse"]
 const STYLES: PackedStringArray = ["human", "dwarf", "elf"]
 
+var _prev_locale: String = ""
+
+
+## Los textos esperados están en español: se fija el idioma para no depender
+## del del sistema (el CI de Linux arranca en inglés y fallaba siempre).
+func before_all() -> void:
+	_prev_locale = TranslationServer.get_locale()
+	TranslationServer.set_locale("es")
+
+
+func after_all() -> void:
+	TranslationServer.set_locale(_prev_locale)
+
 
 func after_each() -> void:
 	GeneratorRegistry.reset()
