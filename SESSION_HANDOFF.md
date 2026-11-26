@@ -13,7 +13,7 @@ Tests: **248/248 en escritorio (32745 asserts) y 248/248 en el navegador** (esca
 - Para pruebas: Chrome detiene el bucle de una página tapada por otra ventana (la conexión parecía tardar minutos). Lanzarlo con `--disable-backgrounding-occluded-windows --disable-renderer-backgrounding --disable-background-timer-throttling`. No es un fallo del juego.
 
 ### Siguiente paso
-1. Víctor probó con el móvil: **QR y táctil funcionan**. Pidió mejorar el encuadre 3D (hecho, pendiente de que lo vuelva a mirar).
+1. Víctor probó con el móvil: **QR y táctil funcionan**. Pidió mejorar el encuadre 3D: hecho y confirmado por Víctor ("ahora va bien").
 2. Pendiente de F4: imagen Docker (ADR 016, alternativa). Después, F5.
 
 ### Limitaciones conocidas (F4)
