@@ -116,22 +116,51 @@ class Geo:
 		return m
 
 
-static var _material: ShaderMaterial = null
+## Patrones de textura del shader (ADR 041).
+const PATTERN_NONE: int = 0
+const PATTERN_FLOOR: int = 1
+const PATTERN_WALLS: int = 2
+const PATTERN_DETAILS: int = 3
+
+static var _materials: Dictionary[int, ShaderMaterial] = {}
 
 
-## Material compartido (map_vertex_color.gdshader): sin luz, color por
-## vértice en sRGB, sin recorte de caras y oscurecimiento por distancia.
-static func material() -> ShaderMaterial:
-	if _material == null:
-		_material = ShaderMaterial.new()
-		_material.shader = load("res://views/view3d/map_vertex_color.gdshader")
-	return _material
+## Material (map_vertex_color.gdshader) con el patrón `pattern`: sin luz,
+## color por vértice en sRGB, sin recorte de caras y oscurecimiento por
+## distancia. Uno por patrón, compartido por todos los niveles.
+static func material(pattern: int = PATTERN_NONE) -> ShaderMaterial:
+	if not _materials.has(pattern):
+		var m: ShaderMaterial = ShaderMaterial.new()
+		m.shader = load("res://views/view3d/map_vertex_color.gdshader")
+		m.set_shader_parameter("pattern", pattern)
+		_materials[pattern] = m
+	return _materials[pattern]
+
+
+static func _all_materials() -> Array[ShaderMaterial]:
+	var out: Array[ShaderMaterial] = []
+	for p: int in [PATTERN_NONE, PATTERN_FLOOR, PATTERN_WALLS, PATTERN_DETAILS]:
+		out.append(material(p))
+	return out
 
 
 ## Oscurecimiento por distancia (m); fade_end <= fade_start lo desactiva.
 static func set_distance_fade(fade_start: float, fade_end: float) -> void:
-	material().set_shader_parameter("fade_start", fade_start)
-	material().set_shader_parameter("fade_end", fade_end)
+	for m: ShaderMaterial in _all_materials():
+		m.set_shader_parameter("fade_start", fade_start)
+		m.set_shader_parameter("fade_end", fade_end)
+
+
+## Lado de la casilla (m) para alinear las losas con la rejilla.
+static func set_cell_size(cell_m: float) -> void:
+	for m: ShaderMaterial in _all_materials():
+		m.set_shader_parameter("cell_m", cell_m)
+
+
+## Texturas activadas o no (colores lisos).
+static func set_textures(on: bool) -> void:
+	for m: ShaderMaterial in _all_materials():
+		m.set_shader_parameter("texture_strength", 1.0 if on else 0.0)
 
 
 ## Punto 3D (x, y, z) desde un punto 2D de la rejilla en metros.
@@ -179,14 +208,15 @@ static func build_level(doc: MapDocument, level_index: int, opts: Options) -> No
 	_build_edges(g, lvl, opts, factor, wall_geo)
 	_build_objects(g, lvl, opts, factor, detail_geo)
 	_build_features(g, lvl, level_index, opts, factor, detail_geo)
-	var mat: Material = material()
-	for pair: Array in [["Floor", floor_geo], ["Walls", wall_geo], ["Details", detail_geo]]:
+	set_cell_size(opts.cell_m)
+	for pair: Array in [["Floor", floor_geo, PATTERN_FLOOR], ["Walls", wall_geo, PATTERN_WALLS], ["Details", detail_geo, PATTERN_DETAILS]]:
 		var geo: Geo = pair[1]
 		if geo.is_empty():
 			continue
+		var pattern: int = pair[2]
 		var mi: MeshInstance3D = MeshInstance3D.new()
 		mi.name = pair[0]
-		mi.mesh = geo.to_mesh(mat)
+		mi.mesh = geo.to_mesh(material(pattern))
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		root.add_child(mi)
 	return root
@@ -409,12 +439,50 @@ static func _build_objects(g: GridGeometry, lvl: MapLevel, opts: Options, factor
 		if f <= 0.0 or cells.is_empty():
 			continue
 		var center: Vector2 = (lo + hi) * 0.5
+		# Modelo del objeto (ADR 041); sin modelo, la caja de siempre.
+		var models: ObjectModels = ObjectModels.load_default()
+		if models.has(o.catalog_id):
+			var turn: float = -float(o.facing) * TAU / float(g.edge_direction_count())
+			var place: Transform3D = Transform3D(Basis(Vector3.UP, turn) * Basis.from_scale(Vector3(cm, 1.0, cm)), v3(center, 0.0))
+			for s: LookCatalog.Shape in models.shapes(o.catalog_id):
+				var light: bool = s.mat == "flame"
+				append_shape(geo, s, place, models.color_of(s.mat) * (maxf(f, 0.8) if light else f), light)
+			continue
 		var half: Vector2 = (hi - lo) * 0.5 + Vector2(cm, cm) * 0.36
 		var top: float = maxf(0.12, float(o.height_mm) / 1000.0)
 		var col: Color = COL_OBJ_BLOCK if o.blocks_movement else COL_OBJ_FREE
 		box(geo, center, half, 0.0, top, col * f)
 		if o.light_bright_cells > 0 or o.light_dim_cells > 0:
 			box(geo, center, half * 0.4, top, top + 0.25, COL_OBJ_LIGHT * maxf(f, 0.8))
+
+
+## Dirección de la luz horneada en los modelos (la misma que en las figuras).
+const MODEL_LIGHT: Vector3 = Vector3(-0.45, 0.8, 0.4)
+static var _prim_cache: Dictionary[String, Array] = {}
+
+
+## Añade una primitiva (LookCatalog.Shape) a `geo` con la transformación
+## `place` y su color, con luz horneada por la normal (sin luz si `emissive`:
+## llamas y brasas).
+static func append_shape(geo: Geo, s: LookCatalog.Shape, place: Transform3D, col: Color, emissive: bool = false) -> void:
+	var key: String = "%s:%s" % [s.shape, s.taper]
+	if not _prim_cache.has(key):
+		_prim_cache[key] = CharacterModelBuilder.primitive(s).get_mesh_arrays()
+	var arrays: Array = _prim_cache[key]
+	var pv: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	var pn: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
+	var pi: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
+	var rot: Basis = Basis.from_euler(Vector3(deg_to_rad(s.rot.x), deg_to_rad(s.rot.y), deg_to_rad(s.rot.z)))
+	var xf: Transform3D = place * Transform3D(rot * Basis.from_scale(s.size), s.pos)
+	var nb: Basis = xf.basis.inverse().transposed()
+	var light: Vector3 = MODEL_LIGHT.normalized()
+	for k: int in pi.size():
+		var vi: int = pi[k]
+		var n: Vector3 = (nb * pn[vi]).normalized()
+		geo.verts.append(xf * pv[vi])
+		geo.normals.append(n)
+		var lit: float = 1.0 if emissive else 0.55 + 0.45 * maxf(0.0, n.dot(light))
+		geo.colors.append(Color(col.r * lit, col.g * lit, col.b * lit, col.a))
 
 
 static func _build_features(g: GridGeometry, lvl: MapLevel, level_index: int, opts: Options,

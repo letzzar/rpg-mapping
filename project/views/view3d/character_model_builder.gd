@@ -94,7 +94,12 @@ static func build_mesh(look: CharacterLook, cat: LookCatalog) -> ArrayMesh:
 	return mesh
 
 
-## Primitiva de medidas 1 (se escala con Shape.size).
+## Primitiva de medidas 1 (se escala con Shape.size). La usan también los
+## modelos de los objetos (MapMeshBuilder).
+static func primitive(s: LookCatalog.Shape) -> PrimitiveMesh:
+	return _primitive(s)
+
+
 static func _primitive(s: LookCatalog.Shape) -> PrimitiveMesh:
 	match s.shape:
 		"sphere":

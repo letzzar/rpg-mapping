@@ -35,6 +35,26 @@
 			"id": "flyer", "family": "flyer", "width": 1.0,
 			"slots": ["head", "accessory"],
 			"defaults": {}
+		},
+		{
+			"id": "arachnid", "family": "arachnid", "width": 1.0,
+			"slots": [],
+			"defaults": {}
+		},
+		{
+			"id": "dragon", "family": "dragon", "width": 1.0,
+			"slots": ["head"],
+			"defaults": { "head": "dragon_horns" }
+		},
+		{
+			"id": "blob", "family": "blob", "width": 1.0,
+			"slots": [],
+			"defaults": {}
+		},
+		{
+			"id": "serpent", "family": "serpent", "width": 1.0,
+			"slots": [],
+			"defaults": {}
 		}
 	],
 	"base": {
@@ -74,6 +94,65 @@
 			{ "shape": "box", "mat": "hair", "pos": [0, 0.5, -0.3], "size": [0.18, 0.03, 0.25], "rot": [15, 0, 0] },
 			{ "shape": "cylinder", "mat": "#e0a030", "pos": [0.07, 0.14, 0], "size": [0.03, 0.28, 0.03] },
 			{ "shape": "cylinder", "mat": "#e0a030", "pos": [-0.07, 0.14, 0], "size": [0.03, 0.28, 0.03] }
+		],
+		"arachnid": [
+			{ "shape": "sphere", "mat": "skin", "pos": [0, 0.5, -0.3], "size": [0.55, 0.45, 0.65] },
+			{ "shape": "sphere", "mat": "hair", "pos": [0, 0.52, -0.35], "size": [0.3, 0.3, 0.4] },
+			{ "shape": "sphere", "mat": "skin", "pos": [0, 0.48, 0.12], "size": [0.35, 0.3, 0.35] },
+			{ "shape": "sphere", "mat": "#a8322d", "pos": [0.05, 0.57, 0.27], "size": [0.05, 0.05, 0.04] },
+			{ "shape": "sphere", "mat": "#a8322d", "pos": [-0.05, 0.57, 0.27], "size": [0.05, 0.05, 0.04] },
+			{ "shape": "sphere", "mat": "#a8322d", "pos": [0.1, 0.53, 0.25], "size": [0.04, 0.04, 0.03] },
+			{ "shape": "sphere", "mat": "#a8322d", "pos": [-0.1, 0.53, 0.25], "size": [0.04, 0.04, 0.03] },
+			{ "shape": "cylinder", "mat": "skin", "pos": [0.3, 0.615, 0.25], "size": [0.05, 0.4, 0.05], "rot": [0, 0, -48] },
+			{ "shape": "cylinder", "mat": "skin", "pos": [0.525, 0.375, 0.25], "size": [0.04, 0.77, 0.04], "rot": [0, 0, 11] },
+			{ "shape": "cylinder", "mat": "skin", "pos": [-0.3, 0.615, 0.25], "size": [0.05, 0.4, 0.05], "rot": [0, 0, 48] },
+			{ "shape": "cylinder", "mat": "skin", "pos": [-0.525, 0.375, 0.25], "size": [0.04, 0.77, 0.04], "rot": [0, 0, -11] },
+			{ "shape": "cylinder", "mat": "skin", "pos": [0.3, 0.615, 0.08], "size": [0.05, 0.4, 0.05], "rot": [0, 0, -48] },
+			{ "shape": "cylinder", "mat": "skin", "pos": [0.525, 0.375, 0.08], "size": [0.04, 0.77, 0.04], "rot": [0, 0, 11] },
+			{ "shape": "cylinder", "mat": "skin", "pos": [-0.3, 0.615, 0.08], "size": [0.05, 0.4, 0.05], "rot": [0, 0, 48] },
+			{ "shape": "cylinder", "mat": "skin", "pos": [-0.525, 0.375, 0.08], "size": [0.04, 0.77, 0.04], "rot": [0, 0, -11] },
+			{ "shape": "cylinder", "mat": "skin", "pos": [0.3, 0.615, -0.09], "size": [0.05, 0.4, 0.05], "rot": [0, 0, -48] },
+			{ "shape": "cylinder", "mat": "skin", "pos": [0.525, 0.375, -0.09], "size": [0.04, 0.77, 0.04], "rot": [0, 0, 11] },
+			{ "shape": "cylinder", "mat": "skin", "pos": [-0.3, 0.615, -0.09], "size": [0.05, 0.4, 0.05], "rot": [0, 0, 48] },
+			{ "shape": "cylinder", "mat": "skin", "pos": [-0.525, 0.375, -0.09], "size": [0.04, 0.77, 0.04], "rot": [0, 0, -11] },
+			{ "shape": "cylinder", "mat": "skin", "pos": [0.3, 0.615, -0.26], "size": [0.05, 0.4, 0.05], "rot": [0, 0, -48] },
+			{ "shape": "cylinder", "mat": "skin", "pos": [0.525, 0.375, -0.26], "size": [0.04, 0.77, 0.04], "rot": [0, 0, 11] },
+			{ "shape": "cylinder", "mat": "skin", "pos": [-0.3, 0.615, -0.26], "size": [0.05, 0.4, 0.05], "rot": [0, 0, 48] },
+			{ "shape": "cylinder", "mat": "skin", "pos": [-0.525, 0.375, -0.26], "size": [0.04, 0.77, 0.04], "rot": [0, 0, -11] }
+		],
+		"dragon": [
+			{ "shape": "sphere", "mat": "skin", "pos": [0, 0.5, 0], "size": [0.45, 0.42, 0.9] },
+			{ "shape": "sphere", "mat": "hair", "pos": [0, 0.4, 0.05], "size": [0.38, 0.3, 0.75] },
+			{ "shape": "cylinder", "mat": "skin", "pos": [0.18, 0.2, 0.28], "size": [0.12, 0.4, 0.12] },
+			{ "shape": "cylinder", "mat": "skin", "pos": [-0.18, 0.2, 0.28], "size": [0.12, 0.4, 0.12] },
+			{ "shape": "cylinder", "mat": "skin", "pos": [0.18, 0.2, -0.28], "size": [0.12, 0.4, 0.12] },
+			{ "shape": "cylinder", "mat": "skin", "pos": [-0.18, 0.2, -0.28], "size": [0.12, 0.4, 0.12] },
+			{ "shape": "cylinder", "mat": "skin", "pos": [0, 0.75, 0.45], "size": [0.14, 0.45, 0.14], "rot": [40, 0, 0] },
+			{ "shape": "box", "mat": "skin", "pos": [0, 0.95, 0.62], "size": [0.2, 0.16, 0.32] },
+			{ "shape": "box", "mat": "skin", "pos": [0, 0.87, 0.72], "size": [0.16, 0.06, 0.22] },
+			{ "shape": "sphere", "mat": "#ffb030", "pos": [0.08, 1.0, 0.7], "size": [0.04, 0.04, 0.04] },
+			{ "shape": "sphere", "mat": "#ffb030", "pos": [-0.08, 1.0, 0.7], "size": [0.04, 0.04, 0.04] },
+			{ "shape": "cylinder", "mat": "skin", "pos": [0, 0.38, -0.72], "size": [0.14, 0.7, 0.14], "rot": [-70, 0, 0], "taper": 0.25 },
+			{ "shape": "box", "mat": "hair", "pos": [0.5, 0.85, -0.05], "size": [0.8, 0.02, 0.5], "rot": [0, 0, 25] },
+			{ "shape": "box", "mat": "hair", "pos": [-0.5, 0.85, -0.05], "size": [0.8, 0.02, 0.5], "rot": [0, 0, -25] },
+			{ "shape": "cylinder", "mat": "skin", "pos": [0.5, 0.88, 0.2], "size": [0.04, 0.85, 0.04], "rot": [0, 0, -65] },
+			{ "shape": "cylinder", "mat": "skin", "pos": [-0.5, 0.88, 0.2], "size": [0.04, 0.85, 0.04], "rot": [0, 0, 65] }
+		],
+		"blob": [
+			{ "shape": "sphere", "mat": "skin", "pos": [0, 0.4, 0], "size": [0.85, 0.8, 0.85] },
+			{ "shape": "sphere", "mat": "hair", "pos": [0.1, 0.35, -0.05], "size": [0.25, 0.22, 0.25] },
+			{ "shape": "sphere", "mat": "#e8dcc0", "pos": [-0.15, 0.28, 0.1], "size": [0.12, 0.1, 0.14] },
+			{ "shape": "sphere", "mat": "#1b1b1b", "pos": [0.13, 0.58, 0.36], "size": [0.08, 0.1, 0.05] },
+			{ "shape": "sphere", "mat": "#1b1b1b", "pos": [-0.13, 0.58, 0.36], "size": [0.08, 0.1, 0.05] }
+		],
+		"serpent": [
+			{ "shape": "cylinder", "mat": "skin", "pos": [0, 0.075, 0], "size": [0.75, 0.15, 0.75], "taper": 0.9 },
+			{ "shape": "cylinder", "mat": "hair", "pos": [0, 0.22, 0], "size": [0.58, 0.15, 0.58], "taper": 0.85 },
+			{ "shape": "cylinder", "mat": "skin", "pos": [0, 0.5, 0.12], "size": [0.13, 0.48, 0.13], "rot": [15, 0, 0] },
+			{ "shape": "box", "mat": "skin", "pos": [0, 0.76, 0.24], "size": [0.17, 0.1, 0.26] },
+			{ "shape": "sphere", "mat": "#e0c030", "pos": [0.06, 0.8, 0.32], "size": [0.04, 0.04, 0.04] },
+			{ "shape": "sphere", "mat": "#e0c030", "pos": [-0.06, 0.8, 0.32], "size": [0.04, 0.04, 0.04] },
+			{ "shape": "box", "mat": "#a8322d", "pos": [0, 0.74, 0.42], "size": [0.02, 0.01, 0.1] }
 		]
 	},
 	"parts": [
@@ -220,6 +299,38 @@
 		{ "id": "collar", "slot": "accessory", "family": "quadruped", "shapes": [
 			{ "shape": "cylinder", "mat": "trim", "pos": [0, 0.82, 0.42], "size": [0.18, 0.04, 0.18], "rot": [30, 0, 0] }
 		] },
+		{ "id": "tusks", "slot": "head", "family": "humanoid", "shapes": [
+			{ "shape": "cone", "mat": "#e8dcc0", "pos": [0.04, 0.835, 0.095], "size": [0.03, 0.06, 0.03] },
+			{ "shape": "cone", "mat": "#e8dcc0", "pos": [-0.04, 0.835, 0.095], "size": [0.03, 0.06, 0.03] },
+			{ "shape": "box", "mat": "skin", "pos": [0, 0.9, 0.06], "size": [0.2, 0.04, 0.08] }
+		] },
+		{ "id": "horns_small", "slot": "head", "family": "humanoid", "shapes": [
+			{ "shape": "cone", "mat": "#e8dcc0", "pos": [0.07, 0.98, 0], "size": [0.04, 0.1, 0.04], "rot": [0, 0, -20] },
+			{ "shape": "cone", "mat": "#e8dcc0", "pos": [-0.07, 0.98, 0], "size": [0.04, 0.1, 0.04], "rot": [0, 0, 20] }
+		] },
+		{ "id": "ribs", "slot": "torso", "family": "humanoid", "shapes": [
+			{ "shape": "box", "mat": "#3a3028", "pos": [0, 0.53, 0], "size": [0.31, 0.025, 0.175] },
+			{ "shape": "box", "mat": "#3a3028", "pos": [0, 0.59, 0], "size": [0.31, 0.025, 0.175] },
+			{ "shape": "box", "mat": "#3a3028", "pos": [0, 0.65, 0], "size": [0.31, 0.025, 0.175] },
+			{ "shape": "box", "mat": "#3a3028", "pos": [0, 0.71, 0], "size": [0.31, 0.025, 0.175] },
+			{ "shape": "box", "mat": "skin", "pos": [0, 0.62, 0.002], "size": [0.04, 0.34, 0.178] }
+		] },
+		{ "id": "rags", "slot": "torso", "family": "humanoid", "shapes": [
+			{ "shape": "box", "mat": "cloth", "pos": [0, 0.63, 0], "size": [0.32, 0.3, 0.19] },
+			{ "shape": "box", "mat": "cloth", "pos": [0.09, 0.43, 0], "size": [0.12, 0.14, 0.2], "rot": [0, 0, 15] },
+			{ "shape": "box", "mat": "cloth", "pos": [-0.1, 0.45, 0], "size": [0.1, 0.1, 0.2], "rot": [0, 0, -20] }
+		] },
+		{ "id": "club", "slot": "main_hand", "family": "humanoid", "shapes": [
+			{ "shape": "cylinder", "mat": "wood", "pos": [0.215, 0.62, 0.04], "size": [0.07, 0.5, 0.07], "taper": 1.8 }
+		] },
+		{ "id": "scimitar", "slot": "main_hand", "family": "humanoid", "shapes": [
+			{ "shape": "box", "mat": "metal", "pos": [0.24, 0.64, 0.04], "size": [0.05, 0.38, 0.012], "rot": [0, 0, -12] },
+			{ "shape": "box", "mat": "trim", "pos": [0.215, 0.445, 0.04], "size": [0.1, 0.025, 0.035] }
+		] },
+		{ "id": "dragon_horns", "slot": "head", "family": "dragon", "shapes": [
+			{ "shape": "cone", "mat": "#e8dcc0", "pos": [0.07, 1.05, 0.52], "size": [0.05, 0.16, 0.05], "rot": [-45, 0, 0] },
+			{ "shape": "cone", "mat": "#e8dcc0", "pos": [-0.07, 1.05, 0.52], "size": [0.05, 0.16, 0.05], "rot": [-45, 0, 0] }
+		] },
 		{ "id": "crest", "slot": "head", "family": "flyer", "shapes": [
 			{ "shape": "cone", "mat": "trim", "pos": [0, 0.86, 0.22], "size": [0.06, 0.14, 0.1], "rot": [-20, 0, 0] }
 		] },
@@ -260,6 +371,51 @@
 			"colors": { "skin": "#7a4a2a", "hair": "#2a1a10" } },
 		{ "id": "eagle", "body": "flyer", "size_id": "small",
 			"parts": {},
-			"colors": { "skin": "#5a3a20", "hair": "#6b4a2a" } }
+			"colors": { "skin": "#5a3a20", "hair": "#6b4a2a" } },
+		{ "id": "skeleton", "body": "humanoid_medium", "size_id": "medium",
+			"parts": { "torso": "ribs", "main_hand": "sword", "off_hand": "shield_round" },
+			"colors": { "skin": "#e8dcc0", "metal": "#8a7a6a", "wood": "#5a4a3a" } },
+		{ "id": "zombie", "body": "humanoid_medium", "size_id": "medium",
+			"parts": { "head": "hair_long", "torso": "rags", "legs": "trousers" },
+			"colors": { "skin": "#8fa07a", "hair": "#3a3a30", "cloth": "#4a4038", "leather": "#3a3028" } },
+		{ "id": "orc", "body": "humanoid_large", "size_id": "medium",
+			"parts": { "head": "tusks", "torso": "leather_armor", "legs": "trousers", "main_hand": "axe" },
+			"colors": { "skin": "#6f8f4a", "leather": "#4a3020", "trim": "#2a2a2a", "cloth": "#5a4a30" } },
+		{ "id": "kobold", "body": "humanoid_small", "size_id": "small",
+			"parts": { "head": "horns_small", "torso": "rags", "main_hand": "spear" },
+			"colors": { "skin": "#9a5a3a", "cloth": "#6a5a3a" } },
+		{ "id": "troll", "body": "humanoid_large", "size_id": "large",
+			"parts": { "head": "tusks", "torso": "rags", "main_hand": "club" },
+			"colors": { "skin": "#6a7a6a", "cloth": "#4a4038" } },
+		{ "id": "cultist", "body": "humanoid_medium", "size_id": "medium",
+			"parts": { "head": "hood", "torso": "robe", "main_hand": "dagger" },
+			"colors": { "cloth": "#5a1a1a", "trim": "#1b1b1b" } },
+		{ "id": "bandit", "body": "humanoid_medium", "size_id": "medium",
+			"parts": { "head": "hood", "torso": "leather_armor", "legs": "trousers", "main_hand": "scimitar", "cloak": "cloak" },
+			"colors": { "cloth": "#4a4a3a", "trim": "#3a2a1a" } },
+		{ "id": "giant_spider", "body": "arachnid", "size_id": "large",
+			"parts": {},
+			"colors": { "skin": "#2a2420", "hair": "#a8322d" } },
+		{ "id": "giant_rat", "body": "quadruped", "size_id": "small",
+			"parts": { "head": "ears" },
+			"colors": { "skin": "#6a5a4a", "hair": "#c9a4a0" } },
+		{ "id": "bear", "body": "quadruped", "size_id": "large",
+			"parts": { "head": "ears" },
+			"colors": { "skin": "#5a3a20", "hair": "#4a2e18" } },
+		{ "id": "giant_bat", "body": "flyer", "size_id": "medium",
+			"parts": {},
+			"colors": { "skin": "#3a2e2a", "hair": "#2a201c" } },
+		{ "id": "red_dragon", "body": "dragon", "size_id": "huge",
+			"parts": { "head": "dragon_horns" },
+			"colors": { "skin": "#9a2a1a", "hair": "#c45a2a" } },
+		{ "id": "green_dragon", "body": "dragon", "size_id": "huge",
+			"parts": { "head": "dragon_horns" },
+			"colors": { "skin": "#3a6a2a", "hair": "#7a9a3a" } },
+		{ "id": "ooze", "body": "blob", "size_id": "large",
+			"parts": {},
+			"colors": { "skin": "#6abf4a", "hair": "#3a7a2a" } },
+		{ "id": "giant_snake", "body": "serpent", "size_id": "large",
+			"parts": {},
+			"colors": { "skin": "#5a7a3a", "hair": "#3a5a2a" } }
 	]
 }

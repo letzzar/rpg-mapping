@@ -254,6 +254,12 @@ func _read(path: String) -> void:
 		error = "%s: %s" % [path, r.error]
 
 
+## Lee una lista de primitivas con los materiales de este catálogo (también
+## lo usa ObjectModels con su propia paleta).
+func read_shapes(r: JsonReader, arr: Array) -> Array[Shape]:
+	return _shapes(r, arr)
+
+
 func _shapes(r: JsonReader, arr: Array) -> Array[Shape]:
 	var out: Array[Shape] = []
 	for v: Variant in arr:

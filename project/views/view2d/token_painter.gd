@@ -43,6 +43,28 @@ static func draw_silhouette(ci: CanvasItem, look: CharacterLook, c: Vector2, r: 
 			ci.draw_circle(c + Vector2(0.45, -0.2) * r, 0.25 * r, skin)
 			for x: float in [-0.5, -0.25, 0.1, 0.3]:
 				ci.draw_rect(Rect2(c + Vector2(x, 0.3) * r, Vector2(0.12, 0.35) * r), skin)
+		"arachnid":
+			for k: int in 8:
+				var a: float = (k % 4) * 0.42 - 0.63 + (PI if k >= 4 else 0.0)
+				ci.draw_line(c + Vector2(0, 0.05) * r, c + Vector2.from_angle(a) * 0.85 * r, skin, maxf(1.0, 0.07 * r))
+			ci.draw_circle(c + Vector2(0, 0.2) * r, 0.36 * r, skin)
+			ci.draw_circle(c + Vector2(0, -0.25) * r, 0.22 * r, skin)
+			ci.draw_circle(c + Vector2(0, 0.2) * r, 0.18 * r, hair)
+		"dragon":
+			ci.draw_colored_polygon(PackedVector2Array([c + Vector2(-0.9, -0.45) * r, c + Vector2(-0.15, 0.0) * r,
+				c + Vector2(-0.35, 0.35) * r]), hair)
+			ci.draw_colored_polygon(PackedVector2Array([c + Vector2(0.9, -0.45) * r, c + Vector2(0.15, 0.0) * r,
+				c + Vector2(0.35, 0.35) * r]), hair)
+			ci.draw_circle(c + Vector2(0, 0.15) * r, 0.33 * r, skin)
+			ci.draw_circle(c + Vector2(0, -0.35) * r, 0.2 * r, skin)
+			ci.draw_line(c + Vector2(0, 0.4) * r, c + Vector2(0.2, 0.85) * r, skin, 0.1 * r)
+		"blob":
+			ci.draw_circle(c + Vector2(0, 0.15) * r, 0.6 * r, skin)
+			ci.draw_circle(c + Vector2(-0.2, 0.0) * r, 0.08 * r, Color(0.1, 0.1, 0.1, alpha))
+			ci.draw_circle(c + Vector2(0.2, 0.0) * r, 0.08 * r, Color(0.1, 0.1, 0.1, alpha))
+		"serpent":
+			ci.draw_arc(c + Vector2(0, 0.15) * r, 0.45 * r, 0.0, TAU * 0.85, 24, skin, 0.22 * r)
+			ci.draw_circle(c + Vector2(0.42, -0.25) * r, 0.17 * r, skin)
 		"flyer":
 			ci.draw_colored_polygon(PackedVector2Array([c + Vector2(-0.85, -0.2) * r, c + Vector2(0, 0.05) * r,
 				c + Vector2(0.85, -0.2) * r, c + Vector2(0, 0.35) * r]), hair)

@@ -520,3 +520,29 @@ UI_ROOM_USED,"{name}: ahora es tu estancia.","{name}: it is now your room."
 UI_ROOM_RESTORED,{name}: vuelve a ser la generada.,{name}: back to the generated one.
 CMD_SET_CHILD_OVERRIDE,Usar una estancia propia,Use your own room
 CMD_CLEAR_CHILD_OVERRIDE,Volver a la estancia generada,Back to the generated room
+CHAR_BODY_ARACHNID,Arácnido,Arachnid
+CHAR_BODY_DRAGON,Dragón,Dragon
+CHAR_BODY_BLOB,Cieno,Ooze
+CHAR_BODY_SERPENT,Serpiente,Serpent
+CHAR_PART_TUSKS,Colmillos,Tusks
+CHAR_PART_HORNS_SMALL,Cuernecillos,Small horns
+CHAR_PART_RIBS,Costillas,Ribs
+CHAR_PART_RAGS,Harapos,Rags
+CHAR_PART_CLUB,Garrote,Club
+CHAR_PART_SCIMITAR,Cimitarra,Scimitar
+CHAR_PART_DRAGON_HORNS,Cuernos de dragón,Dragon horns
+CHAR_PRESET_SKELETON,Esqueleto,Skeleton
+CHAR_PRESET_ZOMBIE,Zombi,Zombie
+CHAR_PRESET_ORC,Orco,Orc
+CHAR_PRESET_KOBOLD,Kobold,Kobold
+CHAR_PRESET_TROLL,Trol,Troll
+CHAR_PRESET_CULTIST,Sectario,Cultist
+CHAR_PRESET_BANDIT,Bandido,Bandit
+CHAR_PRESET_GIANT_SPIDER,Araña gigante,Giant spider
+CHAR_PRESET_GIANT_RAT,Rata gigante,Giant rat
+CHAR_PRESET_BEAR,Oso,Bear
+CHAR_PRESET_GIANT_BAT,Murciélago gigante,Giant bat
+CHAR_PRESET_RED_DRAGON,Dragón rojo,Red dragon
+CHAR_PRESET_GREEN_DRAGON,Dragón verde,Green dragon
+CHAR_PRESET_OOZE,Cieno,Ooze
+CHAR_PRESET_GIANT_SNAKE,Serpiente gigante,Giant snake
