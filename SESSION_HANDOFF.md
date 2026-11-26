@@ -1,6 +1,26 @@
 # SESSION_HANDOFF — RPG Mapping
 
-## Última sesión: 2026-11-26 (13.ª) — F4: escaleras, señal del DM y 3D del jugador
+## Última sesión: 2026-11-26 (14.ª) — F5: personajes (primera entrega)
+Tests: **259/259 en escritorio (33097 asserts) y 259/259 en el navegador** (11 nuevos en `tests/unit/test_characters.gd`, incluido el criterio de F5 por la pantalla principal). 45 seeds doradas sin cambios. Víctor decidió dejar la imagen Docker (F4) para el final y seguir con las fases.
+
+**Criterio de F5 cumplido** ("crear un personaje y verlo en las 3 vistas"): probado con capturas de la app (9 modelos tipo en 2D, 3D y diseñador) y en el test.
+
+### Hecho (ADR 034)
+- Modelo: `CharacterSheet` (`*.rpgm-char.json`), `CharacterLook`, `MapToken.sheet` (opcional, se guarda con el mapa) y `MapToken.speed_ft()`. `SetTokenSheetCommand` con deshacer. `PartyVision` usa la visión en la oscuridad del personaje. `PlayerView` manda de las criaturas ajenas solo su aspecto.
+- Catálogo `data/characters/look_catalog.json` (`LookCatalog`): 5 complexiones, 7 ranuras, 37 piezas, 7 materiales y 11 modelos tipo. Esquemas `character.schema.json` y `look_catalog.schema.json`.
+- Vistas: figura 3D procedural (`CharacterModelBuilder`, una malla por aspecto con caché) sobre una peana del color del bando; en 2D, retrato o silueta (`TokenPainter`).
+- UI: botón "Personaje…" (`CharacterDesigner`: edita la ficha seleccionada o crea una), "Importar personajes" en escritorio (CSV o JSON; un JSON ajeno abre `CharacterMappingDialog`). Las fichas se colocan comprobando toda su huella (`main._place_token`).
+
+### Siguiente paso
+1. Que Víctor pruebe el diseñador y la importación.
+2. F5 pendiente: modelos CC0 (necesitan descarga con permiso y registro en `assets/LICENSES.md`), esqueleto y animaciones, turnos/iniciativa (§10.3) y plantillas de área.
+3. Después, F6. La imagen Docker queda al final.
+
+### Limitaciones conocidas (F5)
+- Velocidad por turno solo del modo caminando (no hay selector de modo al arrastrar).
+- Los jugadores no pueden editar su personaje (solo el DM). El retrato solo se carga en escritorio.
+- En 2D la ficha con personaje no muestra el nombre (se ve en 3D y al seleccionarla).
+## Sesión anterior: 2026-11-26 (13.ª) — F4: escaleras, señal del DM y 3D del jugador
 Tests: **248/248 en escritorio (32745 asserts) y 248/248 en el navegador** (escaleras en `test_net_session.gd` y `test_view_commands.gd`, con eventos de ratón reales). 45 seeds doradas sin cambios.
 
 **Probado en Chrome real** con la mazmorra de dos niveles `RPGM1-DND5-MAZ-G1-35040-M6SC7N75-W`: Ana baja y sube por la escalera (doble clic en su ficha; el DM aprueba; su vista cambia sola de nivel y lo explora); ve la señal del DM (anillos "DM"); vista 3D solo con lo explorado; 1.ª persona desde su ficha.

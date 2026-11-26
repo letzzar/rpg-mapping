@@ -1,0 +1,46 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://rpg-mapping.local/schemas/character.schema.json",
+	"title": "Personaje de RPG Mapping (*.rpgm-char.json)",
+	"description": "CharacterSheet (PROYECTO §10, ADR 034). Distancias en pies enteros. También va dentro de cada ficha del mapa (session.tokens[].sheet).",
+	"type": "object",
+	"required": ["format", "schema_version", "name", "system", "size_id", "speeds", "senses", "look"],
+	"additionalProperties": false,
+	"properties": {
+		"format": { "const": "rpgm-char" },
+		"schema_version": { "const": 1 },
+		"name": { "type": "string" },
+		"system": { "type": "string", "description": "Id del perfil de sistema con el que se hizo; vacío = cualquiera." },
+		"size_id": { "type": "string", "description": "Id de tamaño del perfil (tiny, small, medium…)." },
+		"speeds": {
+			"type": "object",
+			"description": "Modo de movimiento del perfil (walk, fly…) → pies por turno.",
+			"additionalProperties": { "type": "integer", "minimum": 0 }
+		},
+		"senses": {
+			"type": "object",
+			"description": "Sentido del perfil (darkvision…) → alcance en pies.",
+			"additionalProperties": { "type": "integer", "minimum": 0 }
+		},
+		"initiative": { "type": "integer", "description": "Modificador de iniciativa; ausente = no tiene." },
+		"portrait_png": { "type": "string", "contentEncoding": "base64", "description": "PNG cuadrado de 128 px; ausente = silueta." },
+		"look": {
+			"type": "object",
+			"required": ["body", "parts", "colors"],
+			"additionalProperties": false,
+			"properties": {
+				"body": { "type": "string", "description": "Complexión del catálogo (data/characters/look_catalog.json)." },
+				"parts": {
+					"type": "object",
+					"description": "Ranura → id de pieza del catálogo.",
+					"additionalProperties": { "type": "string" }
+				},
+				"colors": {
+					"type": "object",
+					"description": "Material del catálogo → color.",
+					"additionalProperties": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" }
+				}
+			}
+		}
+	}
+}

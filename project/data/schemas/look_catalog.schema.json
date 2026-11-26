@@ -1,0 +1,80 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://rpg-mapping.local/schemas/look_catalog.schema.json",
+	"title": "Catálogo de aspectos de personaje",
+	"description": "data/characters/look_catalog.json (LookCatalog, ADR 034). Figuras de altura 1 apoyadas en y = 0 y mirando a +Z. Nombres visibles: CHAR_BODY_*, CHAR_SLOT_*, CHAR_PART_*, CHAR_MAT_*, CHAR_PRESET_*.",
+	"type": "object",
+	"required": ["schema_version", "materials", "slots", "bodies", "base", "parts", "presets"],
+	"$defs": {
+		"color": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+		"vec3": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+		"shape": {
+			"type": "object",
+			"required": ["shape", "mat", "pos", "size"],
+			"additionalProperties": false,
+			"properties": {
+				"shape": { "enum": ["box", "sphere", "cylinder", "cone"] },
+				"mat": { "type": "string", "description": "Id de material o color fijo #rrggbb." },
+				"pos": { "$ref": "#/$defs/vec3", "description": "Centro." },
+				"size": { "$ref": "#/$defs/vec3", "description": "Medidas totales (ancho, alto, fondo)." },
+				"rot": { "$ref": "#/$defs/vec3", "description": "Giro en grados (X, Y, Z)." },
+				"taper": { "type": "number", "description": "Cilindro: radio de arriba / de abajo." }
+			}
+		},
+		"slot_map": { "type": "object", "additionalProperties": { "type": "string" } }
+	},
+	"properties": {
+		"schema_version": { "const": 1 },
+		"materials": { "type": "object", "additionalProperties": { "$ref": "#/$defs/color" } },
+		"slots": { "type": "array", "items": { "type": "string" } },
+		"bodies": {
+			"type": "array",
+			"items": {
+				"type": "object",
+				"required": ["id", "family", "width", "slots", "defaults"],
+				"additionalProperties": false,
+				"properties": {
+					"id": { "type": "string" },
+					"family": { "type": "string" },
+					"width": { "type": "number", "exclusiveMinimum": 0 },
+					"slots": { "type": "array", "items": { "type": "string" } },
+					"defaults": { "$ref": "#/$defs/slot_map" }
+				}
+			}
+		},
+		"base": {
+			"type": "object",
+			"description": "Familia → primitivas fijas del cuerpo.",
+			"additionalProperties": { "type": "array", "items": { "$ref": "#/$defs/shape" } }
+		},
+		"parts": {
+			"type": "array",
+			"items": {
+				"type": "object",
+				"required": ["id", "slot", "family", "shapes"],
+				"additionalProperties": false,
+				"properties": {
+					"id": { "type": "string" },
+					"slot": { "type": "string" },
+					"family": { "type": "string" },
+					"shapes": { "type": "array", "items": { "$ref": "#/$defs/shape" } }
+				}
+			}
+		},
+		"presets": {
+			"type": "array",
+			"items": {
+				"type": "object",
+				"required": ["id", "body", "size_id", "parts", "colors"],
+				"additionalProperties": false,
+				"properties": {
+					"id": { "type": "string" },
+					"body": { "type": "string" },
+					"size_id": { "type": "string" },
+					"parts": { "$ref": "#/$defs/slot_map" },
+					"colors": { "type": "object", "additionalProperties": { "$ref": "#/$defs/color" } }
+				}
+			}
+		}
+	}
+}

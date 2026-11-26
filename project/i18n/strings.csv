@@ -220,3 +220,132 @@ UI_NET_QR_HELP,Escanéalo con el móvil o la tableta del jugador (en la misma re
 UI_STAIRS_TAKEN,{name} toma la escalera al nivel {level}.,{name} takes the stairs to level {level}.
 UI_NET_DM,DM,DM
 NET_MOVE_NO_STAIRS,Para cambiar de nivel tu ficha tiene que estar en esa escalera.,To change level your token must be on those stairs.
+UI_CHARACTER,Personaje…,Character…
+UI_CHARACTER_TIP,"Diseña el personaje de la ficha seleccionada (o crea una ficha nueva si no hay ninguna seleccionada): tamaño, velocidades, sentidos, retrato y figura.","Design the selected token's character (or create a new token if none is selected): size, speeds, senses, portrait and figure."
+UI_CHAR_TITLE,Personaje,Character
+UI_CHAR_APPLY,Aplicar a la ficha,Apply to token
+UI_CHAR_SAVE,Guardar…,Save…
+UI_CHAR_OPEN,Abrir…,Open…
+UI_CHAR_FILE_KIND,Personaje de RPG Mapping,RPG Mapping character
+UI_CHAR_PRESET,Modelo tipo:,Template:
+UI_CHAR_PRESET_NONE,(elegir para empezar),(pick one to start)
+UI_CHAR_NAME,Nombre:,Name:
+UI_CHAR_SIZE,Tamaño:,Size:
+UI_CHAR_SIDE,Bando:,Side:
+UI_CHAR_INITIATIVE,Iniciativa:,Initiative:
+UI_CHAR_HAS_INITIATIVE,Tiene modificador,Has modifier
+UI_CHAR_PORTRAIT,Retrato:,Portrait:
+UI_CHAR_PORTRAIT_LOAD,Cargar imagen…,Load image…
+UI_CHAR_PORTRAIT_CLEAR,Quitar (usar silueta),Remove (use silhouette)
+UI_CHAR_PORTRAIT_FAILED,No se pudo leer esa imagen.,Could not read that image.
+UI_CHAR_IMAGES,Imágenes,Images
+UI_CHAR_SPEEDS,Velocidades (0 = no tiene),Speeds (0 = none)
+UI_CHAR_SENSES,Sentidos (alcance; 0 = no tiene),Senses (range; 0 = none)
+UI_CHAR_LOOK,Figura,Figure
+UI_CHAR_BODY,Complexión:,Build:
+UI_CHAR_COLORS,Colores,Colors
+UI_CHAR_PART_NONE,(nada),(none)
+UI_CHAR_PREVIEW_HINT,Así se verá en el mapa 2D (con el color de cada bando) y en 3D.,This is how it will look on the 2D map (with each side's color) and in 3D.
+UI_CHAR_SAVE_FAILED,No se pudo guardar el personaje.,Could not save the character.
+UI_CHAR_OPEN_FAILED,Ese fichero no es un personaje válido.,That file is not a valid character.
+UI_CHAR_APPLIED,Personaje aplicado a {name}.,Character applied to {name}.
+UI_CHAR_NO_ROOM,No hay sitio libre para la ficha en este nivel.,There is no free space for the token on this level.
+UI_CHAR_IMPORT,Importar personajes,Import characters
+UI_CHAR_IMPORT_TIP,"CSV (una fila por personaje: nombre, tamaño, velocidad, vuelo, visión en la oscuridad, iniciativa, bando, modelo…) o JSON (el propio o cualquiera, eligiendo qué campo es cada cosa). Las fichas salen junto a la entrada.","CSV (one row per character: name, size, speed, fly, darkvision, initiative, side, template…) or JSON (ours or any other, choosing which field is which). Tokens appear next to the entrance."
+UI_CHAR_IMPORT_KIND,Personajes (CSV o JSON),Characters (CSV or JSON)
+UI_CHAR_IMPORTED,{n} personajes importados,{n} characters imported
+UI_CHAR_NOT_PLACED,{n} sin sitio en el mapa,{n} without room on the map
+UI_CHAR_WARNINGS,{n} avisos (detalle en el registro),{n} warnings (details in the log)
+UI_CHAR_MAPPING_TITLE,Qué campo es cada cosa,Which field is which
+UI_CHAR_MAPPING_HELP,"Elige de qué campo del JSON sale cada dato (se proponen los que se reconocen por el nombre). Las distancias, en pies o con «m» para metros.","Choose which JSON field each value comes from (recognized names are suggested). Distances in feet, or with ""m"" for metres."
+UI_CHAR_MAPPING_SKIP,(no importar),(do not import)
+CHAR_IMPORT_EMPTY,No hay personajes que importar en ese fichero.,There are no characters to import in that file.
+CHAR_IMPORT_NO_NAME,Falta la columna del nombre (Nombre o Name).,The name column is missing (Name or Nombre).
+CHAR_IMPORT_BAD_FILE,Ese fichero no es un JSON válido.,That file is not valid JSON.
+CMD_SET_TOKEN_SHEET,Personaje de una ficha,Token character
+SIZE_TINY,Diminuto,Tiny
+SIZE_SMALL,Pequeño,Small
+SIZE_MEDIUM,Mediano,Medium
+SIZE_LARGE,Grande,Large
+SIZE_HUGE,Enorme,Huge
+SIZE_GARGANTUAN,Gargantuesco,Gargantuan
+MOVE_WALK,Caminando,Walking
+MOVE_FLY,Volando,Flying
+MOVE_SWIM,Nadando,Swimming
+MOVE_CLIMB,Trepando,Climbing
+MOVE_BURROW,Excavando,Burrowing
+SENSE_DARKVISION,Visión en la oscuridad,Darkvision
+SENSE_BLINDSIGHT,Vista ciega,Blindsight
+SENSE_TREMORSENSE,Sentir vibraciones,Tremorsense
+SENSE_TRUESIGHT,Visión verdadera,Truesight
+SENSE_GREATER_DARKVISION,Visión en la oscuridad mayor,Greater darkvision
+SENSE_LOW_LIGHT_VISION,Visión en penumbra,Low-light vision
+SENSE_SCENT,Olfato,Scent
+CHAR_BODY_HUMANOID_SMALL,Humanoide pequeño,Small humanoid
+CHAR_BODY_HUMANOID_MEDIUM,Humanoide mediano,Medium humanoid
+CHAR_BODY_HUMANOID_LARGE,Humanoide grande,Large humanoid
+CHAR_BODY_QUADRUPED,Cuadrúpedo,Quadruped
+CHAR_BODY_FLYER,Volador,Flyer
+CHAR_SLOT_HEAD,Cabeza:,Head:
+CHAR_SLOT_TORSO,Torso:,Torso:
+CHAR_SLOT_LEGS,Piernas:,Legs:
+CHAR_SLOT_MAIN_HAND,Mano principal:,Main hand:
+CHAR_SLOT_OFF_HAND,Mano secundaria:,Off hand:
+CHAR_SLOT_CLOAK,Capa:,Cloak:
+CHAR_SLOT_ACCESSORY,Accesorio:,Accessory:
+CHAR_MAT_SKIN,Piel,Skin
+CHAR_MAT_HAIR,Pelo,Hair
+CHAR_MAT_CLOTH,Ropa,Clothes
+CHAR_MAT_TRIM,Adornos,Trim
+CHAR_MAT_METAL,Metal,Metal
+CHAR_MAT_LEATHER,Cuero,Leather
+CHAR_MAT_WOOD,Madera,Wood
+CHAR_PART_HAIR_SHORT,Pelo corto,Short hair
+CHAR_PART_HAIR_LONG,Pelo largo,Long hair
+CHAR_PART_HOOD,Capucha,Hood
+CHAR_PART_HELMET,Yelmo,Helmet
+CHAR_PART_HORNED_HELMET,Yelmo con cuernos,Horned helmet
+CHAR_PART_WIZARD_HAT,Sombrero de mago,Wizard hat
+CHAR_PART_CROWN,Corona,Crown
+CHAR_PART_TUNIC,Túnica,Tunic
+CHAR_PART_ROBE,Hábito,Robe
+CHAR_PART_LEATHER_ARMOR,Armadura de cuero,Leather armor
+CHAR_PART_PLATE_ARMOR,Armadura de placas,Plate armor
+CHAR_PART_TROUSERS,Calzas y botas,Trousers and boots
+CHAR_PART_GREAVES,Grebas,Greaves
+CHAR_PART_SWORD,Espada,Sword
+CHAR_PART_AXE,Hacha,Axe
+CHAR_PART_MACE,Maza,Mace
+CHAR_PART_SPEAR,Lanza,Spear
+CHAR_PART_STAFF,Bastón,Staff
+CHAR_PART_DAGGER,Daga,Dagger
+CHAR_PART_SHIELD_ROUND,Escudo redondo,Round shield
+CHAR_PART_SHIELD_KITE,Escudo de lágrima,Kite shield
+CHAR_PART_TORCH,Antorcha,Torch
+CHAR_PART_BOOK,Libro,Book
+CHAR_PART_BOW,Arco,Bow
+CHAR_PART_CLOAK,Capa,Cloak
+CHAR_PART_BACKPACK,Mochila,Backpack
+CHAR_PART_QUIVER,Carcaj,Quiver
+CHAR_PART_POUCH,Bolsa,Pouch
+CHAR_PART_EARS,Orejas,Ears
+CHAR_PART_HORNS,Cuernos,Horns
+CHAR_PART_ANTLERS,Cornamenta,Antlers
+CHAR_PART_SADDLE,Silla de montar,Saddle
+CHAR_PART_BARDING,Barda,Barding
+CHAR_PART_SADDLEBAGS,Alforjas,Saddlebags
+CHAR_PART_COLLAR,Collar,Collar
+CHAR_PART_CREST,Cresta,Crest
+CHAR_PART_FLYER_COLLAR,Collar,Collar
+CHAR_PRESET_WARRIOR,Guerrero,Warrior
+CHAR_PRESET_WIZARD,Mago,Wizard
+CHAR_PRESET_ROGUE,Pícaro,Rogue
+CHAR_PRESET_CLERIC,Clérigo,Cleric
+CHAR_PRESET_RANGER,Explorador,Ranger
+CHAR_PRESET_HALFLING,Mediano aventurero,Halfling adventurer
+CHAR_PRESET_GOBLIN,Trasgo,Goblin
+CHAR_PRESET_OGRE,Ogro,Ogre
+CHAR_PRESET_WOLF,Lobo,Wolf
+CHAR_PRESET_HORSE,Caballo,Horse
+CHAR_PRESET_EAGLE,Águila,Eagle
+UI_CANCEL,Cancelar,Cancel

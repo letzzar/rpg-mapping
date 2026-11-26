@@ -16,7 +16,8 @@ extends RefCounted
 ##   visibles (no ocultas) en casillas exploradas.
 ## Fichas: las del grupo no ocultas (en cualquier nivel) y las demás no
 ## ocultas solo si alguna casilla de su huella se ve ahora; sin
-## `character_ref` salvo las del grupo (la ficha del DM no es asunto suyo).
+## `character_ref` salvo las del grupo (la ficha del DM no es asunto suyo), y
+## de las ajenas, el personaje sin velocidades, sentidos ni iniciativa.
 ##
 ## La visión es la del grupo entero (la misma niebla que la vista "Jugadores"
 ## del DM), no la de cada personaje por separado: así se calcula una vez por
@@ -59,6 +60,9 @@ static func build(doc: MapDocument, profile: SystemProfile, opts: PartyVision.Op
 		var d: Dictionary = t.to_dict()
 		if not in_party:
 			d["character_ref"] = ""
+			# De una criatura ajena solo se ve su aspecto (ADR 034).
+			if t.sheet != null:
+				d["sheet"] = t.sheet.public_copy().to_dict()
 		snap.tokens.append(d)
 	return snap
 

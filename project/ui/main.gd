@@ -44,6 +44,13 @@ var _status: Label
 var _save_dialog: FileDialog
 var _uvtt_save_dialog: FileDialog
 var _uvtt_open_dialog: FileDialog
+var _char_open_dialog: FileDialog = null
+var _designer: CharacterDesigner
+var _mapping_dialog: CharacterMappingDialog
+## Ficha que se edita en el diseñador (-1 = personaje nuevo).
+var _designer_token: int = -1
+## Texto del JSON que espera el mapeo de campos.
+var _import_text: String = ""
 
 var _doc: MapDocument = null
 var _stack: CommandStack = null
@@ -142,6 +149,15 @@ func _build_ui() -> void:
 
 	var add_btn: Button = _button("UI_ADD_TOKEN", _add_token)
 	bar.add_child(add_btn)
+	var char_btn: Button = _button("UI_CHARACTER", _open_designer)
+	char_btn.tooltip_text = tr("UI_CHARACTER_TIP")
+	bar.add_child(char_btn)
+	_dm_only.append(char_btn)
+	if not OS.has_feature("web"):
+		var imp_btn: Button = _button("UI_CHAR_IMPORT", _import_characters)
+		imp_btn.tooltip_text = tr("UI_CHAR_IMPORT_TIP")
+		bar.add_child(imp_btn)
+		_dm_only.append(imp_btn)
 	_undo_btn = _button("UI_UNDO", _undo)
 	_redo_btn = _button("UI_REDO", _redo)
 	bar.add_child(_undo_btn)
@@ -268,6 +284,19 @@ func _build_ui() -> void:
 	_uvtt_save_dialog.file_selected.connect(_save_uvtt_to)
 	_uvtt_open_dialog = _file_dialog(FileDialog.FILE_MODE_OPEN_FILE, "UI_IMPORT_UVTT", OS.SYSTEM_DIR_DOCUMENTS)
 	_uvtt_open_dialog.file_selected.connect(_load_uvtt_from)
+
+	_designer = CharacterDesigner.new()
+	_designer.format_ft = func(ft: int) -> String: return _view._format_ft(ft)
+	_designer.applied.connect(_on_designer_applied)
+	add_child(_designer)
+	_mapping_dialog = CharacterMappingDialog.new()
+	_mapping_dialog.mapped.connect(func(m: Dictionary[String, String]) -> void:
+		_place_imported(CharacterImport.from_json(_import_text, _current_profile(), m)))
+	add_child(_mapping_dialog)
+	if not OS.has_feature("web"):
+		_char_open_dialog = _file_dialog(FileDialog.FILE_MODE_OPEN_FILE, "UI_CHAR_IMPORT", OS.SYSTEM_DIR_DOCUMENTS)
+		_char_open_dialog.filters = PackedStringArray(["*.csv, *.json ; " + tr("UI_CHAR_IMPORT_KIND")])
+		_char_open_dialog.file_selected.connect(import_characters_from)
 
 	_apply_profile()
 	_apply_units()
@@ -737,24 +766,131 @@ func _explore_level(lvl_i: int) -> void:
 func _add_token() -> void:
 	if _doc == null:
 		return
-	var lvl: MapLevel = _doc.level(_view.level_index)
+	_token_counter += 1
+	var t: MapToken = MapToken.new()
+	t.name = "P" + str(_token_counter)
+	t.side = MapToken.SIDE_PLAYER
+	if _place_token(t):
+		_on_user_command()
+		_status.text = tr("UI_TOKEN_ADDED").replace("{name}", t.name)
+
+
+## Añade la ficha `t` (con id nuevo) en el nivel mostrado, en la casilla libre
+## más cercana a la entrada donde quepa toda su huella. false si no cabe.
+func _place_token(t: MapToken) -> bool:
+	var li: int = _view.level_index
+	var lvl: MapLevel = _doc.level(li)
 	var mask: PackedByteArray = lvl.movement_mask()
 	var g: GridGeometry = _doc.grid
 	var p: SystemProfile = _current_profile()
+	t.level = li
 	for c: Vector2i in _cells_by_entrance_distance(lvl, mask):
-		if p != null and not _doc.tokens_at(_view.level_index, c, p).is_empty():
-			continue
-		_token_counter += 1
-		var t: MapToken = MapToken.new()
-		t.id = _doc.allocate_id()
-		t.name = "P" + str(_token_counter)
-		t.level = _view.level_index
 		t.cell = c
-		t.side = MapToken.SIDE_PLAYER
-		_stack.execute(AddTokenCommand.new(t))
-		_on_user_command()
-		_status.text = tr("UI_TOKEN_ADDED").replace("{name}", t.name)
+		var fits: bool = true
+		var cells: Array[Vector2i] = _doc.token_cells(t, p) if p != null else [c]
+		for fc: Vector2i in cells:
+			var i: int = g.index_of(fc)
+			if i < 0 or (mask[i] & MapLevel.MOVE_PASSABLE) == 0 or (p != null and not _doc.tokens_at(li, fc, p).is_empty()):
+				fits = false
+				break
+		if fits:
+			t.id = _doc.allocate_id()
+			return _stack.execute(AddTokenCommand.new(t))
+	return false
+
+
+# --- Personajes (F5, ADR 034) -------------------------------------------------
+
+## Abre el diseñador con el personaje de la ficha seleccionada (o uno nuevo
+## con su nombre y tamaño); sin ficha seleccionada, para crear una.
+func _open_designer() -> void:
+	if _doc == null:
 		return
+	var t: MapToken = _doc.token(_selected_token) if _selected_token >= 0 else null
+	_designer_token = t.id if t != null else -1
+	var sheet: CharacterSheet = null
+	if t != null and t.sheet != null:
+		sheet = t.sheet
+	else:
+		sheet = CharacterSheet.new()
+		sheet.look = LookCatalog.load_default().default_look("humanoid_medium")
+		if t != null:
+			sheet.name = t.name
+			sheet.size_id = t.size_id
+	_designer.edit(sheet, _current_profile())
+
+
+func _on_designer_applied(sheet: CharacterSheet) -> void:
+	if _doc == null:
+		return
+	var t: MapToken = _doc.token(_designer_token) if _designer_token >= 0 else null
+	if t != null:
+		if _stack.execute(SetTokenSheetCommand.new(t.id, sheet)):
+			_on_user_command()
+			_status.text = tr("UI_CHAR_APPLIED").replace("{name}", _doc.token(t.id).name)
+		return
+	var nt: MapToken = _token_for_sheet(sheet, MapToken.SIDE_PLAYER)
+	if _place_token(nt):
+		_on_user_command()
+		_status.text = tr("UI_TOKEN_ADDED").replace("{name}", nt.name)
+	else:
+		_status.text = tr("UI_CHAR_NO_ROOM")
+
+
+func _token_for_sheet(sheet: CharacterSheet, side: String) -> MapToken:
+	var t: MapToken = MapToken.new()
+	t.sheet = sheet.copy()
+	t.size_id = sheet.size_id
+	t.side = side if MapToken.SIDES.has(side) else MapToken.SIDE_PLAYER
+	if sheet.name.is_empty():
+		_token_counter += 1
+		t.name = "P" + str(_token_counter)
+	else:
+		t.name = sheet.name
+	return t
+
+
+func _import_characters() -> void:
+	if _doc != null and _char_open_dialog != null:
+		_char_open_dialog.popup_centered_ratio(0.6)
+
+
+## Importa los personajes de un CSV o JSON y pone sus fichas junto a la
+## entrada. Un JSON sin campos reconocibles abre el mapeo de campos.
+func import_characters_from(path: String) -> void:
+	if _doc == null:
+		return
+	var text: String = FileAccess.get_file_as_string(path)
+	var p: SystemProfile = _current_profile()
+	if path.to_lower().ends_with(".csv"):
+		_place_imported(CharacterImport.from_csv(text, p))
+		return
+	var res: CharacterImport.Result = CharacterImport.from_json(text, p)
+	if res.error == "CHAR_IMPORT_EMPTY" and not CharacterImport.leaf_paths(text).is_empty():
+		_import_text = text
+		_mapping_dialog.open_for(text, p)
+		return
+	_place_imported(res)
+
+
+func _place_imported(res: CharacterImport.Result) -> void:
+	for w: String in res.warnings:
+		push_warning("Importar personajes: " + w)
+	if not res.error.is_empty():
+		_status.text = tr(res.error)
+		return
+	var placed: int = 0
+	for i: int in res.sheets.size():
+		var side: String = res.sides[i] if i < res.sides.size() else ""
+		if _place_token(_token_for_sheet(res.sheets[i], side)):
+			placed += 1
+	_on_user_command()
+	var msg: String = tr("UI_CHAR_IMPORTED").replace("{n}", str(placed))
+	if placed < res.sheets.size():
+		msg += " · " + tr("UI_CHAR_NOT_PLACED").replace("{n}", str(res.sheets.size() - placed))
+	if not res.warnings.is_empty():
+		msg += " · " + tr("UI_CHAR_WARNINGS").replace("{n}", str(res.warnings.size()))
+	_status.text = msg
 
 
 ## Casillas transitables ordenadas por distancia (en pasos, sin cruzar

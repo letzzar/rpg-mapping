@@ -168,8 +168,9 @@
 				"cell": { "$ref": "#/$defs/cell" },
 				"size_id": { "type": "string" },
 				"side": { "enum": ["player", "ally", "neutral", "enemy"] },
-				"character_ref": { "type": "string" },
-				"hidden": { "type": "boolean" }
+				"character_ref": { "type": "string", "description": "Dueño en la partida en red (player:<id>) o referencia libre." },
+				"hidden": { "type": "boolean" },
+				"sheet": { "$ref": "character.schema.json", "description": "Personaje de la ficha (opcional, F5)." }
 			}
 		}
 	}

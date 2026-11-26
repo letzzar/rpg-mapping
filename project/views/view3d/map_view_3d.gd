@@ -215,6 +215,9 @@ func _build_tokens() -> void:
 			center += g.cell_to_pixel(c, cell_m)
 		center /= float(cells.size())
 		var radius: float = cell_m * 0.38 * sqrt(float(cells.size()))
+		if t.sheet != null:
+			_build_figure(t, center, radius)
+			continue
 		var height: float = _eye_height(t.size_id) * 0.9
 		var mi: MeshInstance3D = MeshInstance3D.new()
 		var cyl: CylinderMesh = CylinderMesh.new()
@@ -233,18 +236,59 @@ func _build_tokens() -> void:
 		mi.mesh = cyl
 		mi.position = MapMeshBuilder.v3(center, height * 0.5)
 		_tokens_node.add_child(mi)
-		var lbl: Label3D = Label3D.new()
-		lbl.text = t.name
-		lbl.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		# Tamaño fijo en pantalla: legible desde lejos y sin tapar la vista
-		# en 1ª persona cuando hay una ficha al lado.
-		lbl.fixed_size = true
-		lbl.pixel_size = 0.0012
-		lbl.font_size = 32
-		lbl.outline_size = 10
-		lbl.modulate = Color.WHITE
-		lbl.position = MapMeshBuilder.v3(center, height + 0.35)
-		_tokens_node.add_child(lbl)
+		_add_token_label(t, center, height)
+
+
+## Miniatura de un personaje (ADR 034): peana del color del bando (más clara
+## si está seleccionada) y la figura de su aspecto, de la altura de su tamaño
+## y sin salirse de su huella.
+func _build_figure(t: MapToken, center: Vector2, radius: float) -> void:
+	var base_h: float = maxf(0.03, cell_m * 0.025)
+	var base: MeshInstance3D = MeshInstance3D.new()
+	var cyl: CylinderMesh = CylinderMesh.new()
+	cyl.top_radius = radius
+	cyl.bottom_radius = radius
+	cyl.height = base_h
+	cyl.radial_segments = 24
+	cyl.rings = 1
+	var mat: StandardMaterial3D = StandardMaterial3D.new()
+	mat.albedo_color = SIDE_COLORS.get(t.side, SIDE_COLORS["neutral"])
+	if t.id == selected_token or t.id == _drag_token:
+		mat.albedo_color = mat.albedo_color.lightened(0.35)
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	cyl.material = mat
+	base.mesh = cyl
+	base.position = MapMeshBuilder.v3(center, base_h * 0.5)
+	_tokens_node.add_child(base)
+	var mesh: ArrayMesh = CharacterModelBuilder.mesh_for(t.sheet.look)
+	var fig: MeshInstance3D = MeshInstance3D.new()
+	fig.mesh = mesh
+	# Ojos a la altura del tamaño (la cabeza humanoide está a 0,87 de la
+	# figura); se reduce si con esa escala se saldría de la peana.
+	var s: float = _eye_height(t.size_id) / 0.87
+	var aabb: AABB = mesh.get_aabb()
+	var half: float = maxf(maxf(absf(aabb.position.x), absf(aabb.end.x)), maxf(absf(aabb.position.z), absf(aabb.end.z)))
+	if half > 0.0:
+		s = minf(s, radius * 1.15 / half)
+	fig.scale = Vector3(s, s, s)
+	fig.position = MapMeshBuilder.v3(center, base_h)
+	_tokens_node.add_child(fig)
+	_add_token_label(t, center, base_h + aabb.end.y * s)
+
+
+func _add_token_label(t: MapToken, center: Vector2, height: float) -> void:
+	var lbl: Label3D = Label3D.new()
+	lbl.text = t.name
+	lbl.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	# Tamaño fijo en pantalla: legible desde lejos y sin tapar la vista
+	# en 1ª persona cuando hay una ficha al lado.
+	lbl.fixed_size = true
+	lbl.pixel_size = 0.0012
+	lbl.font_size = 32
+	lbl.outline_size = 10
+	lbl.modulate = Color.WHITE
+	lbl.position = MapMeshBuilder.v3(center, height + 0.35)
+	_tokens_node.add_child(lbl)
 
 
 func _build_labels() -> void:
@@ -699,7 +743,8 @@ func _on_left_release(cell: Vector2i) -> void:
 		return
 	if command_stack.execute(MoveTokenCommand.new(t.id, cell, level_index)):
 		var text: String = tr("UI_MOVED").replace("{cost}", _format_ft(route.cost_ft))
-		if profile.default_speed_ft > 0 and route.cost_ft > profile.default_speed_ft:
+		var speed: int = t.speed_ft(profile)
+		if speed > 0 and route.cost_ft > speed:
 			text += "  " + tr("UI_OVER_SPEED")
 		status_changed.emit(text)
 		user_command_done.emit()

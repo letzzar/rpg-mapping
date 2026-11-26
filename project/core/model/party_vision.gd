@@ -7,6 +7,9 @@ extends RefCounted
 
 const VIEWER_PARTY: String = "party"
 const SIDES_IN_PARTY: PackedStringArray = ["player", "ally"]
+## Id del sentido (en los perfiles y en CharacterSheet.senses) que deja ver
+## en la oscuridad como en penumbra (ADR 034).
+const SENSE_DARKVISION: String = "darkvision"
 
 
 class Options:
@@ -37,6 +40,14 @@ static func party_tokens(doc: MapDocument, level_index: int) -> Array[MapToken]:
 	return out
 
 
+## Casillas de visión en la oscuridad del personaje de la ficha (sentido
+## SENSE_DARKVISION de su hoja, en pies → casillas hacia abajo); 0 sin él.
+static func darkvision_cells_of(t: MapToken, profile: SystemProfile) -> int:
+	if t.sheet == null or profile == null or profile.cell_ft <= 0 or not t.sheet.senses.has(SENSE_DARKVISION):
+		return 0
+	return t.sheet.senses[SENSE_DARKVISION] / profile.cell_ft
+
+
 static func compute(doc: MapDocument, level_index: int, profile: SystemProfile, opts: Options) -> Result:
 	var r: Result = Result.new()
 	var lvl: MapLevel = doc.level(level_index)
@@ -48,7 +59,7 @@ static func compute(doc: MapDocument, level_index: int, profile: SystemProfile, 
 		var v: Visibility.Viewer = Visibility.Viewer.new()
 		v.cells = doc.token_cells(t, profile) if profile != null else [t.cell]
 		v.range_cells = opts.range_cells
-		v.darkvision_cells = opts.darkvision_cells
+		v.darkvision_cells = maxi(opts.darkvision_cells, darkvision_cells_of(t, profile))
 		viewers.append(v)
 		if opts.carried_dim > 0:
 			lights.append(Visibility.LightSource.make(t.cell, opts.carried_bright, opts.carried_dim))

@@ -1,0 +1,265 @@
+{
+	"schema_version": 1,
+	"materials": {
+		"skin": "#d9a07a",
+		"hair": "#4a2e1c",
+		"cloth": "#3d6ea8",
+		"trim": "#a8322d",
+		"metal": "#b9bec7",
+		"leather": "#7a5230",
+		"wood": "#8a6238"
+	},
+	"slots": ["head", "torso", "legs", "main_hand", "off_hand", "cloak", "accessory"],
+	"bodies": [
+		{
+			"id": "humanoid_small", "family": "humanoid", "width": 1.15,
+			"slots": ["head", "torso", "legs", "main_hand", "off_hand", "cloak", "accessory"],
+			"defaults": { "head": "hair_short", "torso": "tunic", "legs": "trousers" }
+		},
+		{
+			"id": "humanoid_medium", "family": "humanoid", "width": 1.0,
+			"slots": ["head", "torso", "legs", "main_hand", "off_hand", "cloak", "accessory"],
+			"defaults": { "head": "hair_short", "torso": "tunic", "legs": "trousers" }
+		},
+		{
+			"id": "humanoid_large", "family": "humanoid", "width": 1.25,
+			"slots": ["head", "torso", "legs", "main_hand", "off_hand", "cloak", "accessory"],
+			"defaults": { "head": "hair_short", "torso": "tunic", "legs": "trousers" }
+		},
+		{
+			"id": "quadruped", "family": "quadruped", "width": 1.0,
+			"slots": ["head", "torso", "accessory"],
+			"defaults": { "head": "ears" }
+		},
+		{
+			"id": "flyer", "family": "flyer", "width": 1.0,
+			"slots": ["head", "accessory"],
+			"defaults": {}
+		}
+	],
+	"base": {
+		"humanoid": [
+			{ "shape": "box", "mat": "skin", "pos": [0, 0.6, 0], "size": [0.3, 0.32, 0.17] },
+			{ "shape": "cylinder", "mat": "skin", "pos": [0.07, 0.22, 0], "size": [0.11, 0.44, 0.11] },
+			{ "shape": "cylinder", "mat": "skin", "pos": [-0.07, 0.22, 0], "size": [0.11, 0.44, 0.11] },
+			{ "shape": "cylinder", "mat": "skin", "pos": [0, 0.765, 0], "size": [0.08, 0.06, 0.08] },
+			{ "shape": "sphere", "mat": "skin", "pos": [0, 0.87, 0], "size": [0.2, 0.21, 0.2] },
+			{ "shape": "sphere", "mat": "#1b1b1b", "pos": [0.04, 0.885, 0.093], "size": [0.03, 0.03, 0.02] },
+			{ "shape": "sphere", "mat": "#1b1b1b", "pos": [-0.04, 0.885, 0.093], "size": [0.03, 0.03, 0.02] },
+			{ "shape": "cylinder", "mat": "skin", "pos": [0.2, 0.6, 0], "size": [0.08, 0.34, 0.08], "rot": [0, 0, 6] },
+			{ "shape": "cylinder", "mat": "skin", "pos": [-0.2, 0.6, 0], "size": [0.08, 0.34, 0.08], "rot": [0, 0, -6] },
+			{ "shape": "sphere", "mat": "skin", "pos": [0.215, 0.41, 0], "size": [0.09, 0.09, 0.09] },
+			{ "shape": "sphere", "mat": "skin", "pos": [-0.215, 0.41, 0], "size": [0.09, 0.09, 0.09] }
+		],
+		"quadruped": [
+			{ "shape": "box", "mat": "skin", "pos": [0, 0.6, 0], "size": [0.32, 0.32, 0.8] },
+			{ "shape": "cylinder", "mat": "skin", "pos": [0.11, 0.225, 0.3], "size": [0.09, 0.45, 0.09] },
+			{ "shape": "cylinder", "mat": "skin", "pos": [-0.11, 0.225, 0.3], "size": [0.09, 0.45, 0.09] },
+			{ "shape": "cylinder", "mat": "skin", "pos": [0.11, 0.225, -0.3], "size": [0.09, 0.45, 0.09] },
+			{ "shape": "cylinder", "mat": "skin", "pos": [-0.11, 0.225, -0.3], "size": [0.09, 0.45, 0.09] },
+			{ "shape": "box", "mat": "skin", "pos": [0, 0.78, 0.38], "size": [0.14, 0.25, 0.14], "rot": [30, 0, 0] },
+			{ "shape": "box", "mat": "skin", "pos": [0, 0.92, 0.5], "size": [0.17, 0.17, 0.3] },
+			{ "shape": "sphere", "mat": "#1b1b1b", "pos": [0.07, 0.96, 0.58], "size": [0.03, 0.03, 0.03] },
+			{ "shape": "sphere", "mat": "#1b1b1b", "pos": [-0.07, 0.96, 0.58], "size": [0.03, 0.03, 0.03] },
+			{ "shape": "cylinder", "mat": "hair", "pos": [0, 0.62, -0.5], "size": [0.05, 0.35, 0.05], "rot": [-50, 0, 0] }
+		],
+		"flyer": [
+			{ "shape": "sphere", "mat": "skin", "pos": [0, 0.5, 0], "size": [0.32, 0.32, 0.5] },
+			{ "shape": "sphere", "mat": "skin", "pos": [0, 0.72, 0.25], "size": [0.22, 0.22, 0.22] },
+			{ "shape": "cone", "mat": "#e0a030", "pos": [0, 0.7, 0.4], "size": [0.06, 0.12, 0.06], "rot": [90, 0, 0] },
+			{ "shape": "sphere", "mat": "#1b1b1b", "pos": [0.07, 0.76, 0.34], "size": [0.03, 0.03, 0.03] },
+			{ "shape": "sphere", "mat": "#1b1b1b", "pos": [-0.07, 0.76, 0.34], "size": [0.03, 0.03, 0.03] },
+			{ "shape": "box", "mat": "hair", "pos": [0.36, 0.58, 0], "size": [0.5, 0.03, 0.3], "rot": [0, 0, 20] },
+			{ "shape": "box", "mat": "hair", "pos": [-0.36, 0.58, 0], "size": [0.5, 0.03, 0.3], "rot": [0, 0, -20] },
+			{ "shape": "box", "mat": "hair", "pos": [0, 0.5, -0.3], "size": [0.18, 0.03, 0.25], "rot": [15, 0, 0] },
+			{ "shape": "cylinder", "mat": "#e0a030", "pos": [0.07, 0.14, 0], "size": [0.03, 0.28, 0.03] },
+			{ "shape": "cylinder", "mat": "#e0a030", "pos": [-0.07, 0.14, 0], "size": [0.03, 0.28, 0.03] }
+		]
+	},
+	"parts": [
+		{ "id": "hair_short", "slot": "head", "family": "humanoid", "shapes": [
+			{ "shape": "sphere", "mat": "hair", "pos": [0, 0.93, -0.01], "size": [0.215, 0.14, 0.215] }
+		] },
+		{ "id": "hair_long", "slot": "head", "family": "humanoid", "shapes": [
+			{ "shape": "sphere", "mat": "hair", "pos": [0, 0.93, -0.01], "size": [0.215, 0.14, 0.215] },
+			{ "shape": "box", "mat": "hair", "pos": [0, 0.8, -0.085], "size": [0.2, 0.26, 0.06] }
+		] },
+		{ "id": "hood", "slot": "head", "family": "humanoid", "shapes": [
+			{ "shape": "sphere", "mat": "cloth", "pos": [0, 0.89, -0.025], "size": [0.24, 0.25, 0.24] }
+		] },
+		{ "id": "helmet", "slot": "head", "family": "humanoid", "shapes": [
+			{ "shape": "sphere", "mat": "metal", "pos": [0, 0.935, 0], "size": [0.23, 0.17, 0.23] },
+			{ "shape": "box", "mat": "metal", "pos": [0, 0.86, 0.105], "size": [0.03, 0.09, 0.02] }
+		] },
+		{ "id": "horned_helmet", "slot": "head", "family": "humanoid", "shapes": [
+			{ "shape": "sphere", "mat": "metal", "pos": [0, 0.935, 0], "size": [0.23, 0.17, 0.23] },
+			{ "shape": "cone", "mat": "#e8dcc0", "pos": [0.13, 1.0, 0], "size": [0.05, 0.15, 0.05], "rot": [0, 0, -35] },
+			{ "shape": "cone", "mat": "#e8dcc0", "pos": [-0.13, 1.0, 0], "size": [0.05, 0.15, 0.05], "rot": [0, 0, 35] }
+		] },
+		{ "id": "wizard_hat", "slot": "head", "family": "humanoid", "shapes": [
+			{ "shape": "cylinder", "mat": "cloth", "pos": [0, 0.95, 0], "size": [0.34, 0.015, 0.34] },
+			{ "shape": "cone", "mat": "cloth", "pos": [0, 1.1, 0], "size": [0.18, 0.3, 0.18] }
+		] },
+		{ "id": "crown", "slot": "head", "family": "humanoid", "shapes": [
+			{ "shape": "sphere", "mat": "hair", "pos": [0, 0.93, -0.01], "size": [0.215, 0.14, 0.215] },
+			{ "shape": "cylinder", "mat": "#d9b03c", "pos": [0, 0.985, 0], "size": [0.2, 0.05, 0.2], "taper": 1.15 }
+		] },
+		{ "id": "tunic", "slot": "torso", "family": "humanoid", "shapes": [
+			{ "shape": "box", "mat": "cloth", "pos": [0, 0.6, 0], "size": [0.32, 0.34, 0.19] },
+			{ "shape": "box", "mat": "leather", "pos": [0, 0.45, 0], "size": [0.33, 0.04, 0.2] }
+		] },
+		{ "id": "robe", "slot": "torso", "family": "humanoid", "shapes": [
+			{ "shape": "cylinder", "mat": "cloth", "pos": [0, 0.4, 0], "size": [0.36, 0.76, 0.25], "taper": 0.8 },
+			{ "shape": "box", "mat": "trim", "pos": [0, 0.55, 0], "size": [0.31, 0.04, 0.22] }
+		] },
+		{ "id": "leather_armor", "slot": "torso", "family": "humanoid", "shapes": [
+			{ "shape": "box", "mat": "leather", "pos": [0, 0.6, 0], "size": [0.33, 0.35, 0.2] },
+			{ "shape": "box", "mat": "trim", "pos": [0, 0.6, 0.002], "size": [0.05, 0.4, 0.2], "rot": [0, 0, 35] }
+		] },
+		{ "id": "plate_armor", "slot": "torso", "family": "humanoid", "shapes": [
+			{ "shape": "box", "mat": "metal", "pos": [0, 0.61, 0], "size": [0.34, 0.36, 0.21] },
+			{ "shape": "sphere", "mat": "metal", "pos": [0.19, 0.75, 0], "size": [0.15, 0.1, 0.15] },
+			{ "shape": "sphere", "mat": "metal", "pos": [-0.19, 0.75, 0], "size": [0.15, 0.1, 0.15] },
+			{ "shape": "box", "mat": "trim", "pos": [0, 0.43, 0], "size": [0.34, 0.08, 0.21] }
+		] },
+		{ "id": "trousers", "slot": "legs", "family": "humanoid", "shapes": [
+			{ "shape": "cylinder", "mat": "cloth", "pos": [0.07, 0.25, 0], "size": [0.12, 0.4, 0.12] },
+			{ "shape": "cylinder", "mat": "cloth", "pos": [-0.07, 0.25, 0], "size": [0.12, 0.4, 0.12] },
+			{ "shape": "box", "mat": "leather", "pos": [0.07, 0.05, 0.02], "size": [0.12, 0.1, 0.17] },
+			{ "shape": "box", "mat": "leather", "pos": [-0.07, 0.05, 0.02], "size": [0.12, 0.1, 0.17] }
+		] },
+		{ "id": "greaves", "slot": "legs", "family": "humanoid", "shapes": [
+			{ "shape": "cylinder", "mat": "metal", "pos": [0.07, 0.25, 0], "size": [0.13, 0.4, 0.13] },
+			{ "shape": "cylinder", "mat": "metal", "pos": [-0.07, 0.25, 0], "size": [0.13, 0.4, 0.13] },
+			{ "shape": "box", "mat": "metal", "pos": [0.07, 0.05, 0.02], "size": [0.13, 0.1, 0.18] },
+			{ "shape": "box", "mat": "metal", "pos": [-0.07, 0.05, 0.02], "size": [0.13, 0.1, 0.18] }
+		] },
+		{ "id": "sword", "slot": "main_hand", "family": "humanoid", "shapes": [
+			{ "shape": "box", "mat": "metal", "pos": [0.215, 0.66, 0.04], "size": [0.04, 0.42, 0.012] },
+			{ "shape": "box", "mat": "metal", "pos": [0.215, 0.445, 0.04], "size": [0.13, 0.025, 0.035] },
+			{ "shape": "box", "mat": "leather", "pos": [0.215, 0.4, 0.04], "size": [0.03, 0.08, 0.03] }
+		] },
+		{ "id": "axe", "slot": "main_hand", "family": "humanoid", "shapes": [
+			{ "shape": "cylinder", "mat": "wood", "pos": [0.215, 0.55, 0.04], "size": [0.03, 0.55, 0.03] },
+			{ "shape": "box", "mat": "metal", "pos": [0.27, 0.78, 0.04], "size": [0.14, 0.12, 0.02] }
+		] },
+		{ "id": "mace", "slot": "main_hand", "family": "humanoid", "shapes": [
+			{ "shape": "cylinder", "mat": "wood", "pos": [0.215, 0.5, 0.04], "size": [0.03, 0.4, 0.03] },
+			{ "shape": "sphere", "mat": "metal", "pos": [0.215, 0.72, 0.04], "size": [0.1, 0.1, 0.1] }
+		] },
+		{ "id": "spear", "slot": "main_hand", "family": "humanoid", "shapes": [
+			{ "shape": "cylinder", "mat": "wood", "pos": [0.215, 0.55, 0.04], "size": [0.03, 1.15, 0.03] },
+			{ "shape": "cone", "mat": "metal", "pos": [0.215, 1.19, 0.04], "size": [0.06, 0.14, 0.06] }
+		] },
+		{ "id": "staff", "slot": "main_hand", "family": "humanoid", "shapes": [
+			{ "shape": "cylinder", "mat": "wood", "pos": [0.215, 0.5, 0.04], "size": [0.035, 1.05, 0.035] },
+			{ "shape": "sphere", "mat": "trim", "pos": [0.215, 1.05, 0.04], "size": [0.08, 0.08, 0.08] }
+		] },
+		{ "id": "dagger", "slot": "main_hand", "family": "humanoid", "shapes": [
+			{ "shape": "box", "mat": "metal", "pos": [0.215, 0.52, 0.05], "size": [0.03, 0.17, 0.01] },
+			{ "shape": "box", "mat": "leather", "pos": [0.215, 0.41, 0.05], "size": [0.025, 0.06, 0.025] }
+		] },
+		{ "id": "shield_round", "slot": "off_hand", "family": "humanoid", "shapes": [
+			{ "shape": "cylinder", "mat": "wood", "pos": [-0.25, 0.5, 0.06], "size": [0.3, 0.03, 0.3], "rot": [90, 0, 0] },
+			{ "shape": "sphere", "mat": "metal", "pos": [-0.25, 0.5, 0.08], "size": [0.07, 0.07, 0.04] }
+		] },
+		{ "id": "shield_kite", "slot": "off_hand", "family": "humanoid", "shapes": [
+			{ "shape": "box", "mat": "metal", "pos": [-0.25, 0.5, 0.06], "size": [0.22, 0.34, 0.03] },
+			{ "shape": "box", "mat": "trim", "pos": [-0.25, 0.5, 0.078], "size": [0.05, 0.3, 0.008] }
+		] },
+		{ "id": "torch", "slot": "off_hand", "family": "humanoid", "shapes": [
+			{ "shape": "cylinder", "mat": "wood", "pos": [-0.215, 0.5, 0.04], "size": [0.03, 0.3, 0.03] },
+			{ "shape": "sphere", "mat": "#ffb030", "pos": [-0.215, 0.68, 0.04], "size": [0.08, 0.12, 0.08] }
+		] },
+		{ "id": "book", "slot": "off_hand", "family": "humanoid", "shapes": [
+			{ "shape": "box", "mat": "leather", "pos": [-0.215, 0.47, 0.07], "size": [0.13, 0.17, 0.05] }
+		] },
+		{ "id": "bow", "slot": "off_hand", "family": "humanoid", "shapes": [
+			{ "shape": "box", "mat": "wood", "pos": [-0.23, 0.55, 0.05], "size": [0.025, 0.75, 0.025] },
+			{ "shape": "box", "mat": "#e8e0d0", "pos": [-0.2, 0.55, 0.05], "size": [0.006, 0.72, 0.006] }
+		] },
+		{ "id": "cloak", "slot": "cloak", "family": "humanoid", "shapes": [
+			{ "shape": "box", "mat": "trim", "pos": [0, 0.47, -0.11], "size": [0.36, 0.64, 0.025], "rot": [-6, 0, 0] },
+			{ "shape": "box", "mat": "trim", "pos": [0, 0.77, 0], "size": [0.3, 0.05, 0.21] }
+		] },
+		{ "id": "backpack", "slot": "accessory", "family": "humanoid", "shapes": [
+			{ "shape": "box", "mat": "leather", "pos": [0, 0.62, -0.15], "size": [0.24, 0.28, 0.12] },
+			{ "shape": "cylinder", "mat": "cloth", "pos": [0, 0.79, -0.15], "size": [0.08, 0.26, 0.08], "rot": [0, 0, 90] }
+		] },
+		{ "id": "quiver", "slot": "accessory", "family": "humanoid", "shapes": [
+			{ "shape": "cylinder", "mat": "leather", "pos": [0.08, 0.7, -0.13], "size": [0.08, 0.36, 0.08], "rot": [-10, 0, -20] }
+		] },
+		{ "id": "pouch", "slot": "accessory", "family": "humanoid", "shapes": [
+			{ "shape": "box", "mat": "leather", "pos": [0.12, 0.44, 0.1], "size": [0.08, 0.08, 0.05] }
+		] },
+		{ "id": "ears", "slot": "head", "family": "quadruped", "shapes": [
+			{ "shape": "cone", "mat": "skin", "pos": [0.06, 1.04, 0.42], "size": [0.05, 0.1, 0.05] },
+			{ "shape": "cone", "mat": "skin", "pos": [-0.06, 1.04, 0.42], "size": [0.05, 0.1, 0.05] }
+		] },
+		{ "id": "horns", "slot": "head", "family": "quadruped", "shapes": [
+			{ "shape": "cone", "mat": "#e8dcc0", "pos": [0.07, 1.06, 0.45], "size": [0.05, 0.16, 0.05], "rot": [-30, 0, 0] },
+			{ "shape": "cone", "mat": "#e8dcc0", "pos": [-0.07, 1.06, 0.45], "size": [0.05, 0.16, 0.05], "rot": [-30, 0, 0] }
+		] },
+		{ "id": "antlers", "slot": "head", "family": "quadruped", "shapes": [
+			{ "shape": "cylinder", "mat": "wood", "pos": [0.08, 1.1, 0.42], "size": [0.025, 0.22, 0.025], "rot": [0, 0, -30] },
+			{ "shape": "cylinder", "mat": "wood", "pos": [-0.08, 1.1, 0.42], "size": [0.025, 0.22, 0.025], "rot": [0, 0, 30] },
+			{ "shape": "cylinder", "mat": "wood", "pos": [0.11, 1.14, 0.46], "size": [0.02, 0.12, 0.02], "rot": [-40, 0, 0] },
+			{ "shape": "cylinder", "mat": "wood", "pos": [-0.11, 1.14, 0.46], "size": [0.02, 0.12, 0.02], "rot": [-40, 0, 0] }
+		] },
+		{ "id": "saddle", "slot": "torso", "family": "quadruped", "shapes": [
+			{ "shape": "box", "mat": "cloth", "pos": [0, 0.77, 0.05], "size": [0.36, 0.02, 0.36] },
+			{ "shape": "box", "mat": "leather", "pos": [0, 0.8, 0.05], "size": [0.26, 0.06, 0.26] }
+		] },
+		{ "id": "barding", "slot": "torso", "family": "quadruped", "shapes": [
+			{ "shape": "box", "mat": "metal", "pos": [0, 0.64, 0.02], "size": [0.35, 0.26, 0.72] }
+		] },
+		{ "id": "saddlebags", "slot": "accessory", "family": "quadruped", "shapes": [
+			{ "shape": "box", "mat": "leather", "pos": [0.19, 0.6, -0.15], "size": [0.06, 0.14, 0.18] },
+			{ "shape": "box", "mat": "leather", "pos": [-0.19, 0.6, -0.15], "size": [0.06, 0.14, 0.18] }
+		] },
+		{ "id": "collar", "slot": "accessory", "family": "quadruped", "shapes": [
+			{ "shape": "cylinder", "mat": "trim", "pos": [0, 0.82, 0.42], "size": [0.18, 0.04, 0.18], "rot": [30, 0, 0] }
+		] },
+		{ "id": "crest", "slot": "head", "family": "flyer", "shapes": [
+			{ "shape": "cone", "mat": "trim", "pos": [0, 0.86, 0.22], "size": [0.06, 0.14, 0.1], "rot": [-20, 0, 0] }
+		] },
+		{ "id": "flyer_collar", "slot": "accessory", "family": "flyer", "shapes": [
+			{ "shape": "cylinder", "mat": "trim", "pos": [0, 0.64, 0.2], "size": [0.2, 0.04, 0.2], "rot": [30, 0, 0] }
+		] }
+	],
+	"presets": [
+		{ "id": "warrior", "body": "humanoid_medium", "size_id": "medium",
+			"parts": { "head": "helmet", "torso": "plate_armor", "legs": "greaves", "main_hand": "sword", "off_hand": "shield_kite", "cloak": "cloak" },
+			"colors": {} },
+		{ "id": "wizard", "body": "humanoid_medium", "size_id": "medium",
+			"parts": { "head": "wizard_hat", "torso": "robe", "main_hand": "staff", "off_hand": "book" },
+			"colors": { "cloth": "#4b3a8c", "trim": "#d9b03c", "hair": "#cfcfcf" } },
+		{ "id": "rogue", "body": "humanoid_medium", "size_id": "medium",
+			"parts": { "head": "hood", "torso": "leather_armor", "legs": "trousers", "main_hand": "dagger", "cloak": "cloak", "accessory": "pouch" },
+			"colors": { "cloth": "#2f3a2f", "trim": "#2a2a2a" } },
+		{ "id": "cleric", "body": "humanoid_medium", "size_id": "medium",
+			"parts": { "head": "hair_short", "torso": "plate_armor", "legs": "trousers", "main_hand": "mace", "off_hand": "shield_round" },
+			"colors": { "trim": "#e8dcc0", "cloth": "#e8dcc0" } },
+		{ "id": "ranger", "body": "humanoid_medium", "size_id": "medium",
+			"parts": { "head": "hair_long", "torso": "leather_armor", "legs": "trousers", "main_hand": "dagger", "off_hand": "bow", "cloak": "cloak", "accessory": "quiver" },
+			"colors": { "cloth": "#4d6b34", "trim": "#4d6b34" } },
+		{ "id": "halfling", "body": "humanoid_small", "size_id": "small",
+			"parts": { "head": "hair_short", "torso": "tunic", "legs": "trousers", "main_hand": "dagger", "accessory": "backpack" },
+			"colors": { "cloth": "#8a6a2a" } },
+		{ "id": "goblin", "body": "humanoid_small", "size_id": "small",
+			"parts": { "torso": "leather_armor", "legs": "trousers", "main_hand": "dagger", "off_hand": "shield_round" },
+			"colors": { "skin": "#7fa04a", "leather": "#5a4028" } },
+		{ "id": "ogre", "body": "humanoid_large", "size_id": "large",
+			"parts": { "torso": "tunic", "legs": "trousers", "main_hand": "mace" },
+			"colors": { "skin": "#9a8f6a", "cloth": "#6b5a3a" } },
+		{ "id": "wolf", "body": "quadruped", "size_id": "medium",
+			"parts": { "head": "ears" },
+			"colors": { "skin": "#6e6a66", "hair": "#4f4b47" } },
+		{ "id": "horse", "body": "quadruped", "size_id": "large",
+			"parts": { "head": "ears", "torso": "saddle", "accessory": "saddlebags" },
+			"colors": { "skin": "#7a4a2a", "hair": "#2a1a10" } },
+		{ "id": "eagle", "body": "flyer", "size_id": "small",
+			"parts": {},
+			"colors": { "skin": "#5a3a20", "hair": "#6b4a2a" } }
+	]
+}

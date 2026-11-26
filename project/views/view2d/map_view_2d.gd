@@ -101,6 +101,10 @@ var fog_visible: PackedByteArray = PackedByteArray()
 var fog_explored: PackedByteArray = PackedByteArray()
 
 var _drag_token: int = -1
+## Retratos de las fichas con personaje: id de ficha → textura, y el hash
+## del PNG con el que se hizo (para rehacerla si cambia).
+var _portraits: Dictionary[int, Texture2D] = {}
+var _portrait_keys: Dictionary[int, int] = {}
 var _drag_route: MovementCost.Route = null
 var _drag_target: Vector2i = Vector2i(-1, -1)
 var _ruler_from: Vector2i = Vector2i(-1, -1)
@@ -494,6 +498,9 @@ func _draw_tokens(g: GridGeometry) -> void:
 		var col: Color = SIDE_COLORS.get(t.side, SIDE_COLORS["neutral"])
 		if t.id == _drag_token:
 			col = Color(col, 0.5)
+		if t.sheet != null:
+			_draw_character_token(t, center, radius, col)
+			continue
 		draw_circle(center, radius, col)
 		draw_arc(center, radius, 0.0, TAU, 32, Color("f7dc8e"), 2.0)
 		var mark: String = SIDE_MARKS.get(t.side, "")
@@ -503,11 +510,35 @@ func _draw_tokens(g: GridGeometry) -> void:
 			HORIZONTAL_ALIGNMENT_CENTER, radius * 2.0, fs, Color.WHITE)
 
 
+## Ficha con personaje (ADR 034): retrato recortado en círculo o, sin
+## retrato, silueta de su complexión con los colores de su aspecto; aro del
+## color del bando.
+func _draw_character_token(t: MapToken, center: Vector2, radius: float, side_col: Color) -> void:
+	TokenPainter.draw(self, t.sheet, center, radius, side_col, _portrait_texture(t))
+
+
+## Textura del retrato de la ficha (en caché mientras no cambie).
+func _portrait_texture(t: MapToken) -> Texture2D:
+	if t.sheet == null or t.sheet.portrait_png.is_empty():
+		_portraits.erase(t.id)
+		return null
+	var key: int = hash(t.sheet.portrait_png)
+	if _portraits.has(t.id) and _portrait_keys.get(t.id, 0) == key:
+		return _portraits[t.id]
+	var img: Image = t.sheet.portrait_image()
+	if img == null:
+		return null
+	var tex: ImageTexture = ImageTexture.create_from_image(img)
+	_portraits[t.id] = tex
+	_portrait_keys[t.id] = key
+	return tex
+
+
 func _draw_overlays(g: GridGeometry) -> void:
 	var font: Font = ThemeDB.fallback_font
 	if _drag_token >= 0 and _drag_route != null and _drag_route.found:
 		var t: MapToken = document.token(_drag_token)
-		var speed: int = profile.default_speed_ft if profile != null else 0
+		var speed: int = t.speed_ft(profile) if t != null else 0
 		var too_far: bool = speed > 0 and _drag_route.cost_ft > speed
 		var col: Color = COL_PATH_FAR if too_far else COL_PATH_OK
 		var pts: PackedVector2Array = PackedVector2Array()

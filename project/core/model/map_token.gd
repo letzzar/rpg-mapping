@@ -19,10 +19,21 @@ var cell: Vector2i = Vector2i.ZERO
 ## SystemProfile.size_cells() y MapDocument.token_cells().
 var size_id: String = "medium"
 var side: String = SIDE_NEUTRAL
-## Ruta o id del personaje (*.rpgm-char.json); "" si no tiene ficha.
+## Dueño de la ficha en la partida en red ("player:<id>", GameSession) o
+## referencia libre; "" si no es de nadie.
 var character_ref: String = ""
 ## Solo la ve el DM.
 var hidden: bool = false
+## Personaje que representa (velocidades, sentidos, retrato y aspecto);
+## null = ficha genérica (velocidad del perfil, disco de color). ADR 034.
+var sheet: CharacterSheet = null
+
+
+## Velocidad caminando: la del personaje o, sin él, la del perfil.
+func speed_ft(profile: SystemProfile) -> int:
+	if sheet != null:
+		return sheet.speed_ft("walk", profile)
+	return profile.default_speed_ft if profile != null else 0
 
 
 func copy() -> MapToken:
@@ -35,11 +46,12 @@ func copy() -> MapToken:
 	t.side = side
 	t.character_ref = character_ref
 	t.hidden = hidden
+	t.sheet = sheet.copy() if sheet != null else null
 	return t
 
 
 func to_dict() -> Dictionary:
-	return {
+	var d: Dictionary = {
 		"id": id,
 		"name": name,
 		"level": level,
@@ -49,6 +61,9 @@ func to_dict() -> Dictionary:
 		"character_ref": character_ref,
 		"hidden": hidden,
 	}
+	if sheet != null:
+		d["sheet"] = sheet.to_dict()
+	return d
 
 
 static func from_dict(r: JsonReader, d: Dictionary) -> MapToken:
@@ -61,6 +76,9 @@ static func from_dict(r: JsonReader, d: Dictionary) -> MapToken:
 	t.side = r.get_str(d, "side")
 	t.character_ref = r.get_str(d, "character_ref")
 	t.hidden = r.get_bool(d, "hidden")
+	# Opcional: los mapas anteriores a F5 no lo tienen.
+	if d.has("sheet"):
+		t.sheet = CharacterSheet.from_dict(r, r.get_dict(d, "sheet"))
 	if not SIDES.has(t.side):
 		r.fail("side desconocido: " + t.side)
 	return t
