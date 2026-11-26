@@ -375,6 +375,7 @@ El DM puede pintar terreno, mover/añadir/borrar objetos y muros, renombrar luga
 - **E1 – Reaplicar ediciones** (hecho, ADR 036): `DeltaReplay` convierte cada delta en su comando y lo aplica; `MapFile` guarda y abre mapas como código + deltas (`*.rpgm-map.json`); botones "Guardar mapa" y "Abrir mapa". Regla: el delta de todo comando nuevo lleva lo necesario para rehacerlo y su `op` se añade a `DeltaReplay` con un test de ida y vuelta.
 - **E2 – Editor**: "Nueva estancia" en blanco (tamaño y rejilla) o a partir de una generada. Pintar suelo y muro; muros, puertas, secretas y ventanas en aristas; objetos del catálogo con giro; luces; escaleras; nombre y tipo. Con deshacer y aviso si algo queda sin conectar con la entrada.
 - **E2 – hecho** (ADR 037). **E3 – hecho** (ADR 038, §5.5).
+- **Decisión de Víctor (2026-11-26)**: las estancias **no** llevan QR; viajan en los ficheros de guardado del proyecto (mapa y, cuando exista, campaña `*.rpgm` con las estancias propias que use). El QR queda solo para que entren rápido los jugadores (F4).
 - **E3 – Identificación** (decidido por Víctor: **los dos**):
   - **Id corto** de contenido (mismo contenido → mismo id) con carácter de control GF(32) como RPGM1. Recrea la estancia desde la biblioteca local, el fichero de campaña o, en red, desde el DM.
   - **Código para compartir** autosuficiente: base + deltas comprimidos; sirve en cualquier equipo y en QR, y su longitud crece con las ediciones.

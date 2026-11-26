@@ -122,8 +122,10 @@ func _init() -> void:
 	save_btn.tooltip_text = tr("UI_ROOM_SAVE_LIBRARY_TIP")
 	save_btn.pressed.connect(save_to_library)
 	box.add_child(save_btn)
-	_id_edit = _code_row(box, "UI_ROOM_SHORT_ID", "UI_ROOM_SHORT_ID_TIP", false)
-	_share_edit = _code_row(box, "UI_ROOM_SHARE_CODE", "UI_ROOM_SHARE_CODE_TIP", true)
+	# Sin QR: decidido por Víctor (el QR es solo para que entren los
+	# jugadores; las estancias viajan en los ficheros de guardado).
+	_id_edit = _code_row(box, "UI_ROOM_SHORT_ID", "UI_ROOM_SHORT_ID_TIP")
+	_share_edit = _code_row(box, "UI_ROOM_SHARE_CODE", "UI_ROOM_SHARE_CODE_TIP")
 	var lib_lbl: Label = Label.new()
 	lib_lbl.text = tr("UI_ROOM_LIBRARY")
 	box.add_child(lib_lbl)
@@ -170,8 +172,8 @@ func _init() -> void:
 	box.add_child(new_btn)
 
 
-## Fila con un código de solo lectura, botón de copiar y, si `qr`, de QR.
-func _code_row(box: VBoxContainer, key: String, tip_key: String, qr: bool) -> LineEdit:
+## Fila con un código de solo lectura y botón de copiar.
+func _code_row(box: VBoxContainer, key: String, tip_key: String) -> LineEdit:
 	var lbl: Label = Label.new()
 	lbl.text = tr(key)
 	lbl.tooltip_text = tr(tip_key)
@@ -191,11 +193,6 @@ func _code_row(box: VBoxContainer, key: String, tip_key: String, qr: bool) -> Li
 			DisplayServer.clipboard_set(e.text)
 			status.emit(tr("UI_ROOM_COPIED")))
 	row.add_child(copy)
-	if qr:
-		var qb: Button = Button.new()
-		qb.text = tr("UI_NET_QR")
-		qb.pressed.connect(func() -> void: show_qr(e.text))
-		row.add_child(qb)
 	return e
 
 
@@ -234,29 +231,6 @@ func refresh_library() -> void:
 		var shown: String = e.name if not e.name.is_empty() else tr("ROOM_KIND_" + e.kind.to_upper())
 		_lib_list.add_item("%s  ·  %s" % [shown, e.id])
 		_lib_ids.append(e.id)
-
-
-## Ventana con el QR de un código (si cabe en un QR de versión 10).
-func show_qr(text: String) -> bool:
-	if text.is_empty():
-		return false
-	var qr: QrCode = QrCode.encode_text(text)
-	if qr == null:
-		status.emit(tr("UI_ROOM_QR_TOO_LONG"))
-		return false
-	var dlg: AcceptDialog = AcceptDialog.new()
-	dlg.title = tr("UI_ROOM_SHARE_CODE")
-	var img: TextureRect = TextureRect.new()
-	img.texture = ImageTexture.create_from_image(qr.to_image(6, 4))
-	img.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	img.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	img.custom_minimum_size = Vector2(340, 340)
-	dlg.add_child(img)
-	dlg.confirmed.connect(dlg.queue_free)
-	dlg.canceled.connect(dlg.queue_free)
-	add_child(dlg)
-	dlg.popup_centered()
-	return true
 
 
 func _heading(box: VBoxContainer, key: String) -> void:

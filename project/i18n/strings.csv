@@ -463,7 +463,6 @@ UI_ROOM_OPEN,Abrir,Open
 UI_ROOM_REMOVE,Quitar de la biblioteca,Remove from library
 UI_ROOM_SAVED,Estancia guardada en tu biblioteca: {id},Room saved to your library: {id}
 UI_ROOM_OPENED,Estancia abierta ({id}),Room opened ({id})
-UI_ROOM_QR_TOO_LONG,"El código es demasiado largo para un QR; cópialo como texto.","The code is too long for a QR; copy it as text."
 ROOM_ERR_NOT_IN_LIBRARY,"Esa estancia no está en tu biblioteca. En otro equipo, usa su código para compartir.","That room is not in your library. On another computer, use its share code."
 ROOM_ERR_NO_CODE,"Este mapa no sale de un código (importado), así que no tiene id de estancia.","This map does not come from a code (imported), so it has no room id."
 ROOM_ERR_SAVE,No se pudo guardar la estancia en la biblioteca.,Could not save the room to the library.

@@ -10,8 +10,9 @@ Tests: **318/318 en escritorio, en inglés y en el navegador** (nuevos: `test_ro
 - Error corregido antes de subir: leer la biblioteca sin la carpeta creada daba un error del motor que rompía 20 tests.
 
 ### Siguiente paso
-1. **QR del código para compartir**: una estancia típica da ~600 caracteres y el QR actual (versiones 1-10) admite 213. Hace falta ampliar `net/qr_code.gd` (modo alfanumérico y versiones hasta ~20) y **verificarlo con un lector real**: en este equipo no hay ninguno; instalar uno (p. ej. `pip install zxing-cpp`) necesita permiso de Víctor.
-2. E4: usar una estancia propia dentro de un edificio o aldea, y en red.
+1. **Decidido por Víctor**: sin QR para estancias (quitado del panel); viajan en los ficheros de guardado. El QR solo para que entren los jugadores.
+2. **Idea nueva de Víctor: modo proyectado** (proyector sobre la mesa con miniaturas físicas): en estudio, ver la propuesta en la conversación y pendiente de sus respuestas.
+3. E4: usar una estancia propia dentro de un edificio o aldea (y que viaje en el guardado), y en red.
 
 ### Limitaciones conocidas (E3)
 - El id corto solo abre estancias de la biblioteca de este equipo (en otro, el código para compartir).
