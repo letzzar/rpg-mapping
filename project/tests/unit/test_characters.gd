@@ -303,10 +303,11 @@ func test_create_character_and_see_it_in_three_views() -> void:
 	main.call("_apply_view")
 	await wait_process_frames(1)
 	var figures: int = 0
-	for n: Node in v3.get_node("Tokens").get_children():
-		var mi: MeshInstance3D = n as MeshInstance3D
-		if mi != null and mi.mesh is ArrayMesh:
-			figures += 1
+	for holder: Node in v3.get_node("Tokens").get_children():
+		for n: Node in holder.get_children():
+			var mi: MeshInstance3D = n as MeshInstance3D
+			if mi != null and mi.mesh is ArrayMesh:
+				figures += 1
 	assert_eq(figures, 3, "una figura por personaje en 3D")
 	view_opt.select(0)
 	main.call("_apply_view")

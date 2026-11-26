@@ -95,6 +95,23 @@ var _rotating: bool = false
 var _drag_token: int = -1
 var _drag_cell: Vector2i = Vector2i(-1, -1)
 
+## Animaciones de las fichas (F5, ADR 043): sin esqueleto (las figuras son
+## una sola malla), se anima el conjunto. Desactivable (pruebas, y para quien
+## prefiera sin movimiento).
+var animate: bool = true
+## Velocidad al andar, en casillas por segundo.
+const WALK_CELLS_PER_S: float = 5.0
+var _cur_holder: Node3D = null
+## Id de ficha → contenedor de sus nodos (se rehace en cada reconstrucción).
+var _holders: Dictionary[int, Node3D] = {}
+## Id de ficha → [nivel, posición final, casilla] de lo último que se vio.
+var _shown: Dictionary[int, Array] = {}
+## Id de ficha → recorrido en marcha: [puntos (Array[Vector3]), inicio (s),
+## longitud total]. Sobrevive a las reconstrucciones.
+var _walks: Dictionary[int, Array] = {}
+## [figura, escala, fase] de las figuras que respiran.
+var _breathing: Array[Array] = []
+
 
 func _ready() -> void:
 	_camera = Camera3D.new()
@@ -122,6 +139,9 @@ func set_document(doc: MapDocument) -> void:
 		document.changed.disconnect(_on_doc_changed)
 	document = doc
 	level_index = 0
+	# Los ids de ficha son de cada mapa: lo visto en otro no cuenta.
+	_shown.clear()
+	_walks.clear()
 	selected_token = -1
 	if document != null:
 		document.changed.connect(_on_doc_changed)
@@ -166,6 +186,9 @@ func rebuild() -> void:
 		_level_node.queue_free()
 		_level_node = null
 	for n: Node in _tokens_node.get_children():
+		# Fuera ya del árbol: si no, el contenedor nuevo de la misma ficha
+		# ("T<id>") se renombraba.
+		_tokens_node.remove_child(n)
 		n.queue_free()
 	for n: Node in _labels_node.get_children():
 		n.queue_free()
@@ -201,6 +224,8 @@ func _cell_visible(c: Vector2i) -> bool:
 
 func _build_tokens() -> void:
 	var g: GridGeometry = document.grid
+	_holders.clear()
+	_breathing.clear()
 	for t: MapToken in document.tokens:
 		if t.level != level_index or (t.hidden and not dm_view):
 			continue
@@ -215,6 +240,12 @@ func _build_tokens() -> void:
 			center += g.cell_to_pixel(c, cell_m)
 		center /= float(cells.size())
 		var radius: float = cell_m * 0.38 * sqrt(float(cells.size()))
+		# Cada ficha en su contenedor, que es lo que se anima al moverla.
+		_cur_holder = Node3D.new()
+		_cur_holder.name = "T%d" % t.id
+		_tokens_node.add_child(_cur_holder)
+		_holders[t.id] = _cur_holder
+		_track_walk(t, MapMeshBuilder.v3(center, 0.0))
 		if t.sheet != null:
 			_build_figure(t, center, radius)
 			continue
@@ -235,8 +266,92 @@ func _build_tokens() -> void:
 		cyl.material = mat
 		mi.mesh = cyl
 		mi.position = MapMeshBuilder.v3(center, height * 0.5)
-		_tokens_node.add_child(mi)
+		_cur_holder.add_child(mi)
 		_add_token_label(t, center, height)
+
+
+## Si la ficha estaba en otra casilla del mismo nivel, empieza a andar hasta
+## la nueva por la ruta (o en línea recta si no la hay: escaleras, saltos
+## del DM).
+func _track_walk(t: MapToken, final_pos: Vector3) -> void:
+	var prev: Array = _shown.get(t.id, [])
+	_shown[t.id] = [t.level, final_pos, t.cell]
+	if not animate or prev.is_empty():
+		return
+	var prev_level: int = prev[0]
+	var prev_pos: Vector3 = prev[1]
+	var prev_cell: Vector2i = prev[2]
+	if prev_level != t.level or prev_pos.distance_to(final_pos) < 0.01:
+		return
+	# Si ya andaba, sale de donde se la ve ahora.
+	var start: Vector3 = _walk_position(t.id) if _walks.has(t.id) else prev_pos
+	var pts: Array[Vector3] = [start]
+	if profile != null and document.level(t.level) != null:
+		var route: MovementCost.Route = MovementCost.find_route(profile, document.level(t.level), prev_cell, t.cell, diagonal_variant)
+		if route != null and route.found:
+			var off: Vector3 = final_pos - MapMeshBuilder.v3(document.grid.cell_to_pixel(t.cell, cell_m), 0.0)
+			for k: int in range(1, route.cells.size() - 1):
+				pts.append(MapMeshBuilder.v3(document.grid.cell_to_pixel(route.cells[k], cell_m), 0.0) + off)
+	pts.append(final_pos)
+	var total: float = 0.0
+	for k: int in range(1, pts.size()):
+		total += pts[k - 1].distance_to(pts[k])
+	_walks[t.id] = [pts, Time.get_ticks_msec() / 1000.0, total]
+
+
+## Punto del recorrido en marcha de la ficha (su posición final si no anda).
+func _walk_position(token_id: int) -> Vector3:
+	var w: Array = _walks[token_id]
+	var pts: Array[Vector3] = w[0]
+	var start: float = w[1]
+	var total: float = w[2]
+	var d: float = (Time.get_ticks_msec() / 1000.0 - start) * WALK_CELLS_PER_S * cell_m
+	if d >= total or total <= 0.0:
+		return pts[pts.size() - 1]
+	for k: int in range(1, pts.size()):
+		var seg: float = pts[k - 1].distance_to(pts[k])
+		if d <= seg:
+			return pts[k - 1].lerp(pts[k], d / maxf(seg, 0.0001))
+		d -= seg
+	return pts[pts.size() - 1]
+
+
+func _process(_delta: float) -> void:
+	if not active or not animate:
+		return
+	var now: float = Time.get_ticks_msec() / 1000.0
+	for id: int in _walks.keys():
+		var w: Array = _walks[id]
+		var pts: Array[Vector3] = w[0]
+		var final_pos: Vector3 = pts[pts.size() - 1]
+		var start: float = w[1]
+		var total: float = w[2]
+		var walked: float = (now - start) * WALK_CELLS_PER_S * cell_m
+		var h: Node3D = _holders.get(id, null)
+		if walked >= total:
+			_walks.erase(id)
+			if h != null and is_instance_valid(h):
+				h.position = Vector3.ZERO
+			continue
+		if h == null or not is_instance_valid(h):
+			continue
+		var p: Vector3 = _walk_position(id)
+		# Un pequeño bote por paso (cada media casilla).
+		var bob: float = absf(sin(walked / cell_m * TAU)) * cell_m * 0.04
+		h.position = p - final_pos + Vector3(0.0, bob, 0.0)
+	# Respiración: la figura sube y baja un 1,5 % de su altura.
+	for b: Array in _breathing:
+		var fig: MeshInstance3D = b[0]
+		if not is_instance_valid(fig):
+			continue
+		var s: float = b[1]
+		var phase: float = b[2]
+		fig.scale.y = s * (1.0 + 0.015 * sin(now * 2.2 + phase))
+
+
+## ¿Hay alguna ficha andando? (para las pruebas)
+func is_animating() -> bool:
+	return not _walks.is_empty()
 
 
 ## Miniatura de un personaje (ADR 034): peana del color del bando (más clara
@@ -259,7 +374,7 @@ func _build_figure(t: MapToken, center: Vector2, radius: float) -> void:
 	cyl.material = mat
 	base.mesh = cyl
 	base.position = MapMeshBuilder.v3(center, base_h * 0.5)
-	_tokens_node.add_child(base)
+	_cur_holder.add_child(base)
 	var mesh: ArrayMesh = CharacterModelBuilder.mesh_for(t.sheet.look)
 	var fig: MeshInstance3D = MeshInstance3D.new()
 	fig.mesh = mesh
@@ -272,7 +387,8 @@ func _build_figure(t: MapToken, center: Vector2, radius: float) -> void:
 		s = minf(s, radius * 1.15 / half)
 	fig.scale = Vector3(s, s, s)
 	fig.position = MapMeshBuilder.v3(center, base_h)
-	_tokens_node.add_child(fig)
+	_cur_holder.add_child(fig)
+	_breathing.append([fig, s, float(t.id % 7) * 0.9])
 	_add_token_label(t, center, base_h + aabb.end.y * s)
 
 
@@ -288,7 +404,7 @@ func _add_token_label(t: MapToken, center: Vector2, height: float) -> void:
 	lbl.outline_size = 10
 	lbl.modulate = Color.WHITE
 	lbl.position = MapMeshBuilder.v3(center, height + 0.35)
-	_tokens_node.add_child(lbl)
+	_cur_holder.add_child(lbl)
 
 
 func _build_labels() -> void:
