@@ -288,6 +288,8 @@ func _build_ui() -> void:
 		_view.edit_tool = t)
 	_editor_panel.facing_changed.connect(func(f: int) -> void: _view.edit_facing = f)
 	_editor_panel.new_room_requested.connect(new_blank_room)
+	_editor_panel.status.connect(func(t: String) -> void: _status.text = t)
+	_editor_panel.room_opened.connect(_open_room_doc)
 	middle.add_child(_editor_panel)
 	if not OS.has_feature("web"):
 		_net_panel = NetHostPanel.new()
@@ -416,6 +418,12 @@ func _generate_random() -> void:
 
 
 func _generate_from_text() -> void:
+	# La caja acepta también el id corto (RPGU1) y el código para compartir
+	# (RPGS1) de una estancia hecha a mano (E3, ADR 038).
+	var kind: String = RoomCode.kind_of(_code_edit.text)
+	if kind == "short" or kind == "share":
+		open_room_code(_code_edit.text)
+		return
 	var res: GeneratorRegistry.Result = GeneratorRegistry.generate(_code_edit.text)
 	if res.doc == null:
 		_status.text = tr(res.error)
@@ -991,6 +999,44 @@ func new_blank_room(width: int, height: int, grid: String) -> bool:
 	_code_edit.text = sc.encode()
 	_generate_from_text()
 	return _doc != null and _doc.seed_code == sc.encode()
+
+
+## Abre una estancia por su id corto (de la biblioteca) o por su código para
+## compartir. true si se abrió.
+func open_room_code(text: String) -> bool:
+	var res: MapFile.LoadResult = null
+	var shown: String = text.strip_edges()
+	if RoomCode.kind_of(text) == "short":
+		var p: Dictionary = RoomCode.parse_short_id(text)
+		var err: String = p["error"]
+		if not err.is_empty():
+			_status.text = tr(err)
+			return false
+		shown = p["id"]
+		res = _editor_panel.library.load_room(shown)
+	else:
+		var s: Dictionary = RoomCode.parse_share_code(text)
+		var serr: String = s["error"]
+		if not serr.is_empty():
+			_status.text = tr(serr)
+			return false
+		var code: String = s["seed_code"]
+		var deltas: Array[MapDelta] = s["deltas"]
+		res = RoomContent.rebuild(code, deltas)
+	if res.doc == null:
+		if not res.detail.is_empty():
+			push_warning(res.detail)
+		_status.text = tr(res.error)
+		return false
+	_open_room_doc(res.doc, shown)
+	return true
+
+
+func _open_room_doc(doc: MapDocument, shown_code: String) -> void:
+	_token_counter = doc.tokens.size()
+	_show_frame(_nav.open_root(doc), -1)
+	_code_edit.text = shown_code
+	_status.text = tr("UI_ROOM_OPENED").replace("{id}", RoomContent.short_id(doc))
 
 
 # --- Guardar y abrir mapas (ADR 036) ------------------------------------------

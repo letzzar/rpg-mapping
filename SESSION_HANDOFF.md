@@ -1,6 +1,23 @@
 # SESSION_HANDOFF — RPG Mapping
 
-## Última sesión: 2026-11-26 (14.ª, cuarta parte) — Editor de estancias E2
+## Última sesión: 2026-11-26 (14.ª, quinta parte) — Editor de estancias E3: id corto y código para compartir
+Tests: **318/318 en escritorio, en inglés y en el navegador** (nuevos: `test_room_code.gd` ×16, de `cartografo`, y `test_room_library.gd` ×4). Víctor aprobó el esquema de EST G3 (congelado).
+
+### Hecho (ADR 038, formatos en PROYECTO §5.5)
+- `RoomCode` (de `cartografo`): id corto `RPGU1-<12 car.>-<c>` (60 bits del SHA-256 del contenido) y código para compartir `RPGS1-<carga>-<c>` (JSON compacto + DEFLATE crudo + Base32, descompresor propio `Inflate` con límite de 2 MiB). Ejemplos: `RPGU1-NWJB9PTDPWF0-D`, `RPGS1-HDB0M2KGYWTX8XFHECRXAX8D1V8QADYP6NRX2DEG1N9RM180-K` (estancia en blanco sin cambios).
+- `RoomContent` (contenido = código base + deltas de terreno, aristas, objetos y salas; huella; reconstruir) y `RoomLibrary` (`user://rooms/`).
+- Panel del editor: "Guardar en mi biblioteca", id corto y código para compartir con "Copiar" (y QR si cabe), lista de la biblioteca (abrir, quitar). La caja del código acepta los tres tipos.
+- Error corregido antes de subir: leer la biblioteca sin la carpeta creada daba un error del motor que rompía 20 tests.
+
+### Siguiente paso
+1. **QR del código para compartir**: una estancia típica da ~600 caracteres y el QR actual (versiones 1-10) admite 213. Hace falta ampliar `net/qr_code.gd` (modo alfanumérico y versiones hasta ~20) y **verificarlo con un lector real**: en este equipo no hay ninguno; instalar uno (p. ej. `pip install zxing-cpp`) necesita permiso de Víctor.
+2. E4: usar una estancia propia dentro de un edificio o aldea, y en red.
+
+### Limitaciones conocidas (E3)
+- El id corto solo abre estancias de la biblioteca de este equipo (en otro, el código para compartir).
+- La biblioteca no avisa si dos estancias distintas comparten id (probabilidad ~4·10⁻¹¹ con 10 000 estancias).
+
+## Sesión anterior: 2026-11-26 (14.ª, cuarta parte) — Editor de estancias E2
 Tests: **298/298 en escritorio, en inglés y en el navegador** (nuevos: `test_room_editor.gd` ×4 y `test_est_g3.gd` ×7, de `cartografo`). 51 seeds doradas: las 45 de antes sin cambios + 6 de EST G3. Probado con capturas de la app: estancia en blanco 11×8 con agua, ventanas, tabique con puerta y muebles, en 2D y 3D.
 
 ### Hecho (ADR 037)

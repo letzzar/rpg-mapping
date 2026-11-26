@@ -449,3 +449,25 @@ CMD_SET_TERRAIN,Pintar terreno,Paint terrain
 CMD_ADD_OBJECT,Colocar objeto,Place object
 CMD_REMOVE_OBJECT,Borrar objeto,Erase object
 CMD_SET_ROOM,Cambiar sala,Change room
+UI_ROOM_SHARE,Biblioteca y compartir,Library and sharing
+UI_ROOM_SAVE_LIBRARY,Guardar en mi biblioteca,Save to my library
+UI_ROOM_SAVE_LIBRARY_TIP,"Guarda la estancia (sin fichas, niebla ni turnos) en este equipo y da sus dos códigos: el id corto y el código para compartir.","Saves the room (without tokens, fog or turns) on this computer and gives its two codes: the short id and the share code."
+UI_ROOM_SHORT_ID,Id corto:,Short id:
+UI_ROOM_SHORT_ID_TIP,"Identifica la estancia. Escribiéndolo en la caja del código se abre desde tu biblioteca (en otro equipo, usa el código para compartir).","Identifies the room. Typing it in the code box opens it from your library (on another computer, use the share code)."
+UI_ROOM_SHARE_CODE,Código para compartir:,Share code:
+UI_ROOM_SHARE_CODE_TIP,"Lleva la estancia entera: escribiéndolo en la caja del código se abre en cualquier equipo. Cuantos más cambios, más largo.","Carries the whole room: typing it in the code box opens it on any computer. The more changes, the longer it is."
+UI_ROOM_COPY,Copiar,Copy
+UI_ROOM_COPIED,Copiado al portapapeles.,Copied to the clipboard.
+UI_ROOM_LIBRARY,Mi biblioteca (doble clic para abrir):,My library (double-click to open):
+UI_ROOM_OPEN,Abrir,Open
+UI_ROOM_REMOVE,Quitar de la biblioteca,Remove from library
+UI_ROOM_SAVED,Estancia guardada en tu biblioteca: {id},Room saved to your library: {id}
+UI_ROOM_OPENED,Estancia abierta ({id}),Room opened ({id})
+UI_ROOM_QR_TOO_LONG,"El código es demasiado largo para un QR; cópialo como texto.","The code is too long for a QR; copy it as text."
+ROOM_ERR_NOT_IN_LIBRARY,"Esa estancia no está en tu biblioteca. En otro equipo, usa su código para compartir.","That room is not in your library. On another computer, use its share code."
+ROOM_ERR_NO_CODE,"Este mapa no sale de un código (importado), así que no tiene id de estancia.","This map does not come from a code (imported), so it has no room id."
+ROOM_ERR_SAVE,No se pudo guardar la estancia en la biblioteca.,Could not save the room to the library.
+ROOM_ERR_FORMAT,El código de estancia no tiene un formato válido.,The room code is not in a valid format.
+ROOM_ERR_CHECK,El código de estancia tiene una errata (no cuadra el carácter de control).,The room code has a typo (the check character does not match).
+ROOM_ERR_TOO_BIG,El código de estancia es demasiado grande.,The room code is too large.
+ROOM_ERR_VERSION,El código de estancia es de otra versión de la aplicación.,The room code is from a different version of the app.

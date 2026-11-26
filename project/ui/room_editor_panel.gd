@@ -23,9 +23,20 @@ const ROOM_KINDS: PackedStringArray = [
 ]
 const GRIDS: PackedStringArray = ["square", "hex_flat", "hex_pointy"]
 
+## Abre una estancia recreada (de la biblioteca) como mapa nuevo.
+signal room_opened(doc: MapDocument, id: String)
+## Mensaje para la barra de estado.
+signal status(text: String)
+
 ## Ejecuta un comando en el historial del mapa; devuelve si se aplicó.
 var execute: Callable = func(_cmd: MapCommand) -> bool: return false
 var level_index: int = 0
+var library: RoomLibrary = RoomLibrary.new()
+
+var _id_edit: LineEdit
+var _share_edit: LineEdit
+var _lib_list: ItemList
+var _lib_ids: PackedStringArray = PackedStringArray()
 
 var _doc: MapDocument = null
 var _group: ButtonGroup = ButtonGroup.new()
@@ -105,6 +116,39 @@ func _init() -> void:
 	apply_btn.pressed.connect(apply_room)
 	box.add_child(apply_btn)
 
+	_heading(box, "UI_ROOM_SHARE")
+	var save_btn: Button = Button.new()
+	save_btn.text = tr("UI_ROOM_SAVE_LIBRARY")
+	save_btn.tooltip_text = tr("UI_ROOM_SAVE_LIBRARY_TIP")
+	save_btn.pressed.connect(save_to_library)
+	box.add_child(save_btn)
+	_id_edit = _code_row(box, "UI_ROOM_SHORT_ID", "UI_ROOM_SHORT_ID_TIP", false)
+	_share_edit = _code_row(box, "UI_ROOM_SHARE_CODE", "UI_ROOM_SHARE_CODE_TIP", true)
+	var lib_lbl: Label = Label.new()
+	lib_lbl.text = tr("UI_ROOM_LIBRARY")
+	box.add_child(lib_lbl)
+	_lib_list = ItemList.new()
+	_lib_list.custom_minimum_size = Vector2(270, 120)
+	_lib_list.item_activated.connect(func(i: int) -> void: open_library_room(_lib_ids[i]))
+	box.add_child(_lib_list)
+	var lr: HFlowContainer = HFlowContainer.new()
+	box.add_child(lr)
+	var open_btn: Button = Button.new()
+	open_btn.text = tr("UI_ROOM_OPEN")
+	open_btn.pressed.connect(func() -> void:
+		var sel: PackedInt32Array = _lib_list.get_selected_items()
+		if not sel.is_empty():
+			open_library_room(_lib_ids[sel[0]]))
+	lr.add_child(open_btn)
+	var del_btn: Button = Button.new()
+	del_btn.text = tr("UI_ROOM_REMOVE")
+	del_btn.pressed.connect(func() -> void:
+		var sel: PackedInt32Array = _lib_list.get_selected_items()
+		if not sel.is_empty():
+			library.remove(_lib_ids[sel[0]])
+			refresh_library())
+	lr.add_child(del_btn)
+
 	_heading(box, "UI_EDIT_NEW")
 	var grid: GridContainer = GridContainer.new()
 	grid.columns = 2
@@ -124,6 +168,95 @@ func _init() -> void:
 	new_btn.pressed.connect(func() -> void:
 		new_room_requested.emit(int(_new_w.value), int(_new_h.value), GRIDS[maxi(0, _new_grid.selected)]))
 	box.add_child(new_btn)
+
+
+## Fila con un código de solo lectura, botón de copiar y, si `qr`, de QR.
+func _code_row(box: VBoxContainer, key: String, tip_key: String, qr: bool) -> LineEdit:
+	var lbl: Label = Label.new()
+	lbl.text = tr(key)
+	lbl.tooltip_text = tr(tip_key)
+	lbl.mouse_filter = Control.MOUSE_FILTER_PASS
+	box.add_child(lbl)
+	var row: HBoxContainer = HBoxContainer.new()
+	box.add_child(row)
+	var e: LineEdit = LineEdit.new()
+	e.editable = false
+	e.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	e.tooltip_text = tr(tip_key)
+	row.add_child(e)
+	var copy: Button = Button.new()
+	copy.text = tr("UI_ROOM_COPY")
+	copy.pressed.connect(func() -> void:
+		if not e.text.is_empty():
+			DisplayServer.clipboard_set(e.text)
+			status.emit(tr("UI_ROOM_COPIED")))
+	row.add_child(copy)
+	if qr:
+		var qb: Button = Button.new()
+		qb.text = tr("UI_NET_QR")
+		qb.pressed.connect(func() -> void: show_qr(e.text))
+		row.add_child(qb)
+	return e
+
+
+## Guarda la estancia mostrada en la biblioteca y pone sus dos códigos.
+## Devuelve el id corto ("" si no se pudo).
+func save_to_library() -> String:
+	if _doc == null:
+		return ""
+	var id: String = library.save(_doc)
+	if id.is_empty():
+		status.emit(tr(library.last_error))
+		return ""
+	_id_edit.text = id
+	_share_edit.text = RoomContent.share_code(_doc)
+	refresh_library()
+	status.emit(tr("UI_ROOM_SAVED").replace("{id}", id))
+	return id
+
+
+## Abre una estancia de la biblioteca (emite room_opened). true si se pudo.
+func open_library_room(id: String) -> bool:
+	var res: MapFile.LoadResult = library.load_room(id)
+	if res.doc == null:
+		status.emit(tr(res.error))
+		return false
+	room_opened.emit(res.doc, id)
+	return true
+
+
+func refresh_library() -> void:
+	if _lib_list == null:
+		return
+	_lib_list.clear()
+	_lib_ids.clear()
+	for e: RoomLibrary.Entry in library.entries():
+		var shown: String = e.name if not e.name.is_empty() else tr("ROOM_KIND_" + e.kind.to_upper())
+		_lib_list.add_item("%s  ·  %s" % [shown, e.id])
+		_lib_ids.append(e.id)
+
+
+## Ventana con el QR de un código (si cabe en un QR de versión 10).
+func show_qr(text: String) -> bool:
+	if text.is_empty():
+		return false
+	var qr: QrCode = QrCode.encode_text(text)
+	if qr == null:
+		status.emit(tr("UI_ROOM_QR_TOO_LONG"))
+		return false
+	var dlg: AcceptDialog = AcceptDialog.new()
+	dlg.title = tr("UI_ROOM_SHARE_CODE")
+	var img: TextureRect = TextureRect.new()
+	img.texture = ImageTexture.create_from_image(qr.to_image(6, 4))
+	img.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	img.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	img.custom_minimum_size = Vector2(340, 340)
+	dlg.add_child(img)
+	dlg.confirmed.connect(dlg.queue_free)
+	dlg.canceled.connect(dlg.queue_free)
+	add_child(dlg)
+	dlg.popup_centered()
+	return true
 
 
 func _heading(box: VBoxContainer, key: String) -> void:
@@ -215,12 +348,17 @@ func _update_facing() -> void:
 func set_document(doc: MapDocument) -> void:
 	_doc = doc
 	refresh()
+	refresh_library()
 
 
 ## Rehace la lista de salas y la comprobación de acceso.
 func refresh() -> void:
 	if _room_opt == null:
 		return
+	# Tras cualquier cambio los códigos ya no son los de la estancia: se
+	# vuelven a pedir con "Guardar en mi biblioteca".
+	_id_edit.text = ""
+	_share_edit.text = ""
 	var keep: int = _room_ids[_room_opt.selected] if _room_opt.selected >= 0 and _room_opt.selected < _room_ids.size() else -1
 	_room_opt.clear()
 	_room_ids.clear()
