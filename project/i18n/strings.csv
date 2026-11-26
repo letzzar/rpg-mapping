@@ -546,3 +546,22 @@ CHAR_PRESET_RED_DRAGON,Dragón rojo,Red dragon
 CHAR_PRESET_GREEN_DRAGON,Dragón verde,Green dragon
 CHAR_PRESET_OOZE,Cieno,Ooze
 CHAR_PRESET_GIANT_SNAKE,Serpiente gigante,Giant snake
+UI_PRINT,Imprimir (PDF),Print (PDF)
+UI_PRINT_TIP,"Imprime el nivel a escala real (cada casilla, la base de una miniatura) en hojas A4 o Carta con marcas para unirlas.","Prints the level at real scale (each cell, a miniature base) on A4 or Letter sheets with marks to join them."
+UI_PRINT_TITLE,Imprimir a escala real,Print at real scale
+UI_PRINT_OK,Generar PDF,Generate PDF
+UI_PRINT_PAPER,Papel:,Paper:
+UI_PRINT_A4,A4,A4
+UI_PRINT_LETTER,Carta,Letter
+UI_PRINT_SCALE,Casilla:,Cell:
+UI_PRINT_INCH,1 pulgada (2,54 cm),1 inch (2.54 cm)
+UI_PRINT_25MM,25 mm,25 mm
+UI_PRINT_DM,"Versión del DM (con puertas secretas y trampas)","DM version (with secret doors and traps)"
+UI_PRINT_TOKENS,Con las fichas,With tokens
+UI_PRINT_SUMMARY,"Saldrán {n} hojas en {orientation} ({cols} de ancho × {rows} de alto). Imprímelas al 100 % (sin «ajustar a la página»).","{n} sheets in {orientation} ({cols} wide × {rows} high). Print them at 100% (no ""fit to page"")."
+UI_PRINT_PORTRAIT,vertical,portrait
+UI_PRINT_LANDSCAPE,horizontal,landscape
+UI_PRINT_PAGE_LABEL,"Hoja {n}/{total} · fila {row} de {rows}, columna {col} de {cols} · casilla {cell}","Sheet {n}/{total} · row {row} of {rows}, column {col} of {cols} · cell {cell}"
+UI_PRINT_WORKING,Generando el PDF…,Generating the PDF…
+UI_PRINT_FAILED,No se pudo generar el PDF.,Could not generate the PDF.
+UI_PRINT_DONE,PDF guardado en {path} ({n} hojas).,PDF saved to {path} ({n} sheets).

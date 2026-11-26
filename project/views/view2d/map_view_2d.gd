@@ -95,6 +95,8 @@ var background: Color = COL_BG
 ## con miniaturas físicas, lo ya recorrido tiene que leerse bien).
 var explored_veil: float = 0.65
 var grid_color: Color = COL_GRID
+## Impresión: la roca maciza y el vacío en gris muy claro (ahorra tinta).
+var ink_saver: bool = false
 ## Vista del DM: muestra puertas secretas y trampas ocultas.
 var dm_view: bool = true
 var interactive: bool = true
@@ -228,6 +230,8 @@ func _draw() -> void:
 			fill = MapMeshBuilder.COL_OUTDOOR
 		if t == Terrain.FLOOR and zone_cols.has(lvl.room_ids[i]):
 			fill = zone_cols[lvl.room_ids[i]]
+		if ink_saver and Terrain.is_solid(t):
+			fill = Color("e6e2da")
 		if bg == null or t != Terrain.FLOOR:
 			draw_colored_polygon(poly, fill)
 		if show_grid and Terrain.is_passable(t):

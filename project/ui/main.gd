@@ -48,6 +48,9 @@ var _uvtt_save_dialog: FileDialog
 var _uvtt_open_dialog: FileDialog
 var _char_open_dialog: FileDialog = null
 var _map_save_dialog: FileDialog = null
+var _print_dialog: PrintDialog
+var _pdf_save_dialog: FileDialog = null
+var _print_options: PrintPager.Options = null
 var _map_open_dialog: FileDialog = null
 var _designer: CharacterDesigner
 var _turn_panel: TurnPanel
@@ -224,6 +227,12 @@ func _build_ui() -> void:
 		bar.add_child(open_map_btn)
 		_dm_only.append(open_map_btn)
 	bar.add_child(_button("UI_EXPORT_PNG", _export_png))
+	var print_btn: Button = _button("UI_PRINT", func() -> void:
+		if _doc != null:
+			_print_dialog.open_for(_doc))
+	print_btn.tooltip_text = tr("UI_PRINT_TIP")
+	bar.add_child(print_btn)
+	_dm_only.append(print_btn)
 	var uvtt_btn: Button = _button("UI_EXPORT_UVTT", _export_uvtt)
 	bar.add_child(uvtt_btn)
 	_dm_only.append_array([add_btn, _undo_btn, _redo_btn, uvtt_btn])
@@ -394,6 +403,14 @@ func _build_ui() -> void:
 		_map_open_dialog = _file_dialog(FileDialog.FILE_MODE_OPEN_FILE, "UI_MAP_OPEN", OS.SYSTEM_DIR_DOCUMENTS)
 		_map_open_dialog.filters = PackedStringArray(["*.rpgm-map.json ; " + tr("UI_MAP_FILE_KIND")])
 		_map_open_dialog.file_selected.connect(open_map_from)
+
+	_print_dialog = PrintDialog.new()
+	_print_dialog.print_requested.connect(_on_print_requested)
+	add_child(_print_dialog)
+	if not OS.has_feature("web"):
+		_pdf_save_dialog = _file_dialog(FileDialog.FILE_MODE_SAVE_FILE, "UI_PRINT", OS.SYSTEM_DIR_DOCUMENTS)
+		_pdf_save_dialog.filters = PackedStringArray(["*.pdf ; PDF"])
+		_pdf_save_dialog.file_selected.connect(func(path: String) -> void: save_pdf_to(path, _print_options))
 
 	_designer = CharacterDesigner.new()
 	_designer.format_ft = func(ft: int) -> String: return _view._format_ft(ft)
@@ -1197,6 +1214,42 @@ func _open_room_doc(doc: MapDocument, shown_code: String) -> void:
 	_show_frame(_nav.open_root(doc), -1)
 	_code_edit.text = shown_code
 	_status.text = tr("UI_ROOM_OPENED").replace("{id}", RoomContent.short_id(doc))
+
+
+# --- Impresión a escala real (ADR 042) ----------------------------------------
+
+func _on_print_requested(o: PrintPager.Options) -> void:
+	_print_options = o
+	var file_name: String = _map_file_name().trim_suffix(MapFile.EXTENSION) + ".pdf"
+	if OS.has_feature("web"):
+		_status.text = tr("UI_PRINT_WORKING")
+		var pdf: PackedByteArray = await PrintPager.build_pdf(self, _doc, _view.level_index, _current_profile(), o)
+		if pdf.is_empty():
+			_status.text = tr("UI_PRINT_FAILED")
+			return
+		JavaScriptBridge.download_buffer(pdf, file_name, "application/pdf")
+		_status.text = tr("UI_EXPORTED").replace("{path}", file_name)
+		return
+	_pdf_save_dialog.current_file = file_name
+	_pdf_save_dialog.popup_centered_ratio(0.6)
+
+
+## Genera el PDF del nivel mostrado y lo guarda. true si se pudo.
+func save_pdf_to(path: String, o: PrintPager.Options) -> bool:
+	_status.text = tr("UI_PRINT_WORKING")
+	var pdf: PackedByteArray = await PrintPager.build_pdf(self, _doc, _view.level_index, _current_profile(), o)
+	if pdf.is_empty():
+		_status.text = tr("UI_PRINT_FAILED")
+		return false
+	var f: FileAccess = FileAccess.open(path, FileAccess.WRITE)
+	if f == null:
+		_status.text = tr("UI_PRINT_FAILED")
+		return false
+	f.store_buffer(pdf)
+	f.close()
+	var l: PrintPager.Layout = PrintPager.layout(_doc, o)
+	_status.text = tr("UI_PRINT_DONE").replace("{path}", path).replace("{n}", str(l.page_count()))
+	return true
 
 
 # --- Guardar y abrir mapas (ADR 036) ------------------------------------------
