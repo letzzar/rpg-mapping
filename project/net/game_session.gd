@@ -10,13 +10,16 @@ extends RefCounted
 ## - Autoridad del DM: los jugadores solo PROPONEN mover sus fichas; la sesión
 ##   lo valida (ficha suya, casilla explorada y libre, ruta posible con las
 ##   puertas de verdad) y emite `move_approved`: quien la usa (la UI del DM)
-##   lo ejecuta en su historial, así que el DM puede deshacerlo.
+##   lo ejecuta en su historial, así que el DM puede deshacerlo. Igual con
+##   abrir o cerrar una puerta (door_approved), si el DM lo permite.
 ## - Lo que se envía es PlayerView (niebla filtrada en el servidor) y solo lo
 ##   que cambió: el nivel, la visión o las fichas cuyo mensaje es distinto del
 ##   último enviado.
 
 ## Se aprobó un movimiento propuesto por un jugador.
 signal move_approved(cmd: MoveTokenCommand)
+## Se aprobó abrir o cerrar una puerta propuesto por un jugador.
+signal door_approved(cmd: SetEdgeCommand)
 ## Alguien (jugador) señaló una casilla.
 signal pinged(level_index: int, cell: Vector2i, who: String)
 ## Cambió la lista de jugadores o su estado de conexión.
@@ -60,6 +63,8 @@ var send_bytes: Callable = Callable()
 var close_peer: Callable = Callable()
 ## Espera antes de cerrar una conexión rechazada (0 = en el acto; pruebas).
 var deny_close_delay_ms: int = DENY_CLOSE_DELAY_MS
+## Si los jugadores pueden abrir y cerrar puertas (con su ficha al lado).
+var players_open_doors: bool = true
 
 var _doc: MapDocument = null
 var _profile: SystemProfile = null
@@ -265,6 +270,8 @@ func receive(peer: int, data: PackedByteArray) -> void:
 	match t:
 		NetMessage.MOVE:
 			_move(p, msg)
+		NetMessage.DOOR:
+			_door(p, msg)
 		NetMessage.PING:
 			_ping(p, msg)
 
@@ -337,6 +344,51 @@ func validate_move(p: Player, token_id: int, level_index: int, cell: Vector2i) -
 	if route == null or not route.found:
 		return "NET_MOVE_NO_ROUTE"
 	return ""
+
+
+func _door(p: Player, msg: Dictionary) -> void:
+	var r: JsonReader = JsonReader.new()
+	var level_index: int = r.get_int(msg, "level")
+	var edge: int = r.get_int(msg, "edge")
+	var open: bool = r.get_bool(msg, "open")
+	var key: String = validate_door(p, level_index, edge, open) if r.ok() else "NET_DOOR_INVALID"
+	if not key.is_empty():
+		_send(p.peer, NetMessage.encode({"t": NetMessage.NOTICE, "key": key}))
+		return
+	var v: int = _doc.level(level_index).get_edge_by_id(edge)
+	door_approved.emit(SetEdgeCommand.new(level_index, edge, MapEdge.with_flag(v, MapEdge.FLAG_OPEN, open)))
+
+
+## "" si el jugador puede dejar la puerta abierta (open) o cerrada; si no,
+## la clave i18n del motivo. Hace falta una ficha suya en una de las dos
+## casillas de la arista; las cerradas con llave y las secretas sin descubrir
+## no se abren (una secreta sin descubrir la ve como muro: se responde igual
+## que a un muro para no delatarla).
+func validate_door(p: Player, level_index: int, edge: int, open: bool) -> String:
+	if _doc == null or _profile == null:
+		return "NET_MOVE_NO_MAP"
+	if not players_open_doors:
+		return "NET_DOOR_DISABLED"
+	var lvl: MapLevel = _doc.level(level_index)
+	if lvl == null or edge < 0 or not _doc.grid.edge_touches_map(edge):
+		return "NET_DOOR_INVALID"
+	var v: int = lvl.get_edge_by_id(edge)
+	if not MapEdge.is_door(v):
+		return "NET_DOOR_INVALID"
+	if MapEdge.kind_of(v) == MapEdge.KIND_SECRET_DOOR and not MapEdge.has_flag(v, MapEdge.FLAG_DISCOVERED):
+		return "NET_DOOR_INVALID"
+	if MapEdge.has_flag(v, MapEdge.FLAG_OPEN) == open:
+		return "NET_DOOR_INVALID"
+	if open and MapEdge.has_flag(v, MapEdge.FLAG_LOCKED):
+		return "NET_DOOR_LOCKED"
+	var sides: Array[Vector2i] = _doc.grid.edge_cells(edge)
+	for t: MapToken in _doc.tokens:
+		if t.level != level_index or t.hidden or t.character_ref != p.ref():
+			continue
+		for c: Vector2i in _doc.token_cells(t, _profile):
+			if sides.has(c):
+				return ""
+	return "NET_DOOR_TOO_FAR"
 
 
 func _ping(p: Player, msg: Dictionary) -> void:

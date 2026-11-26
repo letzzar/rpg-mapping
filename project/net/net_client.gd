@@ -97,6 +97,11 @@ func propose_move(token_id: int, level_index: int, cell: Vector2i) -> void:
 	_send({"t": NetMessage.MOVE, "token": token_id, "level": level_index, "x": cell.x, "y": cell.y})
 
 
+## Propone abrir (open) o cerrar la puerta de la arista dge.
+func propose_door(level_index: int, edge: int, open: bool) -> void:
+	_send({"t": NetMessage.DOOR, "level": level_index, "edge": edge, "open": open})
+
+
 func send_ping(level_index: int, cell: Vector2i) -> void:
 	_send({"t": NetMessage.PING, "level": level_index, "x": cell.x, "y": cell.y})
 

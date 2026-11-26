@@ -1,6 +1,28 @@
 # SESSION_HANDOFF — RPG Mapping
 
-## Última sesión: 2026-11-25 (11.ª) — F4: partida en red (primera entrega)
+## Última sesión: 2026-11-26 (12.ª) — F4: prueba en Chrome real, puertas de los jugadores y QR
+Tests: **246/246 en escritorio (32712 asserts) y 246/246 en el navegador** (7 nuevos: `test_qr_code.gd` ×5, puertas en `test_net_session.gd`, direcciones en `test_net_protocol.gd`). 45 seeds doradas sin cambios.
+
+**Probado en Chrome real** (con ventana, perfil aislado, manejado por CDP): Ana entra con su enlace; arrastrar una ficha ajena → "Esa ficha no es tuya"; doble clic → anillos con "Ana" en el navegador y `PING Ana` en el DM; su ficha tras una puerta cerrada → "Sin ruta"; clic en la puerta → el DM la aprueba y se abre; arrastrar su ficha a la sala → el DM aprueba el movimiento, la ficha llega y lo explorado crece. La sesión anterior decía que Chrome sin ventana "no pasa los clics": era el arnés de pruebas (mandaba un campo `delay` en cada orden CDP y Chrome descartaba la orden entera), no el juego.
+
+### Hecho (ADR 032)
+- **Puertas por los jugadores**: mensaje `door {level, edge, open}`, `NetClient.propose_door`, `GameSession.validate_door` (opción `players_open_doors`, ficha propia en una de las dos casillas, puerta de verdad, secretas sin descubrir = muro, sin llave) y señal `door_approved` → el DM lo ejecuta en su historial. Casilla "Los jugadores abren y cierran puertas" en el panel (activa por defecto). `main._propose` envía las puertas.
+- **Vista 2D**: un clic muy cerca de una puerta (< 0,12 casillas) la acciona aunque haya ficha en la casilla (`DOOR_OVER_TOKEN_FRAC`; antes, en un pasillo de una casilla con fichas a ambos lados, no se podía).
+- **QR** (`net/qr_code.gd`, `QrCode`): modo byte, versiones 1-10, corrección L/M, elección de máscara por penalización; botón "QR" por jugador en el panel (ventana con el código y el enlace).
+- **Dirección de los enlaces**: selector "Dirección" en el panel con `NetHostPanel.rank_addresses()` (interfaces reales primero; WSL/Hyper-V, VMware, VirtualBox, Docker, Tailscale… al final). En este equipo antes salía `172.26.64.1` (conmutador de Hyper-V) en vez de la de Ethernet.
+
+### Cómo probarla (Víctor)
+Como en la 11.ª, y además: en el panel, comprobar que "Dirección" muestra la IP de la red de casa; botón "QR" y escanearlo con el móvil (misma wifi; aceptar el aviso del certificado); en el móvil, tocar una puerta junto a la ficha propia.
+
+### Siguiente paso
+1. Prueba manual de Víctor con móvil y 2-3 navegadores (y de F3). **El QR no se ha escaneado con un móvil de verdad**: solo se ha verificado con valores publicados y leyéndolo de vuelta en las pruebas.
+2. Pendiente de F4: vista del jugador en 3D/1.ª persona con la niebla del servidor (sin probar a fondo); señal del DM hacia los jugadores; escaleras propuestas por los jugadores; imagen Docker (ADR 016, alternativa).
+
+### Limitaciones conocidas (F4)
+- Visión compartida por el grupo; el movimiento no cambia de nivel (escaleras = DM).
+- En 3D/1.ª persona la puerta se propone igual (misma pila), pero no se ha probado en el navegador.
+- Táctil (móvil): arrastrar y tocar puertas usa los eventos de ratón emulados de Godot; sin probar en un móvil real.
+## Sesión anterior: 2026-11-25 (11.ª) — F4: partida en red (primera entrega)
 Tests: **239/239 en escritorio (32514 asserts) y 239/239 en el navegador** (18 nuevos: `test_net_protocol.gd`, `test_net_session.gd`, `test_net_wss.gd`; los 3 de sockets quedan pendientes en web porque allí no hay servidor TCP). 45 seeds doradas sin cambios. **Criterio de F4 medido**: 8 clientes WSS reales en 127.0.0.1, peor latencia de propuesta → los 8 ven la ficha movida = **76 ms** (< 150 ms).
 
 Probado con la app y Chrome: la app del DM (script con `main.tscn`) abre la partida, sirve la exportación Web por HTTPS y Chrome entra con el enlace `https://127.0.0.1:47830/?sala=…&t=…`: "Conectado como Ana · Mazmorra", ve solo lo explorado y encuadrado. **No probado** en el navegador: arrastrar y señalar (Chrome sin ventana no pasa los clics sintéticos a Godot y el navegador integrado rechaza el certificado autofirmado); esa ruta sí la cubren las pruebas con sockets reales.

@@ -275,6 +275,68 @@ func test_move_without_route_is_rejected() -> void:
 	assert_eq(_s(wire.take(1)[0], "key"), "NET_MOVE_NO_ROUTE")
 
 
+## Puertas: el jugador propone abrir o cerrar; la sesión exige una ficha suya
+## en una de las dos casillas, que sea puerta (no muro ni secreta sin
+## descubrir) y sin llave, y que el DM lo permita.
+func test_doors_are_validated_by_the_server() -> void:
+	var wire: Wire = Wire.new()
+	var s: GameSession = _session(wire)
+	var ana: GameSession.Player = s.add_player("Ana")
+	var stack: CommandStack = CommandStack.new(_doc)
+	assert_true(stack.execute(SetTokenCharacterCommand.new(_hero.id, ana.ref())))
+	var lvl: MapLevel = _doc.level(0)
+	var g: GridGeometry = _doc.grid
+	var near: int = g.edge_id(Vector2i(1, 2), EAST)
+	var far: int = g.edge_id(Vector2i(2, 0), EAST)
+	var locked: int = g.edge_id(Vector2i(0, 2), EAST)
+	lvl.set_edge_by_id(near, MapEdge.make(MapEdge.KIND_DOOR))
+	lvl.set_edge_by_id(far, MapEdge.make(MapEdge.KIND_DOOR))
+	lvl.set_edge_by_id(locked, MapEdge.make(MapEdge.KIND_DOOR, MapEdge.FLAG_LOCKED))
+	var approved: Array[SetEdgeCommand] = []
+	s.door_approved.connect(func(cmd: SetEdgeCommand) -> void: approved.append(cmd))
+	s.flush()
+	_hello(s, 1, s.room_code, ana.code)
+	var c: NetClient = NetClient.new()
+	for m: Dictionary in wire.take(1):
+		c.handle_message(m)
+	var cases: Array[Array] = [
+		[far, true, "NET_DOOR_TOO_FAR"],
+		[locked, true, "NET_DOOR_LOCKED"],
+		[near, false, "NET_DOOR_INVALID"],
+		[g.edge_id(Vector2i(4, 2), EAST), true, "NET_DOOR_INVALID"],
+		[g.edge_id(Vector2i(4, 0), EAST), true, "NET_DOOR_INVALID"],
+		[-5, true, "NET_DOOR_INVALID"],
+	]
+	for cs: Array in cases:
+		var edge: int = cs[0]
+		var open: bool = cs[1]
+		s.receive(1, NetMessage.encode({"t": NetMessage.DOOR, "level": 0, "edge": edge, "open": open}))
+		var want_key: String = cs[2]
+		assert_eq(_s(wire.take(1)[0], "key"), want_key, "arista %d" % edge)
+	assert_eq(approved.size(), 0)
+	# Válida: el DM la ejecuta y al cliente le llega la puerta abierta.
+	s.receive(1, NetMessage.encode({"t": NetMessage.DOOR, "level": 0, "edge": near, "open": true}))
+	assert_eq(approved.size(), 1)
+	assert_true(stack.execute(approved[0]))
+	assert_true(MapEdge.has_flag(lvl.get_edge_by_id(near), MapEdge.FLAG_OPEN))
+	s.mark_dirty()
+	s.flush()
+	for m: Dictionary in wire.take(1):
+		c.handle_message(m)
+	assert_true(MapEdge.has_flag(c.document.level(0).get_edge_by_id(near), MapEdge.FLAG_OPEN))
+	# Y cerrarla; con la opción del DM desactivada, no.
+	s.players_open_doors = false
+	s.receive(1, NetMessage.encode({"t": NetMessage.DOOR, "level": 0, "edge": near, "open": false}))
+	assert_eq(_s(wire.take(1)[0], "key"), "NET_DOOR_DISABLED")
+	s.players_open_doors = true
+	s.receive(1, NetMessage.encode({"t": NetMessage.DOOR, "level": 0, "edge": near, "open": false}))
+	assert_eq(approved.size(), 2)
+	# Lo puede deshacer el DM.
+	assert_true(stack.execute(approved[1]))
+	stack.undo()
+	assert_true(MapEdge.has_flag(lvl.get_edge_by_id(near), MapEdge.FLAG_OPEN))
+
+
 func test_pings_reach_everyone_and_reconnect_replaces_old_peer() -> void:
 	var wire: Wire = Wire.new()
 	var s: GameSession = _session(wire)

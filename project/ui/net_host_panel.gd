@@ -9,6 +9,7 @@ extends PanelContainer
 ## historial (las vistas no modifican el modelo; el DM puede deshacerlo).
 
 signal move_approved(cmd: MoveTokenCommand)
+signal door_approved(cmd: SetEdgeCommand)
 signal pinged(level_index: int, cell: Vector2i, who: String)
 ## Dar la ficha seleccionada al jugador con esta referencia.
 signal assign_requested(player_ref: String, player_name: String)
@@ -20,6 +21,8 @@ var server: WssServer = WssServer.new()
 var _port: SpinBox
 var _toggle: Button
 var _info: Label
+var _doors_check: CheckBox
+var _addr_opt: OptionButton
 var _name_edit: LineEdit
 var _players_title: Label
 var _players_box: VBoxContainer
@@ -55,6 +58,22 @@ func _ready() -> void:
 	_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_info.text = tr("UI_NET_STOPPED")
 	box.add_child(_info)
+	var addr_row: HBoxContainer = HBoxContainer.new()
+	box.add_child(addr_row)
+	var al: Label = Label.new()
+	al.text = tr("UI_NET_ADDRESS")
+	addr_row.add_child(al)
+	_addr_opt = OptionButton.new()
+	_addr_opt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_addr_opt.clip_text = true
+	_addr_opt.tooltip_text = tr("UI_NET_ADDRESS_TIP")
+	addr_row.add_child(_addr_opt)
+	_fill_addresses()
+	_doors_check = CheckBox.new()
+	_doors_check.text = tr("UI_NET_PLAYERS_DOORS")
+	_doors_check.button_pressed = true
+	_doors_check.toggled.connect(func(on: bool) -> void: session.players_open_doors = on)
+	box.add_child(_doors_check)
 	var add_row: HBoxContainer = HBoxContainer.new()
 	box.add_child(add_row)
 	_name_edit = LineEdit.new()
@@ -113,6 +132,9 @@ func _new_session() -> void:
 	session.send_bytes = server.send
 	session.close_peer = server.close
 	session.move_approved.connect(func(cmd: MoveTokenCommand) -> void: move_approved.emit(cmd))
+	session.door_approved.connect(func(cmd: SetEdgeCommand) -> void: door_approved.emit(cmd))
+	if _doors_check != null:
+		session.players_open_doors = _doors_check.button_pressed
 	session.pinged.connect(func(li: int, cell: Vector2i, who: String) -> void: pinged.emit(li, cell, who))
 	session.players_changed.connect(_refresh_players)
 	if not server.peer_connected.is_connected(_on_peer_connected):
@@ -160,10 +182,10 @@ func _on_toggle() -> void:
 	for n: String in names:
 		session.add_player(n)
 	set_process(true)
+	_fill_addresses()
 	_toggle.text = tr("UI_NET_STOP")
 	var lines: PackedStringArray = PackedStringArray()
 	lines.append(tr("UI_NET_LISTENING").replace("{room}", session.room_code))
-	lines.append(tr("UI_NET_ADDRESSES").replace("{urls}", ", ".join(_base_urls())))
 	if server.web_root.is_empty():
 		lines.append(tr("UI_NET_NO_WEB"))
 	lines.append(tr("UI_NET_CERT").replace("{fp}", cert.fingerprint().left(23) + "…"))
@@ -184,27 +206,71 @@ static func find_web_root() -> String:
 	return ""
 
 
-## https://<ip>:<puerto> por cada dirección IPv4 de la red local (primero las
-## privadas habituales), o localhost si no hay ninguna.
-func _base_urls() -> PackedStringArray:
-	var out: PackedStringArray = PackedStringArray()
-	var others: PackedStringArray = PackedStringArray()
-	for ip: String in IP.get_local_addresses():
-		if ip.contains(":") or ip.begins_with("127.") or ip.begins_with("169.254."):
-			continue
-		var url: String = "https://%s:%d" % [ip, server.port()]
-		if ip.begins_with("192.168.") or ip.begins_with("10.") or ip.begins_with("172."):
-			out.append(url)
-		else:
-			others.append(url)
-	out.append_array(others)
-	if out.is_empty():
-		out.append("https://localhost:%d" % server.port())
-	return out
+## Palabras de interfaces virtuales o de VPN (máquinas virtuales, WSL,
+## Docker, Tailscale…): sus direcciones no son la red de la mesa y van al
+## final. Tailscale y similares siguen en la lista: sirven para jugar a
+## distancia si el DM lo elige.
+const _VIRTUAL_HINTS: PackedStringArray = ["vethernet", "hyper-v", "wsl", "vmware", "vmnet", "virtualbox", "vboxnet", "docker", "virbr", "veth", "br-", "tailscale", "zerotier", "hamachi", "loopback", "utun"]
 
+
+## Direcciones IPv4 utilizables, de la más probable para la red local a la
+## menos: {ip, label}. ifaces es IP.get_local_interfaces() (parámetro para
+## las pruebas).
+static func rank_addresses(ifaces: Array[Dictionary]) -> Array[Dictionary]:
+	var scored: Array[Dictionary] = []
+	for d: Dictionary in ifaces:
+		var friendly: String = str(d.get("friendly", d.get("name", "")))
+		var lower: String = friendly.to_lower() + " " + str(d.get("name", "")).to_lower()
+		var virtual: bool = false
+		for h: String in _VIRTUAL_HINTS:
+			if lower.contains(h):
+				virtual = true
+		var addrs: Array = d.get("addresses", [])
+		for a: Variant in addrs:
+			var ip: String = str(a)
+			if ip.contains(":") or ip.begins_with("127.") or ip.begins_with("169.254."):
+				continue
+			var score: int = 0 if virtual else 10
+			if ip.begins_with("192.168.") or ip.begins_with("10.") or _is_172_private(ip):
+				score += 5
+			scored.append({"ip": ip, "label": "%s (%s)" % [ip, friendly], "score": score})
+	scored.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		var sa: int = a["score"]
+		var sb: int = b["score"]
+		if sa != sb:
+			return sa > sb
+		return str(a["ip"]) < str(b["ip"]))
+	return scored
+
+
+static func _is_172_private(ip: String) -> bool:
+	var parts: PackedStringArray = ip.split(".")
+	return parts.size() == 4 and parts[0] == "172" and parts[1].to_int() >= 16 and parts[1].to_int() <= 31
+
+
+func _fill_addresses() -> void:
+	_addr_opt.clear()
+	var ifaces: Array[Dictionary] = []
+	for d: Dictionary in IP.get_local_interfaces():
+		ifaces.append(d)
+	for a: Dictionary in rank_addresses(ifaces):
+		_addr_opt.add_item(str(a["label"]))
+		_addr_opt.set_item_metadata(_addr_opt.item_count - 1, a["ip"])
+	if _addr_opt.item_count == 0:
+		_addr_opt.add_item("localhost")
+		_addr_opt.set_item_metadata(0, "localhost")
+	_addr_opt.select(0)
+
+
+## https://<dirección elegida>:<puerto> (la de los enlaces y el QR).
+func base_url() -> String:
+	var host: String = "localhost"
+	if _addr_opt.item_count > 0 and _addr_opt.selected >= 0:
+		host = str(_addr_opt.get_item_metadata(_addr_opt.selected))
+	return "https://%s:%d" % [host, server.port()]
 
 func invite_link(p: GameSession.Player) -> String:
-	return "%s/?sala=%s&t=%s" % [_base_urls()[0], session.room_code, p.code]
+	return "%s/?sala=%s&t=%s" % [base_url(), session.room_code, p.code]
 
 
 func _add_player() -> void:
@@ -243,6 +309,11 @@ func _refresh_players() -> void:
 			DisplayServer.clipboard_set(invite_link(p))
 			status.emit(tr("UI_NET_LINK_COPIED").replace("{name}", p.name)))
 		btns.add_child(copy_btn)
+		var qr_btn: Button = Button.new()
+		qr_btn.text = tr("UI_NET_QR")
+		qr_btn.disabled = not is_hosting()
+		qr_btn.pressed.connect(func() -> void: _show_qr(p))
+		btns.add_child(qr_btn)
 		var assign_btn: Button = Button.new()
 		assign_btn.text = tr("UI_NET_ASSIGN")
 		assign_btn.pressed.connect(func() -> void: assign_requested.emit(p.ref(), p.name))
@@ -253,6 +324,39 @@ func _refresh_players() -> void:
 		btns.add_child(remove_btn)
 		_players_box.add_child(row)
 		_players_box.add_child(HSeparator.new())
+
+
+## Ventana con el QR del enlace del jugador, para escanearlo con el móvil
+## (en la misma red) en vez de mandarle el enlace.
+func _show_qr(p: GameSession.Player) -> void:
+	var link: String = invite_link(p)
+	var qr: QrCode = QrCode.encode_text(link)
+	if qr == null:
+		return
+	var dlg: AcceptDialog = AcceptDialog.new()
+	dlg.title = tr("UI_NET_QR_TITLE").replace("{name}", p.name)
+	var box: VBoxContainer = VBoxContainer.new()
+	dlg.add_child(box)
+	var help: Label = Label.new()
+	help.text = tr("UI_NET_QR_HELP")
+	help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	help.custom_minimum_size = Vector2(320, 0)
+	box.add_child(help)
+	var img: TextureRect = TextureRect.new()
+	img.texture = ImageTexture.create_from_image(qr.to_image(8, 4))
+	img.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	img.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	img.custom_minimum_size = Vector2(320, 320)
+	box.add_child(img)
+	var url: LineEdit = LineEdit.new()
+	url.text = link
+	url.editable = false
+	url.custom_minimum_size = Vector2(320, 0)
+	box.add_child(url)
+	dlg.confirmed.connect(dlg.queue_free)
+	dlg.canceled.connect(dlg.queue_free)
+	add_child(dlg)
+	dlg.popup_centered()
 
 
 ## Tras dar una ficha: el número de fichas de cada jugador cambia.

@@ -196,6 +196,7 @@ func _build_ui() -> void:
 		_net_panel.visible = false
 		middle.add_child(_net_panel)
 		_net_panel.move_approved.connect(_on_net_move_approved)
+		_net_panel.door_approved.connect(_on_net_door_approved)
 		_net_panel.pinged.connect(func(li: int, cell: Vector2i, who: String) -> void: _view.show_ping(li, cell, who))
 		_net_panel.assign_requested.connect(_assign_token_to_player)
 		_net_panel.status.connect(func(text: String) -> void: _status.text = text)
@@ -872,6 +873,15 @@ func _on_net_move_approved(cmd: MoveTokenCommand) -> void:
 		_on_user_command()
 
 
+## Puerta abierta o cerrada por un jugador (validada por la sesión): igual
+## que un movimiento, va al historial del DM y recalcula lo que se ve.
+func _on_net_door_approved(cmd: SetEdgeCommand) -> void:
+	if _stack == null or _doc == null or _doc.level(cmd.level_index) == null:
+		return
+	if _stack.execute(cmd):
+		_on_user_command()
+
+
 func _assign_token_to_player(player_ref: String, player_name: String) -> void:
 	var t: MapToken = _doc.token(_selected_token) if _doc != null else null
 	if t == null:
@@ -983,11 +993,21 @@ func _explored_bounds(level: int) -> Rect2i:
 	return Rect2i(lo, hi - lo + Vector2i.ONE)
 
 
-## Lo que una vista "ejecuta" en modo jugador: solo mover fichas propias, que
-## se envía como propuesta; el resto (puertas…) lo hace el DM.
+## Lo que una vista "ejecuta" en modo jugador se envía como propuesta: mover
+## fichas propias y abrir o cerrar puertas (el DM las valida; las escaleras y
+## lo demás lo hace el DM).
 func _propose(cmd: MapCommand) -> bool:
+	if _client == null:
+		return false
+	var door: SetEdgeCommand = cmd as SetEdgeCommand
+	if door != null:
+		var old: int = _client.document.level(door.level_index).get_edge_by_id(door.edge_id)
+		if not MapEdge.is_door(old) or MapEdge.with_flag(old, MapEdge.FLAG_OPEN, false) != MapEdge.with_flag(door.new_value, MapEdge.FLAG_OPEN, false):
+			return false
+		_client.propose_door(door.level_index, door.edge_id, MapEdge.has_flag(door.new_value, MapEdge.FLAG_OPEN))
+		return true
 	var mv: MoveTokenCommand = cmd as MoveTokenCommand
-	if mv == null or _client == null:
+	if mv == null:
 		return false
 	if not _client.owns(_client.document.token(mv.token_id)):
 		_status.text = tr("NET_MOVE_NOT_YOURS")

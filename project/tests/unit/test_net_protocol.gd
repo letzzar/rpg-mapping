@@ -103,3 +103,23 @@ func _s(d: Dictionary, key: String) -> String:
 func _i(d: Dictionary, key: String) -> int:
 	var v: float = d.get(key, -1.0)
 	return int(v)
+
+
+## Las direcciones de los enlaces: primero la de la red de verdad, después
+## las de máquinas virtuales y VPN; sin bucle local ni autoconfiguradas.
+## Datos reales de un equipo con WSL, VMware y Tailscale.
+func test_invite_address_prefers_the_real_network() -> void:
+	var ifaces: Array[Dictionary] = [
+		{"name": "{472F}", "friendly": "vEthernet (Default Switch)", "addresses": ["fe80:0:0:0:4054:de50:e6c3:a60d", "172.26.64.1"]},
+		{"name": "{628A}", "friendly": "Loopback Pseudo-Interface 1", "addresses": ["0:0:0:0:0:0:0:1", "127.0.0.1"]},
+		{"name": "{8DAF}", "friendly": "VMware Network Adapter VMnet8", "addresses": ["192.168.222.1"]},
+		{"name": "{9A79}", "friendly": "Conexión de área local", "addresses": ["169.254.177.24"]},
+		{"name": "{B14C}", "friendly": "Ethernet", "addresses": ["10.10.5.19"]},
+		{"name": "{3721}", "friendly": "Tailscale", "addresses": ["fd7a:115c:a1e0::f33a:eb52", "100.79.235.82"]},
+		{"name": "wlan0", "addresses": ["192.168.1.40"]},
+	]
+	var ips: PackedStringArray = PackedStringArray()
+	for a: Dictionary in NetHostPanel.rank_addresses(ifaces):
+		var ip: String = a["ip"]
+		ips.append(ip)
+	assert_eq(",".join(ips), "10.10.5.19,192.168.1.40,172.26.64.1,192.168.222.1,100.79.235.82")

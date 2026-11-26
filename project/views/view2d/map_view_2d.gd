@@ -27,6 +27,10 @@ signal cell_activated(cell: Vector2i)
 const ZOOM_MIN: float = 0.2
 const ZOOM_MAX: float = 4.0
 const ZOOM_STEP: float = 1.15
+## Distancia máxima (en casillas) de un clic a una puerta para abrirla o
+## cerrarla; más cerca aún, la puerta gana a la ficha de esa casilla.
+const DOOR_HIT_FRAC: float = 0.25
+const DOOR_OVER_TOKEN_FRAC: float = 0.12
 
 const COL_BG: Color = Color("2b1d14")
 const COL_GRID: Color = Color(0.35, 0.25, 0.15, 0.35)
@@ -634,6 +638,13 @@ func _handle_motion(mm: InputEventMouseMotion) -> void:
 
 
 func _on_left_press(cell: Vector2i) -> void:
+	# Justo encima de una puerta, la puerta antes que la ficha: en un pasillo
+	# de una casilla con fichas a los dos lados no había forma de pulsarla.
+	var on_door: int = _door_edge_near(_pointer_local, DOOR_OVER_TOKEN_FRAC)
+	if on_door >= 0 and command_stack != null:
+		if command_stack.execute(SetEdgeCommand.toggle_flag(document, level_index, on_door, MapEdge.FLAG_OPEN)):
+			user_command_done.emit()
+		return
 	var t: MapToken = _token_at(cell)
 	if t != null:
 		_drag_token = t.id
@@ -694,14 +705,14 @@ func _token_at(cell: Vector2i) -> MapToken:
 
 ## Id de la puerta cuya arista está más cerca del punto (en coordenadas
 ## locales), o -1 si no hay ninguna a menos de un cuarto de casilla.
-func _door_edge_near(p: Vector2) -> int:
+func _door_edge_near(p: Vector2, max_frac: float = DOOR_HIT_FRAC) -> int:
 	var g: GridGeometry = document.grid
 	var lvl: MapLevel = document.level(level_index)
 	var cell: Vector2i = g.pixel_to_cell(p, cell_px)
 	if not g.in_bounds(cell):
 		return -1
 	var best: int = -1
-	var best_d: float = cell_px * 0.25
+	var best_d: float = cell_px * max_frac
 	for dir: int in g.edge_direction_count():
 		var v: int = lvl.get_edge(cell, dir)
 		if not MapEdge.is_door(v):

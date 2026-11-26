@@ -8,6 +8,7 @@ extends RefCounted
 ## Tipos (cliente → servidor):
 ##   hello  {room, token}            entrar con el código de sala y el del jugador
 ##   move   {token, level, x, y}     propone mover una ficha propia
+##   door   {level, edge, open}      propone abrir (open) o cerrar una puerta
 ##   ping   {level, x, y}            señala una casilla a todos
 ## Tipos (servidor → cliente):
 ##   welcome {name, ref, system}     acceso aceptado: nombre, ficha propia, sistema
@@ -21,6 +22,7 @@ extends RefCounted
 
 const HELLO: String = "hello"
 const MOVE: String = "move"
+const DOOR: String = "door"
 const PING: String = "ping"
 const WELCOME: String = "welcome"
 const MAP: String = "map"
