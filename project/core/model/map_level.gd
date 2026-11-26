@@ -26,6 +26,12 @@ var traps: Array[MapTrap] = []
 ## ordenados por id. Se serializan solo si hay alguno: los documentos sin
 ## hijos (MAZ, EST, EDI) dan el mismo JSON y el mismo hash que antes.
 var children: Array[MapChild] = []
+## Capas geográficas (F6: mundo y región; GeoLayers y Biome): un byte por
+## casilla o vacías. Vacías no se serializan (los hashes de MAZ, EST, EDI y
+## ALD no cambian); si hay una, tiene cell_count() bytes.
+var biome: PackedByteArray = PackedByteArray()
+var elevation: PackedByteArray = PackedByteArray()
+var features: PackedByteArray = PackedByteArray()
 
 var _edges: Dictionary[int, int] = {}
 ## Observador ("party", id de jugador…) -> 1 byte por casilla (1 = explorada).
@@ -466,7 +472,19 @@ func content_to_dict() -> Dictionary:
 		for c: MapChild in children:
 			child_list.append(c.to_dict())
 		d["children"] = child_list
+	# Capas geográficas (F6), opcionales por la misma razón.
+	if not biome.is_empty():
+		d["biome"] = biome
+	if not elevation.is_empty():
+		d["elevation"] = elevation
+	if not features.is_empty():
+		d["features"] = features
 	return d
+
+
+## true si el nivel tiene capas geográficas (mapa de mundo o región).
+func has_geo_layers() -> bool:
+	return not biome.is_empty()
 
 
 func fog_to_dict() -> Dictionary:
@@ -520,6 +538,28 @@ func load_dicts(r: JsonReader, content: Dictionary, fog: Dictionary) -> void:
 		for d: Dictionary in r.get_dicts(content, "children"):
 			if not add_child_map(MapChild.from_dict(r, d)):
 				r.fail("id de mapa hijo repetido")
+	for key: String in ["biome", "elevation", "features"]:
+		if not content.has(key):
+			continue
+		var vals: PackedInt32Array = r.get_ints(content, key)
+		if vals.size() != n:
+			r.fail("capa '%s' de tamaño distinto de width*height" % key)
+			return
+		var bytes: PackedByteArray = PackedByteArray()
+		bytes.resize(n)
+		for i: int in n:
+			var v: int = vals[i]
+			if v < 0 or v > 255 or (key == "biome" and not Biome.is_valid(v)):
+				r.fail("valor no válido en la capa '%s': %d" % [key, v])
+				return
+			bytes[i] = v
+		match key:
+			"biome":
+				biome = bytes
+			"elevation":
+				elevation = bytes
+			_:
+				features = bytes
 	var viewers: Array = fog.keys()
 	viewers.sort()
 	for v: Variant in viewers:

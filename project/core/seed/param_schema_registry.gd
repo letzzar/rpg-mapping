@@ -80,6 +80,12 @@ static func _ensure_builtins() -> void:
 	assert(problem.is_empty(), "ParamSchemaRegistry: EST G2 no válido: " + problem)
 	problem = _add(est_g3())
 	assert(problem.is_empty(), "ParamSchemaRegistry: EST G3 no válido: " + problem)
+	problem = _add(mun_g1())
+	assert(problem.is_empty(), "ParamSchemaRegistry: MUN G1 no válido: " + problem)
+	problem = _add(reg_g1())
+	assert(problem.is_empty(), "ParamSchemaRegistry: REG G1 no válido: " + problem)
+	problem = _add(reg_g2())
+	assert(problem.is_empty(), "ParamSchemaRegistry: REG G2 no válido: " + problem)
 
 
 ## MAZ G1 — PROPUESTA DEFINITIVA, PENDIENTE DE APROBAR (F1, etapa 2). Se
@@ -219,6 +225,96 @@ static func est_g2() -> ParamSchema:
 		ParamSchema.int_field("room", 0, 63, 0),
 	]
 	return ParamSchema.new("EST", 2, fields)
+
+
+## MUN G1 — PROPUESTA, PENDIENTE DE APROBAR POR VÍCTOR (F6). Se congela al
+## aprobarla (ya hay seeds doradas, pero hasta entonces se pueden regrabar).
+## Detalle en MunGeneratorG1 y PROYECTO §6.1. Orden de más a menos usado:
+## - size: resolución del planeta (siempre entero): tiny 256×128 (96 mi por
+##   casilla), small 512×256 (48), medium 1024×512 (24), large 2048×1024
+##   (12 mi ≈ 20 km). Defecto large (criterio de F6).
+## - land_pct: % de casillas de tierra; fija el nivel del mar (no hay
+##   parámetro de nivel del mar aparte: dirían lo mismo).
+## - kingdoms: nº de reinos (0 = sin reinos); los que quepan separados.
+## - climate: earthlike, cold (−7 °C), warm (+5 °C), arid (humedad ×0,65),
+##   wet (×1,35); capacity 8.
+## - plates: placas tectónicas (cordilleras en sus bordes).
+## - rivers: densidad de ríos 0..10 (0 = ninguno).
+## - settlements: densidad de asentamientos 0..10 (5 ≈ 168 con 35 % de tierra).
+## - child_grid: rejilla de los mapas ALD/MAZ hijos (tácticos).
+## - style: cultura de los asentamientos; mixed = según el terreno (enanos en
+##   las alturas, elfos en los bosques); si no, la elegida; capacity 16.
+## La magia/tecnología del §6.1 no cambia nada en G1: se añadirá AL FINAL
+## cuando la use algún generador.
+static func mun_g1() -> ParamSchema:
+	var fields: Array[ParamSchema.Field] = [
+		ParamSchema.enum_field("size", PackedStringArray(["tiny", "small", "medium", "large"]), "large", 8),
+		ParamSchema.int_field("land_pct", 10, 90, 35),
+		ParamSchema.int_field("kingdoms", 0, 40, 12),
+		ParamSchema.enum_field("climate", PackedStringArray(["earthlike", "cold", "warm", "arid", "wet"]), "earthlike", 8),
+		ParamSchema.int_field("plates", 2, 32, 12),
+		ParamSchema.int_field("rivers", 0, 10, 5),
+		ParamSchema.int_field("settlements", 0, 10, 5),
+		ParamSchema.enum_field("child_grid", PackedStringArray(["square", "hex_flat", "hex_pointy"]), "square", 4),
+		ParamSchema.enum_field("style", PackedStringArray(["mixed", "human", "dwarf", "elf"]), "mixed", 16),
+	]
+	return ParamSchema.new("MUN", 1, fields)
+
+
+## REG G1 — PROPUESTA, PENDIENTE DE APROBAR POR VÍCTOR (F6): HEXCRAWL
+## INDEPENDIENTE (sin mundo). Hexágonos de 6 mi (10 km en convención).
+## Detalle en RegGeneratorG1 y PROYECTO §6.2.
+## - width, height: hexágonos (8..64; defecto 32×24 ≈ 166×144 mi).
+## - grid: orientación del hexágono (solo hex).
+## - climate: temperate, cold, warm, arid, wet; capacity 8.
+## - landscape: mixed, coast (mar a un lado), islands, mountains, plains;
+##   capacity 8.
+## - settlements, pois: densidades 0..10.
+## - child_grid, style: como en MUN G1.
+static func reg_g1() -> ParamSchema:
+	var fields: Array[ParamSchema.Field] = [
+		ParamSchema.int_field("width", 8, 64, 32),
+		ParamSchema.int_field("height", 8, 64, 24),
+		ParamSchema.enum_field("grid", PackedStringArray(["hex_flat", "hex_pointy"]), "hex_flat", 4),
+		ParamSchema.enum_field("climate", PackedStringArray(["temperate", "cold", "warm", "arid", "wet"]), "temperate", 8),
+		ParamSchema.enum_field("landscape", PackedStringArray(["mixed", "coast", "islands", "mountains", "plains"]), "mixed", 8),
+		ParamSchema.int_field("settlements", 0, 10, 4),
+		ParamSchema.int_field("pois", 0, 10, 4),
+		ParamSchema.enum_field("child_grid", PackedStringArray(["square", "hex_flat", "hex_pointy"]), "square", 4),
+		ParamSchema.enum_field("style", PackedStringArray(["mixed", "human", "dwarf", "elf"]), "mixed", 16),
+	]
+	return ParamSchema.new("REG", 1, fields)
+
+
+## REG G2 — PROPUESTA, PENDIENTE DE APROBAR POR VÍCTOR (F6): REGIÓN DE UN
+## MUNDO MUN G1 (como EST G2 respecto a EDI G1). SEED = la semilla del mundo.
+## - Campos 0-8: los de MUN G1, en el mismo orden, con los mismos rangos, ids,
+##   capacity y defectos (copiados, no leídos de mun_g1(); test_reg_generator
+##   comprueba que coinciden). Con ellos y SEED, el código MUN G1 del mundo es
+##   el mismo PARAMS sin los campos de región.
+## - rx, ry: región en la rejilla fija del planeta de 128 × 86 regiones de
+##   16 × 12 casillas del mundo large (192 × 144 mi), sea cual sea `size`.
+## - grid: orientación del hexágono.
+## - villages, pois: densidad de aldeas propias de la región (además de los
+##   asentamientos del mundo) y de puntos de interés.
+static func reg_g2() -> ParamSchema:
+	var fields: Array[ParamSchema.Field] = [
+		ParamSchema.enum_field("size", PackedStringArray(["tiny", "small", "medium", "large"]), "large", 8),
+		ParamSchema.int_field("land_pct", 10, 90, 35),
+		ParamSchema.int_field("kingdoms", 0, 40, 12),
+		ParamSchema.enum_field("climate", PackedStringArray(["earthlike", "cold", "warm", "arid", "wet"]), "earthlike", 8),
+		ParamSchema.int_field("plates", 2, 32, 12),
+		ParamSchema.int_field("rivers", 0, 10, 5),
+		ParamSchema.int_field("settlements", 0, 10, 5),
+		ParamSchema.enum_field("child_grid", PackedStringArray(["square", "hex_flat", "hex_pointy"]), "square", 4),
+		ParamSchema.enum_field("style", PackedStringArray(["mixed", "human", "dwarf", "elf"]), "mixed", 16),
+		ParamSchema.int_field("rx", 0, 127, 0),
+		ParamSchema.int_field("ry", 0, 85, 0),
+		ParamSchema.enum_field("grid", PackedStringArray(["hex_flat", "hex_pointy"]), "hex_flat", 4),
+		ParamSchema.int_field("villages", 0, 10, 4),
+		ParamSchema.int_field("pois", 0, 10, 4),
+	]
+	return ParamSchema.new("REG", 2, fields)
 
 
 ## EST G3 — PROPUESTA, PENDIENTE DE APROBAR (editor de estancias E2): ESTANCIA

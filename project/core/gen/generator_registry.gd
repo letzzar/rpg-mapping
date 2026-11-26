@@ -133,3 +133,10 @@ static func _ensure_builtins() -> void:
 	# EST G3 (estancia en blanco, base del editor de estancias E2).
 	problem = _add(EstGeneratorG3.SCALE, EstGeneratorG3.GEN, Callable(EstGeneratorG3, "generate"))
 	assert(problem.is_empty(), "GeneratorRegistry: " + problem)
+	# F6: mundo (MUN G1) y región (REG G1 independiente, REG G2 de un mundo).
+	problem = _add(MunGeneratorG1.SCALE, MunGeneratorG1.GEN, Callable(MunGeneratorG1, "generate"))
+	assert(problem.is_empty(), "GeneratorRegistry: " + problem)
+	problem = _add(RegGeneratorG1.SCALE, RegGeneratorG1.GEN, Callable(RegGeneratorG1, "generate"))
+	assert(problem.is_empty(), "GeneratorRegistry: " + problem)
+	problem = _add(RegGeneratorG2.SCALE, RegGeneratorG2.GEN, Callable(RegGeneratorG2, "generate"))
+	assert(problem.is_empty(), "GeneratorRegistry: " + problem)

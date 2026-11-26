@@ -135,10 +135,13 @@
 						}
 					}
 				},
+				"biome": { "$ref": "#/$defs/cell_layer", "description": "Opcional (F6, MUN/REG): Biome.* por casilla (0 ocean … 17 mountain). Se omite si está vacía" },
+				"elevation": { "$ref": "#/$defs/cell_layer", "description": "Opcional (F6): elevación cuantizada 0..255; < 64 agua (profundidad (64−e)·100 m), >= 64 tierra (altitud (e−64)·40 m). GeoLayers" },
+				"features": { "$ref": "#/$defs/cell_layer", "description": "Opcional (F6): bits 0-1 clase de río, bit 2 camino, bit 3 costa, bits 4-7 dirección de la corriente + 1 (índice de dirección de la rejilla). GeoLayers" },
 				"children": {
 					"type": "array",
 					"minItems": 1,
-					"description": "Opcional (F3, ADR 027): mapas hijos anclados en el nivel (edificios de un asentamiento ALD), ordenados por id. Se omite si no hay ninguno, así los documentos sin hijos conservan su hash. La casilla c del nivel child_level del hijo es la casilla c + offset de este nivel",
+					"description": "Opcional (F3, ADR 027): mapas hijos anclados en el nivel (edificios de un asentamiento ALD; asentamientos y puntos de interés de MUN/REG, cuya escala es distinta: solo valen rect, entrance y entrance − offset), ordenados por id. Se omite si no hay ninguno, así los documentos sin hijos conservan su hash. La casilla c del nivel child_level del hijo es la casilla c + offset de este nivel",
 					"items": {
 						"type": "object",
 						"additionalProperties": false,
@@ -147,11 +150,12 @@
 							"id": { "type": "integer", "minimum": 1 },
 							"kind": { "type": "string", "pattern": "^[a-z0-9_]+$", "description": "Tipo del hijo (edificio: building_type de EDI)" },
 							"seed_code": { "type": "string", "description": "Código RPGM1 canónico que regenera el hijo" },
-							"room_id": { "type": "integer", "minimum": 1, "description": "Zona de este nivel que ocupa la huella" },
+							"room_id": { "type": "integer", "minimum": 0, "description": "Zona de este nivel que ocupa la huella (en MUN/REG, el reino de la casilla; 0 = ninguno)" },
 							"offset": { "$ref": "#/$defs/cell" },
 							"child_level": { "type": "integer", "minimum": 0 },
 							"rect": { "type": "array", "items": { "type": "integer" }, "minItems": 4, "maxItems": 4, "description": "Huella [x, y, ancho, alto] en casillas de este nivel" },
-							"entrance": { "$ref": "#/$defs/cell" }
+							"entrance": { "$ref": "#/$defs/cell" },
+							"label": { "type": "string", "description": "Opcional (F6): nombre propio de un asentamiento de mundo o región; se omite si está vacío" }
 						}
 					}
 				}

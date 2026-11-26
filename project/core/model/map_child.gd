@@ -31,6 +31,9 @@ var child_level: int = 0
 var rect: Rect2i = Rect2i()
 ## Casilla de este nivel delante de la puerta principal (fuera de la huella).
 var entrance: Vector2i = Vector2i.ZERO
+## Nombre propio (F6: asentamientos de mundo y región; "" = sin nombre). Se
+## serializa solo si no está vacío: los hijos de ALD conservan su hash.
+var label: String = ""
 
 
 func copy() -> MapChild:
@@ -43,6 +46,7 @@ func copy() -> MapChild:
 	c.child_level = child_level
 	c.rect = rect
 	c.entrance = entrance
+	c.label = label
 	return c
 
 
@@ -52,7 +56,7 @@ func to_child_cell(cell: Vector2i) -> Vector2i:
 
 
 func to_dict() -> Dictionary:
-	return {
+	var d: Dictionary = {
 		"id": id,
 		"kind": kind,
 		"seed_code": seed_code,
@@ -62,6 +66,9 @@ func to_dict() -> Dictionary:
 		"rect": [rect.position.x, rect.position.y, rect.size.x, rect.size.y],
 		"entrance": [entrance.x, entrance.y],
 	}
+	if not label.is_empty():
+		d["label"] = label
+	return d
 
 
 static func from_dict(r: JsonReader, d: Dictionary) -> MapChild:
@@ -78,4 +85,6 @@ static func from_dict(r: JsonReader, d: Dictionary) -> MapChild:
 	else:
 		c.rect = Rect2i(rc[0], rc[1], rc[2], rc[3])
 	c.entrance = r.get_vec2i(d, "entrance")
+	if d.has("label"):
+		c.label = r.get_str(d, "label")
 	return c

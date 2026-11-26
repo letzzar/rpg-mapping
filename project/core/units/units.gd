@@ -37,6 +37,20 @@ static func cells_to_mm(cells: int, cell_ft: int, mode: Mode = Mode.CONVENTION) 
 	return cells * ft_to_mm(cell_ft, mode)
 
 
+## Lado de una casilla en mm según la escala del mapa (F6):
+## - MUN: el mundo es el planeta entero (24 576 mi de circunferencia), así que
+##   una casilla mide 24 576 / `width` millas (12 mi en 2048 de ancho).
+## - REG: hexágono de 6 mi (10 km en convención).
+## - Resto (ALD, EDI, EST, MAZ): la casilla táctica del perfil (`cell_ft`).
+static func scale_cell_mm(scale: String, width: int, cell_ft: int, mode: Mode = Mode.CONVENTION) -> int:
+	match scale:
+		"MUN":
+			return mi_to_mm(24576 / maxi(1, width), mode)
+		"REG":
+			return mi_to_mm(6, mode)
+	return ft_to_mm(cell_ft, mode)
+
+
 ## Texto de una distancia para la interfaz.
 ## - Métrico: "m" con hasta 2 decimales; "km" a partir de 1 km.
 ## - Imperial: "ft" con hasta 2 decimales; "mi" a partir de 1 mi.

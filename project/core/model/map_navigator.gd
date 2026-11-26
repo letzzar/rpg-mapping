@@ -121,6 +121,8 @@ func enter(child: MapChild, from_level: int, profile: SystemProfile, keep_positi
 	f.keep_positions = keep_positions
 	f.parent_level = from_level
 	var door_cell: Vector2i = RoomContent.entrance_cell(f.doc) if overridden else child.to_child_cell(child.entrance)
+	if not overridden and not keep_positions:
+		door_cell = _usable_door(f.doc, child_level, door_cell)
 	var moving: Array[MapToken] = []
 	var targets: Array[Vector2i] = []
 	for t: MapToken in _party_of(here.doc, from_level):
@@ -149,6 +151,22 @@ func back(profile: SystemProfile) -> Frame:
 		targets.append(t.cell + inner.child.offset if inner.keep_positions else inner.child.entrance)
 	_transfer(inner, moving, outer, inner.parent_level, targets, profile)
 	return outer
+
+
+## Casilla de llegada al entrar "por la puerta": `cell` si es transitable; si
+## no (punto de interés de una región con mazmorra MAZ, cuya entrada no se
+## conoce sin generarla, GeoLinks.poi_child), la primera casilla de la zona
+## "entrance" del nivel; si tampoco la hay, `cell`.
+static func _usable_door(doc: MapDocument, level: int, cell: Vector2i) -> Vector2i:
+	var lvl: MapLevel = doc.level(level)
+	if lvl == null or Terrain.is_passable(lvl.get_terrain(cell)):
+		return cell
+	for r: MapRoom in lvl.rooms:
+		if r.kind == MapRoom.KIND_ENTRANCE:
+			var cells: Array[Vector2i] = lvl.room_cells(r.id)
+			if not cells.is_empty():
+				return cells[0]
+	return cell
 
 
 ## Fichas del grupo de `doc` en `level` (todas si es -1), en orden de la lista.

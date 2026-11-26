@@ -1,0 +1,57 @@
+{
+	"$comment": "Tablas ABIERTAS de encuentros por bioma (REG). Solo etiquetas genéricas (sin contenido de reglas con licencia); el DM puede editarlas o sustituirlas. No influyen en la generación (cambiarlas no cambia ningún mapa ni seed dorada). Nombre visible: i18n 'ENC_' + tag en mayúsculas. Pesos enteros > 0.",
+	"version": 1,
+	"default": [
+		{"tag": "travelers", "weight": 4}, {"tag": "merchants", "weight": 3}, {"tag": "patrol", "weight": 3},
+		{"tag": "bandits", "weight": 3}, {"tag": "predators", "weight": 3}, {"tag": "herd", "weight": 2},
+		{"tag": "abandoned_camp", "weight": 2}, {"tag": "storm", "weight": 2}, {"tag": "strange_tracks", "weight": 2}
+	],
+	"biomes": {
+		"grassland": [
+			{"tag": "travelers", "weight": 4}, {"tag": "merchants", "weight": 4}, {"tag": "patrol", "weight": 3},
+			{"tag": "bandits", "weight": 3}, {"tag": "herd", "weight": 4}, {"tag": "nomads", "weight": 2}, {"tag": "storm", "weight": 2}
+		],
+		"temperate_forest": [
+			{"tag": "hunters", "weight": 4}, {"tag": "predators", "weight": 4}, {"tag": "bandits", "weight": 3},
+			{"tag": "hermit", "weight": 2}, {"tag": "lost_traveler", "weight": 2}, {"tag": "strange_tracks", "weight": 3}
+		],
+		"taiga": [
+			{"tag": "hunters", "weight": 3}, {"tag": "predators", "weight": 5}, {"tag": "blizzard", "weight": 3},
+			{"tag": "lost_traveler", "weight": 2}, {"tag": "strange_tracks", "weight": 3}
+		],
+		"tundra": [
+			{"tag": "herd", "weight": 4}, {"tag": "predators", "weight": 3}, {"tag": "blizzard", "weight": 5}, {"tag": "nomads", "weight": 2}
+		],
+		"ice": [
+			{"tag": "blizzard", "weight": 6}, {"tag": "crevasse", "weight": 4}, {"tag": "predators", "weight": 2}
+		],
+		"desert": [
+			{"tag": "sandstorm", "weight": 5}, {"tag": "nomads", "weight": 4}, {"tag": "merchants", "weight": 3},
+			{"tag": "predators", "weight": 2}, {"tag": "mirage", "weight": 2}
+		],
+		"cold_desert": [
+			{"tag": "sandstorm", "weight": 3}, {"tag": "nomads", "weight": 4}, {"tag": "herd", "weight": 3}, {"tag": "bandits", "weight": 2}
+		],
+		"savanna": [
+			{"tag": "herd", "weight": 5}, {"tag": "predators", "weight": 4}, {"tag": "nomads", "weight": 3}, {"tag": "travelers", "weight": 2}
+		],
+		"rainforest": [
+			{"tag": "predators", "weight": 4}, {"tag": "venomous_creatures", "weight": 4}, {"tag": "lost_traveler", "weight": 2},
+			{"tag": "hidden_ruins", "weight": 3}, {"tag": "storm", "weight": 3}
+		],
+		"wetland": [
+			{"tag": "bog", "weight": 5}, {"tag": "venomous_creatures", "weight": 3}, {"tag": "will_o_wisp_lights", "weight": 2},
+			{"tag": "hermit", "weight": 2}, {"tag": "fog", "weight": 3}
+		],
+		"mountain": [
+			{"tag": "rockslide", "weight": 4}, {"tag": "predators", "weight": 3}, {"tag": "blizzard", "weight": 2},
+			{"tag": "miners", "weight": 3}, {"tag": "bandits", "weight": 2}
+		],
+		"shallow_sea": [
+			{"tag": "sea_raiders", "weight": 3}, {"tag": "merchants", "weight": 3}, {"tag": "storm", "weight": 4}, {"tag": "shipwreck_debris", "weight": 2}
+		],
+		"ocean": [
+			{"tag": "storm", "weight": 5}, {"tag": "sea_raiders", "weight": 3}, {"tag": "sea_beast", "weight": 2}, {"tag": "merchants", "weight": 2}
+		]
+	}
+}
