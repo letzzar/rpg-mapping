@@ -112,6 +112,25 @@ var pixel_art: bool = false:
 		mark_dirty()
 ## Téxeles por casilla de las texturas en pixel art.
 const PIXEL_TEXELS: int = 16
+## Vista 2.5D (ADR 051): cámara cenital ortográfica fija en 3/4 con el norte
+## arriba (sin girar ni inclinar), muros más bajos y texturas de suelo y
+## muro (SurfaceTiles; las de pixel art si `pixel_art`).
+var style_25d: bool = false:
+	set(v):
+		style_25d = v
+		mark_dirty()
+		_update_camera()
+## Inclinación de la cámara 2.5D (grados desde la vertical) y altura de sus
+## muros en casillas.
+const TILT_25D: float = 38.0
+const WALL_25D: float = 1.5
+## Altura de las puertas de lo último construido (para pinchar en ellas).
+var _door_h: float = 2.2
+
+
+## ¿Se ve en 2.5D? (cenital con style_25d).
+func is_25d() -> bool:
+	return style_25d and mode == Mode.TOP
 var _cur_holder: Node3D = null
 ## Id de ficha → contenedor de sus nodos (se rehace en cada reconstrucción).
 var _holders: Dictionary[int, Node3D] = {}
@@ -227,6 +246,20 @@ func rebuild() -> void:
 	opts.visible = fog_visible
 	opts.explored = fog_explored
 	opts.ceiling = mode == Mode.FIRST_PERSON
+	var flat: bool = is_25d()
+	if flat:
+		# 2.5D: muros de una casilla y media, como en los juegos de granja en
+		# 3/4: tapan poco de lo que hay detrás y se les ve la cara.
+		opts.wall_h = cell_m * WALL_25D
+		opts.door_h = opts.wall_h * 0.82
+		opts.window_sill_h = opts.wall_h * 0.35
+		opts.window_top_h = opts.wall_h * 0.72
+		opts.back_wall_h = cell_m * 0.3
+	_door_h = opts.door_h
+	if not flat:
+		MapMeshBuilder.set_tile_mode(MapMeshBuilder.TILES_OFF)
+	else:
+		MapMeshBuilder.set_tile_mode(MapMeshBuilder.TILES_PIXEL if pixel_art else MapMeshBuilder.TILES_SMOOTH)
 	if mode == Mode.FIRST_PERSON:
 		MapMeshBuilder.set_distance_fade(cell_m * 1.5, cell_m * 14.0)
 	else:
@@ -682,12 +715,15 @@ func _update_camera() -> void:
 		_camera.position = MapMeshBuilder.v3(p, _eye_height(t.size_id))
 		_camera.rotation = Vector3(_fp_pitch, _fp_yaw, 0.0)
 		return
+	if is_25d():
+		_yaw = 0.0
+		_tilt = TILT_25D
 	var pitch: float = deg_to_rad(90.0 - _tilt)
 	var offset: Vector3 = Vector3(0.0, sin(pitch), cos(pitch)) * _dist
 	offset = offset.rotated(Vector3.UP, _yaw)
 	_camera.position = _target + offset
 	_camera.look_at(_target, Vector3.UP if _tilt > 0.5 else Vector3(sin(_yaw), 0.0, cos(_yaw)) * -1.0)
-	if _ortho:
+	if _ortho or is_25d():
 		_camera.projection = Camera3D.PROJECTION_ORTHOGONAL
 		_camera.size = _dist * 0.75
 	else:
@@ -754,7 +790,7 @@ func _handle_button(mb: InputEventMouseButton) -> void:
 
 
 func _handle_motion(mm: InputEventMouseMotion) -> void:
-	if _rotating:
+	if _rotating and not is_25d():
 		if mode == Mode.TOP:
 			_yaw -= mm.relative.x * 0.01
 			_tilt = clampf(_tilt + mm.relative.y * 0.25, TILT_MIN, TILT_MAX)
@@ -762,7 +798,7 @@ func _handle_motion(mm: InputEventMouseMotion) -> void:
 			_fp_yaw -= mm.relative.x * 0.006
 			_fp_pitch = clampf(_fp_pitch - mm.relative.y * 0.006, -1.2, 1.2)
 		_update_camera()
-	elif _panning and mode == Mode.TOP:
+	elif (_panning or (_rotating and is_25d())) and mode == Mode.TOP:
 		var scale_m: float = _dist * 0.0018
 		var right: Vector3 = Vector3(cos(_yaw), 0.0, -sin(_yaw))
 		var fwd: Vector3 = Vector3(sin(_yaw), 0.0, cos(_yaw))
@@ -774,6 +810,8 @@ func handle_key(k: InputEventKey) -> void:
 	if document == null:
 		return
 	if mode == Mode.TOP:
+		if is_25d():
+			return
 		match k.keycode:
 			KEY_Q:
 				_yaw += deg_to_rad(15.0)
@@ -1045,7 +1083,7 @@ func door_at_screen(pos: Vector2) -> int:
 	var dir: Vector3 = _camera.project_ray_normal(pos)
 	var g: GridGeometry = document.grid
 	var lvl: MapLevel = document.level(level_index)
-	var door_h: float = MapMeshBuilder.Options.new().door_h
+	var door_h: float = _door_h
 	# Tramo del rayo entre el dintel y el suelo, proyectado sobre el plano.
 	if absf(dir.y) < 0.000001:
 		return _door_edge_near(ground_at_screen(pos))

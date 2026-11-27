@@ -27,6 +27,14 @@ uniform float texture_strength = 1.0;
 // evalúan en el centro de cada téxel y con pocos tonos; el oscurecimiento por
 // distancia va en bandas.
 uniform float pixel_texels = 0.0;
+// Vista 2.5D (ADR 051): texturas de SurfaceTiles en lugar de los patrones.
+// 0 = no; 1 = normales (suavizadas); 2 = pixel art (sin suavizar). Capas:
+// tipo * 4 + variante, tipos 0 losa, 1 madera, 2 hierba, 3 agua, 4 tierra,
+// 5 ladrillo, 6 puerta. Cada téxel va dividido por el color medio de su capa
+// y por 2: se multiplica por el color del vértice (zona, niebla y luz).
+uniform int tile_mode = 0;
+uniform sampler2DArray tiles_smooth : filter_linear_mipmap, repeat_enable;
+uniform sampler2DArray tiles_pixel : filter_nearest_mipmap, repeat_enable;
 
 varying float view_dist;
 varying vec3 world_pos;
@@ -77,10 +85,42 @@ float bricks(vec3 p, vec3 n) {
 	return tone * mix(0.7, 1.0, mortar) * (0.95 + 0.07 * vnoise(vec2(along, p.y) * 8.0));
 }
 
+vec3 tile_sample(vec2 uv, float kind, vec2 cell_id) {
+	float variant = floor(hash12(cell_id + vec2(kind * 17.0, 3.0)) * 3.999);
+	vec3 uvw = vec3(uv, kind * 4.0 + variant);
+	vec3 t = tile_mode == 2 ? texture(tiles_pixel, uvw).rgb : texture(tiles_smooth, uvw).rgb;
+	// Sin conversión de color: son cocientes (téxel / color medio / 2).
+	return t * 2.0;
+}
+
 void fragment() {
 	// Los colores de vértice se escriben en sRGB: se pasan a lineal.
 	vec3 base = COLOR.rgb;
 	float k_tex = 1.0;
+	bool tiled = false;
+	if (tile_mode > 0) {
+		bool g_ = base.g > base.r * 1.08 && base.g > base.b * 1.08;
+		bool b_ = base.b > base.r * 1.15 && base.b > base.g * 1.02;
+		bool w_ = base.r > base.g * 1.3 && base.g > base.b * 1.15;
+		bool d_ = !w_ && base.r > base.g * 1.18 && base.g > base.b * 1.3;
+		vec3 tex = vec3(0.5);
+		bool use = false;
+		if (pattern == 1 && world_normal.y > 0.5) {
+			vec2 c = world_pos.xz / cell_m;
+			float kind = b_ ? 3.0 : (g_ ? 2.0 : (w_ ? 1.0 : (d_ ? 4.0 : 0.0)));
+			tex = tile_sample(fract(c), kind, floor(c));
+			use = true;
+		} else if (pattern == 2 && abs(world_normal.y) < 0.5 && !b_) {
+			float along = abs(world_normal.x) > abs(world_normal.z) ? world_pos.z : world_pos.x;
+			vec2 uv = vec2(along / cell_m, 1.0 - world_pos.y / cell_m);
+			tex = tile_sample(fract(uv), w_ ? 6.0 : 5.0, vec2(floor(along / cell_m), 0.0));
+			use = true;
+		}
+		if (use) {
+			base = clamp(base * tex, 0.0, 1.0);
+			tiled = true;
+		}
+	}
 	vec3 wp = world_pos;
 	if (pixel_texels > 0.0) {
 		float t = cell_m / pixel_texels;
@@ -91,7 +131,9 @@ void fragment() {
 	// Pardo marcado (madera: puertas y muebles, r/g ≈ 1,45). La piedra de las
 	// paredes (#8f7b62, r/g ≈ 1,16) es más gris y lleva hiladas.
 	bool brown = base.r > base.g * 1.3 && base.g > base.b * 1.15;
-	if (pattern == 1 && world_normal.y > 0.5) {
+	if (tiled) {
+		k_tex = 1.0;
+	} else if (pattern == 1 && world_normal.y > 0.5) {
 		if (blue) {
 			k_tex = 0.92 + 0.1 * sin(wp.x * 3.1 + vnoise(wp.xz * 1.7) * 6.0);
 		} else if (green) {
@@ -109,7 +151,7 @@ void fragment() {
 			k_tex = 0.93 + 0.07 * ring;
 		}
 	}
-	if (pixel_texels > 0.0) {
+	if (pixel_texels > 0.0 && !tiled) {
 		k_tex = floor(k_tex * 7.0 + 0.5) / 7.0;
 	}
 	base *= mix(1.0, k_tex, texture_strength);

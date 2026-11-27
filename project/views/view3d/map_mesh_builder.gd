@@ -70,6 +70,10 @@ class Options:
 	var explored: PackedByteArray = PackedByteArray()
 	## Techo sobre las casillas transitables (1ª persona).
 	var ceiling: bool = false
+	## Vista 2.5D (ADR 051): altura de los muros de roca que la cámara ve de
+	## espaldas (los del lado sur de cada sala); 0 = como los demás. Altos
+	## taparían el pasillo o la fila de casillas de delante.
+	var back_wall_h: float = 0.0
 
 
 ## Acumulador de triángulos con color por vértice.
@@ -170,6 +174,21 @@ static func set_pixel_texels(texels: int) -> void:
 		m.set_shader_parameter("pixel_texels", float(texels))
 
 
+## Texturas de la vista 2.5D (ADR 051): TILES_OFF = los patrones de siempre;
+## TILES_SMOOTH / TILES_PIXEL = las de SurfaceTiles, normales o pixel art.
+const TILES_OFF: int = 0
+const TILES_SMOOTH: int = 1
+const TILES_PIXEL: int = 2
+
+
+static func set_tile_mode(mode: int) -> void:
+	for m: ShaderMaterial in _all_materials():
+		m.set_shader_parameter("tile_mode", mode)
+		if mode == TILES_SMOOTH:
+			m.set_shader_parameter("tiles_smooth", SurfaceTiles.array(false))
+		elif mode == TILES_PIXEL:
+			m.set_shader_parameter("tiles_pixel", SurfaceTiles.array(true))
+
 ## Punto 3D (x, y, z) desde un punto 2D de la rejilla en metros.
 static func v3(p: Vector2, y: float) -> Vector3:
 	return Vector3(p.x, y, p.y)
@@ -234,6 +253,7 @@ static func _build_cells(g: GridGeometry, lvl: MapLevel, opts: Options, factor: 
 	var cm: float = opts.cell_m
 	var h: float = opts.wall_h
 	var caps: Dictionary[int, float] = {}
+	var cap_h: Dictionary[int, float] = {}
 	var outdoor: PackedByteArray = outdoor_mask(lvl)
 	var zone_cols: Dictionary[int, Color] = zone_colors_by_room(lvl)
 	for i: int in g.cell_count():
@@ -276,10 +296,15 @@ static func _build_cells(g: GridGeometry, lvl: MapLevel, opts: Options, factor: 
 			var shade: float = _face_shade(seg[1] - seg[0])
 			var top: Color = COL_WALL_FACE * (f * shade)
 			var bottom: Color = COL_WALL_FACE * (f * shade * 0.55)
-			wall_geo.quad4(v3(seg[0], 0.0), v3(seg[1], 0.0), v3(seg[1], h), v3(seg[0], h), bottom, bottom, top, top)
+			var wh: float = h
+			if opts.back_wall_h > 0.0 and ni >= 0 and g.cell_to_pixel(n, cm).y > center.y + 0.01:
+				wh = opts.back_wall_h
+			wall_geo.quad4(v3(seg[0], 0.0), v3(seg[1], 0.0), v3(seg[1], wh), v3(seg[0], wh), bottom, bottom, top, top)
 			if ni >= 0:
 				var prev: float = caps.get(ni, 0.0)
 				caps[ni] = maxf(prev, f)
+				var prev_h: float = cap_h.get(ni, 0.0)
+				cap_h[ni] = maxf(prev_h, wh)
 	# Tapas de la roca que asoma (vista cenital), con el brillo de la casilla
 	# transitable vecina más clara.
 	if opts.ceiling:
@@ -287,7 +312,8 @@ static func _build_cells(g: GridGeometry, lvl: MapLevel, opts: Options, factor: 
 	for ni: int in caps.keys():
 		var c2: Vector2i = g.cell_at(ni)
 		var cf: float = caps[ni]
-		_fan(wall_geo, g.cell_to_pixel(c2, cm), g.cell_polygon(c2, cm), h, COL_WALL_TOP * cf, true)
+		var ch: float = cap_h.get(ni, h)
+		_fan(wall_geo, g.cell_to_pixel(c2, cm), g.cell_polygon(c2, cm), ch, COL_WALL_TOP * cf, true)
 
 
 ## Color de suelo de una zona (alfa 0 = la zona no tiene color propio).

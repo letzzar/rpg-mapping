@@ -16,10 +16,12 @@ const HUGE_MAP_CELLS: int = 200000
 const GEN: int = 1
 const UNIT_OPTIONS: Array[String] = ["UI_UNITS_METRIC", "UI_UNITS_METRIC_EXACT", "UI_UNITS_IMPERIAL"]
 const GRID_OPTIONS: Array[String] = ["square", "hex_flat", "hex_pointy"]
-const VIEW_OPTIONS: Array[String] = ["UI_VIEW_2D", "UI_VIEW_3D", "UI_VIEW_FP"]
+const VIEW_OPTIONS: Array[String] = ["UI_VIEW_2D", "UI_VIEW_3D", "UI_VIEW_FP", "UI_VIEW_25D"]
 const VIEW_2D: int = 0
 const VIEW_3D: int = 1
 const VIEW_FP: int = 2
+## Vista 2.5D (ADR 051): la 3D cenital fija en 3/4 y con texturas.
+const VIEW_25D: int = 3
 ## Luz que lleva cada ficha del grupo con "Antorcha": la del objeto del
 ## catálogo (reglas como datos; no se fija en código).
 const CARRIED_LIGHT_OBJECT: String = "torch_sconce"
@@ -313,7 +315,7 @@ func _build_ui() -> void:
 	_audience_opt.add_item(tr("UI_AUDIENCE_PLAYERS"))
 	_audience_opt.item_selected.connect(func(_i: int) -> void:
 		_refresh_vision()
-		if _view_opt.selected == VIEW_3D:
+		if _is_top_3d():
 			_fit())
 	bar.add_child(_audience_opt)
 	_ambient_chk = CheckBox.new()
@@ -974,11 +976,11 @@ func _fit() -> void:
 		var focus: Rect2i = _party_focus(_view.level_index)
 		if focus.size.x > 0:
 			_view.fit_region(focus, Rect2(Vector2.ZERO, _map_area.size))
-			if _view3d != null and _view_opt.selected == VIEW_3D:
+			if _view3d != null and _is_top_3d():
 				_view3d.fit_region(focus)
 			return
 	_view.fit_to(Rect2(Vector2.ZERO, _map_area.size))
-	if _view3d != null and _view_opt.selected == VIEW_3D:
+	if _view3d != null and _is_top_3d():
 		var dm_focus: Rect2i = _party_focus(_view.level_index) if _players_view() else Rect2i()
 		if dm_focus.size.x > 0:
 			_view3d.fit_region(dm_focus)
@@ -1017,7 +1019,12 @@ func _party_focus(level: int) -> Rect2i:
 
 # --- Vistas y niebla (F2) -----------------------------------------------------
 
-## Cambia entre 2D, 3D cenital y 1ª persona. Devuelve los ms que tardó en
+## ¿Se ve la 3D cenital (normal o 2.5D)?
+func _is_top_3d() -> bool:
+	return _view_opt != null and (_view_opt.selected == VIEW_3D or _view_opt.selected == VIEW_25D)
+
+
+## Cambia entre 2D, 3D cenital, 1ª persona y 2.5D. Devuelve los ms que tardó en
 ## tener la vista lista (criterio de F2: < 500 ms).
 func _apply_view() -> int:
 	var t0: int = Time.get_ticks_msec()
@@ -1038,6 +1045,7 @@ func _apply_view() -> int:
 				if _client.owns(t) and t.level == _view.level_index:
 					_view3d.selected_token = t.id
 					break
+		_view3d.style_25d = sel == VIEW_25D
 		_view3d.set_mode(MapView3D.Mode.FIRST_PERSON if sel == VIEW_FP else MapView3D.Mode.TOP)
 		_view3d.rebuild()
 		_release_text_focus()
@@ -1046,7 +1054,7 @@ func _apply_view() -> int:
 		elif sel == VIEW_FP:
 			_status.text = tr("UI_FP_HELP")
 		else:
-			_status.text = tr("UI_3D_HELP")
+			_status.text = tr("UI_25D_HELP" if sel == VIEW_25D else "UI_3D_HELP")
 			if _client != null or _players_view():
 				_fit()
 	else:

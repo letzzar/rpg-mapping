@@ -353,3 +353,54 @@ func lvl_index_of(s: MapStair, d: MapDocument) -> int:
 		if d.level(li).stairs.has(s):
 			return li
 	return -1
+
+## Vista 2.5D (ADR 051): cámara ortográfica fija en 3/4 que no gira, muros
+## más bajos (los de espaldas a la cámara, más aún) y texturas de superficie,
+## normales o de pixel art.
+func test_view_25d_fixed_camera_low_walls_and_tiles() -> void:
+	assert_eq(SurfaceTiles.array(false).get_layers(), SurfaceTiles.layer_count())
+	assert_eq(SurfaceTiles.array(true).get_layers(), SurfaceTiles.layer_count())
+	assert_eq(SurfaceTiles.array(false).get_width(), SurfaceTiles.SMOOTH_SIZE)
+	assert_eq(SurfaceTiles.array(true).get_width(), SurfaceTiles.PIXEL_SIZE)
+	await _generate("RPGM1-DND5-MAZ-G1-WKA0G0-W7HE7S75-0")
+	var ms: int = _select_view(3)
+	assert_lt(ms, 2000, "se abre rápido")
+	await wait_process_frames(2)
+	var v: MapView3D = _v3()
+	assert_true(v.is_25d())
+	var cam: Camera3D = v.camera()
+	assert_eq(cam.projection, Camera3D.PROJECTION_ORTHOGONAL)
+	var fwd: Vector3 = -cam.global_transform.basis.z
+	assert_almost_eq(fwd.x, 0.0, 0.001, "norte arriba: no gira")
+	# Arrastrar con el botón derecho no la gira (desplaza).
+	var press: InputEventMouseButton = InputEventMouseButton.new()
+	press.button_index = MOUSE_BUTTON_RIGHT
+	press.pressed = true
+	v.process_input(press)
+	var mm: InputEventMouseMotion = InputEventMouseMotion.new()
+	mm.relative = Vector2(120, 40)
+	v.process_input(mm)
+	press.pressed = false
+	v.process_input(press)
+	fwd = -cam.global_transform.basis.z
+	assert_almost_eq(fwd.x, 0.0, 0.001, "sigue sin girar")
+	assert_eq(_tile_mode(), MapMeshBuilder.TILES_SMOOTH)
+	# Muros: ninguno más alto que el de la 2.5D, y los de espaldas, bajos.
+	var walls: MeshInstance3D = v.get_node("Level%d/Walls" % v.level_index) as MeshInstance3D
+	assert_not_null(walls)
+	var top: float = walls.mesh.get_aabb().end.y
+	assert_almost_eq(top, v.cell_m * MapView3D.WALL_25D, 0.01)
+	_main.call("set_pixel_art", true)
+	v.rebuild()
+	assert_eq(_tile_mode(), MapMeshBuilder.TILES_PIXEL)
+	_main.call("set_pixel_art", false)
+	# La 3D de siempre vuelve a sus patrones y a girar.
+	_select_view(1)
+	await wait_process_frames(1)
+	assert_false(v.is_25d())
+	assert_eq(_tile_mode(), MapMeshBuilder.TILES_OFF)
+
+
+func _tile_mode() -> int:
+	var m: int = MapMeshBuilder.material(MapMeshBuilder.PATTERN_FLOOR).get_shader_parameter("tile_mode")
+	return m

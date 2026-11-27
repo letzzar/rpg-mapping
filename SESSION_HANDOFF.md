@@ -1,5 +1,17 @@
 # SESSION_HANDOFF — RPG Mapping
 
+## Última sesión: 2026-11-27 (14.ª, decimocuarta parte) — Mejoras tras probar la build: 3D, lugares, criaturas y 2.5D
+Tests: **370/370 en escritorio y en el navegador** (4 nuevos).
+
+### Hecho (ADR 050 y 051)
+- **3D**: puertas y fichas se pinchan por donde se ven (rayo contra la hoja de la puerta y el cilindro de la figura; antes, la casilla del suelo de detrás, y con la cámara inclinada no acertaba). Escaleras de ida y vuelta también en 3D; en 1.ª persona E/Espacio toma la escalera si no hay puerta; la barra avisa al quedar en una.
+- **Lugares** (botón, solo DM): árbol de mapas visitados (mundo → región → ciudad → edificio…) y sitios del mapa actual con buscador; doble clic para ir «solo a mirar» o «llevando al grupo» (`MapNavigator.jump`). Alt+← o Retroceso vuelven arriba.
+- **Añadir criatura ▾**: 36 modelos tipo en PNJ, animales y monstruos, con sprite; monstruos enemigos, el resto neutral (o el bando elegido); junto a la ficha elegida o en el centro de la vista.
+- **Vista 2.5D**: 3D con cámara fija en 3/4 tipo juego de granja, muros bajos (los de espaldas, más) y texturas de suelo y muro normales o pixel art.
+
+### Siguiente paso
+1. Que Víctor pruebe la build nueva (`build/dist`).
+2. Límites conocidos: «solo mirar» en Lugares también cambia el mapa que se comparte en red (como al entrar en un edificio); en 2.5D las paredes finas de los edificios (aristas) siguen a altura completa; los muros de roca de espaldas se ven como un zócalo.
 ## Última sesión: 2026-11-27 (14.ª, decimotercera parte) — Armas KayKit e iconos del botín
 Tests: **366/366 en escritorio y en el navegador** (3 nuevos: armas en `test_rigged_figures.gd`, tipos e iconos en `test_loot.gd`).
 

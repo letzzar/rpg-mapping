@@ -742,3 +742,5 @@ UI_CREATURE_SIDE_ENEMY,Enemigo,Enemy
 UI_CREATURE_CAT_NPC,PNJ,NPCs
 UI_CREATURE_CAT_CREATURE,Animales y criaturas,Animals and creatures
 UI_CREATURE_CAT_MONSTER,Monstruos,Monsters
+UI_VIEW_25D,Vista 2.5D,2.5D view
+UI_25D_HELP,"2.5D: arrastra las fichas, clic en las puertas, rueda para acercar y botón derecho o central para desplazar.  Con «Pixel art», texturas en píxeles.","2.5D: drag tokens, click doors, wheel to zoom and right or middle button to pan.  With «Pixel art», pixel textures."
