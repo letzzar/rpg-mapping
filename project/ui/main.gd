@@ -63,6 +63,8 @@ var _map_open_dialog: FileDialog = null
 var _designer: CharacterDesigner
 var _turn_panel: TurnPanel
 var _turns_btn: Button
+var _loot_btn: Button
+var _loot_panel: LootPanel
 var _proj_btn: Button = null
 var _proj_panel: ProjectorPanel = null
 var _projector: ProjectorWindow = null
@@ -183,6 +185,15 @@ func _build_ui() -> void:
 	_turns_btn.toggle_mode = true
 	_turns_btn.tooltip_text = tr("UI_TURNS_TIP")
 	bar.add_child(_turns_btn)
+	# Botín (ADR 048): el DM lo edita; los jugadores ven lo que les enseña.
+	_loot_btn = _button("UI_LOOT", func() -> void:
+		_loot_panel.visible = _loot_btn.button_pressed
+		if _loot_panel.visible and not _loot_panel.has_target() and _doc != null and _doc.token(_selected_token) != null:
+			_loot_panel.show_token(_selected_token)
+		_fit.call_deferred())
+	_loot_btn.toggle_mode = true
+	_loot_btn.tooltip_text = tr("UI_LOOT_TIP")
+	bar.add_child(_loot_btn)
 	# Plantillas de área (ADR 035): solo en 2D; también para los jugadores
 	# (se dibujan en su pantalla, no se comparten).
 	_tpl_btn = _button("UI_TEMPLATE", _apply_template)
@@ -315,6 +326,14 @@ func _build_ui() -> void:
 	_turn_panel.format_ft = func(ft: int) -> String: return _view._format_ft(ft)
 	_turn_panel.turn_started.connect(_on_turn_started)
 	middle.add_child(_turn_panel)
+	_loot_panel = LootPanel.new()
+	_loot_panel.visible = false
+	_loot_panel.execute = func(cmd: MapCommand) -> bool:
+		if _stack == null or not _stack.execute(cmd):
+			return false
+		_on_user_command()
+		return true
+	middle.add_child(_loot_panel)
 	_editor_panel = RoomEditorPanel.new()
 	_editor_panel.visible = false
 	_editor_panel.execute = func(cmd: MapCommand) -> bool:
@@ -357,7 +376,8 @@ func _build_ui() -> void:
 	_view.user_command_done.connect(_on_user_command)
 	_view.token_selected.connect(func(id: int) -> void:
 		_view3d.selected_token = id
-		_selected_token = id)
+		_selected_token = id
+		_show_token_loot(id))
 	_view.cell_activated.connect(_on_cell_activated)
 	_view.stairs_taken.connect(_on_stairs_taken)
 	_view.token_activated.connect(_on_token_activated)
@@ -389,6 +409,7 @@ func _build_ui() -> void:
 	_view3d.token_activated.connect(_on_token_activated)
 	_view3d.token_selected.connect(func(id: int) -> void:
 		_selected_token = id
+		_show_token_loot(id)
 		_status.text = tr("UI_TOKEN_SELECTED").replace("{name}", _doc.token(id).name))
 
 	_status = Label.new()
@@ -625,6 +646,8 @@ func _set_document(doc: MapDocument, stack: CommandStack, level: int) -> void:
 	_announced_turn = doc.turns.current_token_id()
 	_editor_panel.level_index = start
 	_editor_panel.set_document(doc)
+	_loot_panel.read_only = _client != null
+	_loot_panel.set_document(doc)
 
 
 ## Empieza un turno (lo pasó el DM): se selecciona la ficha y se centra.
@@ -660,6 +683,8 @@ func _on_doc_changed(_level: int, layer: String) -> void:
 	elif layer == MapDocument.LAYER_FOG and _proj_panel != null and _proj_panel.is_open():
 		# Revelar u ocultar (o deshacerlo) cambia lo que se ve en la mesa.
 		_queue_vision()
+	if _loot_panel.visible and (layer == MapDocument.LAYER_OBJECTS or layer == MapDocument.LAYER_TOKENS or layer == MapDocument.LAYER_ALL):
+		_loot_panel.refresh()
 	if layer == MapDocument.LAYER_TURNS or layer == MapDocument.LAYER_TOKENS:
 		_turn_panel.profile = _current_profile()
 		_turn_panel.refresh()
@@ -678,6 +703,9 @@ func _on_doc_changed(_level: int, layer: String) -> void:
 ## las fichas del grupo de este nivel.
 func _on_cell_activated(cell: Vector2i) -> void:
 	if _doc == null:
+		return
+	# Cofre, barril u otro contenedor: su contenido (ADR 048).
+	if open_loot_at(_view.level_index, cell):
 		return
 	if _client != null:
 		# Modo jugador: doble clic = señalar la casilla a todos.
@@ -715,6 +743,33 @@ func _on_cell_activated(cell: Vector2i) -> void:
 	_explore_after_navigation()
 	var key: String = "UI_NAV_ENTERED_ROOM" if room else "UI_NAV_ENTERED"
 	_status.text = tr(key).replace("{name}", _frame_name(f)).replace("{code}", f.doc.seed_code)
+
+
+## Abre el panel de botín con el contenedor de la casilla (el DM, cualquiera
+## que guarde cosas; un jugador, solo si el DM le enseñó lo que hay).
+## Devuelve si lo abrió.
+func open_loot_at(level: int, cell: Vector2i) -> bool:
+	var lvl: MapLevel = _doc.level(level) if _doc != null else null
+	if lvl == null or lvl.has_geo_layers():
+		return false
+	for o: MapObject in lvl.objects_at(cell):
+		if not LootPanel.is_lootable(o):
+			continue
+		if _client != null and not o.contents_revealed:
+			_status.text = tr("UI_LOOT_NOT_SHOWN")
+			return false
+		_loot_panel.show_object(level, o.id)
+		_loot_panel.visible = true
+		_loot_btn.set_pressed_no_signal(true)
+		_fit.call_deferred()
+		return true
+	return false
+
+
+## Con el panel de botín abierto, al elegir una ficha se ve lo que lleva.
+func _show_token_loot(id: int) -> void:
+	if _loot_panel != null and _loot_panel.visible:
+		_loot_panel.show_token(id)
 
 
 ## Una ficha tomó una escalera. El DM pasa a ver ese nivel y explora lo que

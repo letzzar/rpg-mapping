@@ -1,5 +1,16 @@
 # SESSION_HANDOFF — RPG Mapping
 
+## Última sesión: 2026-11-27 (14.ª, duodécima parte) — Cofres y botín
+Tests: **363/363 en escritorio y en el navegador** (5 nuevos en `test_loot.gd`).
+
+### Hecho (ADR 048)
+- Contenido en objetos y botín en fichas (`LootItem`, `SetLootCommand`, delta `set_loot`), solo guardado si hay algo.
+- Panel **Botín**: doble clic en cofre/barril/estantería/altar u otro contenedor, o elegir una ficha (enemigo, PNJ, jugador). Añadir, editar cantidad/nombre/valor, quitar, dar a otra ficha o darlo todo, y "Lo ven los jugadores" (el servidor filtra lo no enseñado; los jugadores lo ven en solo lectura).
+- Catálogo: cofre grande (2×1), cofrecillo, cofre del tesoro y montón de tesoro, con modelo 3D, pixel art y nombre; salen en el editor de estancias.
+
+### Siguiente paso
+1. Que Víctor lo pruebe en una partida.
+2. Posibles: tablas de botín aleatorio (contenido SRD con atribución, decisión aparte), botín en los códigos de estancia (formato congelado: necesitaría versión nueva).
 ## Última sesión: 2026-11-27 (14.ª, undécima parte) — Modo pixel art
 Tests: **358/358 en escritorio y en el navegador** (5 nuevos en `test_pixel_art.gd`).
 

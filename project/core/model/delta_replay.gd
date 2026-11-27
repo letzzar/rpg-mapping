@@ -84,6 +84,9 @@ static func command_for(r: JsonReader, doc: MapDocument, dl: MapDelta) -> MapCom
 			var sd: Dictionary = r.get_dict(d, "sheet")
 			var sheet: CharacterSheet = CharacterSheet.from_dict(r, sd) if not sd.is_empty() else null
 			cmd = SetTokenSheetCommand.new(r.get_int(d, "token"), sheet)
+		SetLootCommand.DELTA_OP:
+			cmd = SetLootCommand.new(r.get_str(d, "kind"), r.get_int(d, "level"), r.get_int(d, "id"),
+				LootItem.list_from_array(r, r.get_array(d, "items")), r.get_bool(d, "revealed"))
 		SetTurnsCommand.DELTA_OP:
 			cmd = SetTurnsCommand.new(TurnTracker.from_dict(r, r.get_dict(d, "turns")), r.get_str(d, "label"))
 		_:

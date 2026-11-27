@@ -27,6 +27,12 @@ var hidden: bool = false
 ## Personaje que representa (velocidades, sentidos, retrato y aspecto);
 ## null = ficha genérica (velocidad del perfil, disco de color). ADR 034.
 var sheet: CharacterSheet = null
+## Botín que lleva (enemigos, PNJ; ADR 048). Es de esta ficha, no del
+## personaje: dos goblins iguales pueden llevar cosas distintas. Solo se
+## guarda si hay algo.
+var loot: Array[LootItem] = []
+## El DM lo enseña a los jugadores.
+var loot_revealed: bool = false
 
 
 ## Velocidad caminando: la del personaje o, sin él, la del perfil.
@@ -47,6 +53,8 @@ func copy() -> MapToken:
 	t.character_ref = character_ref
 	t.hidden = hidden
 	t.sheet = sheet.copy() if sheet != null else null
+	t.loot = LootItem.list_copy(loot)
+	t.loot_revealed = loot_revealed
 	return t
 
 
@@ -63,6 +71,10 @@ func to_dict() -> Dictionary:
 	}
 	if sheet != null:
 		d["sheet"] = sheet.to_dict()
+	if not loot.is_empty():
+		d["loot"] = LootItem.list_to_array(loot)
+	if loot_revealed:
+		d["loot_revealed"] = true
 	return d
 
 
@@ -79,6 +91,9 @@ static func from_dict(r: JsonReader, d: Dictionary) -> MapToken:
 	# Opcional: los mapas anteriores a F5 no lo tienen.
 	if d.has("sheet"):
 		t.sheet = CharacterSheet.from_dict(r, r.get_dict(d, "sheet"))
+	if d.has("loot"):
+		t.loot = LootItem.list_from_array(r, r.get_array(d, "loot"))
+	t.loot_revealed = d.has("loot_revealed") and r.get_bool(d, "loot_revealed")
 	if not SIDES.has(t.side):
 		r.fail("side desconocido: " + t.side)
 	return t

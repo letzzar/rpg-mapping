@@ -60,6 +60,9 @@ static func build(doc: MapDocument, profile: SystemProfile, opts: PartyVision.Op
 		if not in_party and not _token_seen(doc, t, profile, snap.levels[t.level].visible):
 			continue
 		var d: Dictionary = t.to_dict()
+		# El botín solo si el DM lo ha enseñado (ADR 048).
+		if not t.loot_revealed:
+			d.erase("loot")
 		if not in_party:
 			d["character_ref"] = ""
 			# De una criatura ajena solo se ve su aspecto (ADR 034).
@@ -130,7 +133,11 @@ static func filter_level(lvl: MapLevel, explored: PackedByteArray) -> Dictionary
 	var objects: Array = []
 	for o: MapObject in lvl.objects:
 		if _any_explored(g, explored, lvl.object_cells(o)):
-			objects.append(o.to_dict())
+			var od: Dictionary = o.to_dict()
+			# El contenido solo si el DM lo ha enseñado (ADR 048).
+			if not o.contents_revealed:
+				od.erase("contents")
+			objects.append(od)
 	var stairs: Array = []
 	for s: MapStair in lvl.stairs:
 		if _is_explored(g, explored, s.cell):

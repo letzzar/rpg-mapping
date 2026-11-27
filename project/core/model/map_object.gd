@@ -39,6 +39,11 @@ var height_mm: int = 0
 ## Material según el estilo (data/styles; p. ej. "oak", "granite"); "" si no
 ## aplica. Solo afecta al aspecto (vistas 2D/3D).
 var material: String = ""
+## Contenido (cofres, barriles, estanterías…; ADR 048). Solo se guarda si
+## hay algo: los mapas generados y sus hashes no cambian.
+var contents: Array[LootItem] = []
+## El DM lo enseña a los jugadores (si no, el servidor no se lo manda).
+var contents_revealed: bool = false
 
 
 func copy() -> MapObject:
@@ -57,11 +62,13 @@ func copy() -> MapObject:
 	o.interaction = interaction
 	o.height_mm = height_mm
 	o.material = material
+	o.contents = LootItem.list_copy(contents)
+	o.contents_revealed = contents_revealed
 	return o
 
 
 func to_dict() -> Dictionary:
-	return {
+	var d: Dictionary = {
 		"id": id,
 		"catalog_id": catalog_id,
 		"cell": [cell.x, cell.y],
@@ -77,6 +84,11 @@ func to_dict() -> Dictionary:
 		"height_mm": height_mm,
 		"material": material,
 	}
+	if not contents.is_empty():
+		d["contents"] = LootItem.list_to_array(contents)
+	if contents_revealed:
+		d["contents_revealed"] = true
+	return d
 
 
 static func from_dict(r: JsonReader, d: Dictionary) -> MapObject:
@@ -95,6 +107,9 @@ static func from_dict(r: JsonReader, d: Dictionary) -> MapObject:
 	o.interaction = r.get_str(d, "interaction")
 	o.height_mm = r.get_int(d, "height_mm")
 	o.material = r.get_str(d, "material")
+	if d.has("contents"):
+		o.contents = LootItem.list_from_array(r, r.get_array(d, "contents"))
+	o.contents_revealed = d.has("contents_revealed") and r.get_bool(d, "contents_revealed")
 	if o.cover < COVER_NONE or o.cover > COVER_TOTAL:
 		r.fail("cover fuera de rango")
 	if o.size.x < 1 or o.size.y < 1:
