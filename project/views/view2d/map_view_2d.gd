@@ -70,6 +70,8 @@ const TERRAIN_COLORS: Array[Color] = [
 	Color("1d4f7c"),  # water_deep
 	Color("140e0a"),  # pit
 ]
+## Hierba de los exteriores en pixel art.
+const COL_PIXEL_GRASS: Color = Color("6f9a4c")
 const SIDE_COLORS: Dictionary[String, Color] = {
 	"player": Color("1d4f7c"),
 	"ally": Color("2e7d4f"),
@@ -100,6 +102,15 @@ var grid_color: Color = COL_GRID
 var scale_cell_mm: int = 0
 ## Impresión: la roca maciza y el vacío en gris muy claro (ahorra tinta).
 var ink_saver: bool = false
+## Modo pixel art (ADR 047): suelos, muros, puertas y muebles con tiles de
+## 32×32 generados por código y personajes como sprites. Solo cambia el
+## dibujo: el modelo, las reglas y las distancias son los mismos.
+var pixel_art: bool = false:
+	set(v):
+		pixel_art = v
+		texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST if v else CanvasItem.TEXTURE_FILTER_PARENT_NODE
+		texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED if v else CanvasItem.TEXTURE_REPEAT_PARENT_NODE
+		queue_redraw()
 ## Vista del DM: muestra puertas secretas y trampas ocultas.
 var dm_view: bool = true
 var interactive: bool = true
@@ -258,7 +269,9 @@ func _draw() -> void:
 			fill = zone_cols[lvl.room_ids[i]]
 		if ink_saver and Terrain.is_solid(t):
 			fill = Color("e6e2da")
-		if bg == null or t != Terrain.FLOOR:
+		if pixel_art and not ink_saver and (bg == null or t != Terrain.FLOOR):
+			_draw_pixel_cell(c, poly, t, fill, outdoor[i] != 0, lvl.rooms.size() > 0 and fill == COL_ROOF)
+		elif bg == null or t != Terrain.FLOOR:
 			draw_colored_polygon(poly, fill)
 		if show_grid and Terrain.is_passable(t):
 			# Ancho negativo = línea fina de 1 px de pantalla a cualquier zoom;
@@ -373,6 +386,69 @@ func _draw_fog(g: GridGeometry) -> void:
 			draw_colored_polygon(poly, Color(0.05, 0.03, 0.02, a))
 
 
+# --- Pixel art (ADR 047) ------------------------------------------------------
+
+## Casilla con su tile de pixel art (variante según la casilla, estable).
+func _draw_pixel_cell(c: Vector2i, poly: PackedVector2Array, t: int, fill: Color, outdoor: bool, roof: bool) -> void:
+	var kind: String = ""
+	var base: Color = fill
+	match t:
+		Terrain.FLOOR:
+			if outdoor and not roof and fill == MapMeshBuilder.COL_OUTDOOR:
+				kind = PixelTiles.GRASS
+				base = COL_PIXEL_GRASS
+			else:
+				kind = PixelTiles.floor_kind(fill, roof)
+		Terrain.WALL:
+			kind = PixelTiles.ROCK
+			base = PixelTiles.BASE_ROCK
+		Terrain.RUBBLE:
+			kind = PixelTiles.RUBBLE
+			base = PixelTiles.BASE_RUBBLE_FLOOR
+		Terrain.WATER_SHALLOW:
+			kind = PixelTiles.WATER
+			base = PixelTiles.BASE_WATER
+		Terrain.WATER_DEEP:
+			kind = PixelTiles.DEEP
+			base = PixelTiles.BASE_DEEP
+		Terrain.PIT:
+			kind = PixelTiles.PIT
+			base = PixelTiles.BASE_PIT
+		_:
+			draw_colored_polygon(poly, fill)
+			return
+	var tex: ImageTexture = PixelTiles.tile(kind, base, PixelCanvas.hash_int(c.x, c.y, 17))
+	draw_colored_polygon(poly, Color.WHITE, _cell_uvs(c, poly), tex)
+
+
+## UV de la casilla: su recuadro de cell_px a 0..1 (cuadradas exactas; en
+## hexágonos, el recuadro que la contiene).
+func _cell_uvs(c: Vector2i, poly: PackedVector2Array) -> PackedVector2Array:
+	var center: Vector2 = document.grid.cell_to_pixel(c, cell_px)
+	var uvs: PackedVector2Array = PackedVector2Array()
+	for q: Vector2 in poly:
+		uvs.append((q - center) / cell_px + Vector2(0.5, 0.5))
+	return uvs
+
+
+## Tira de pixel art (muro, puerta, ventana) a lo largo de un segmento: la
+## textura se repite cada casilla y tiene `thick` de grosor.
+func _draw_strip(a: Vector2, b: Vector2, tex: Texture2D, thick: float, modulate_col: Color = Color.WHITE) -> void:
+	var dir: Vector2 = b - a
+	var len_px: float = dir.length()
+	if len_px <= 0.0:
+		return
+	var n: Vector2 = Vector2(-dir.y, dir.x) / len_px * thick * 0.5
+	var reps: float = len_px / cell_px
+	var pts: PackedVector2Array = PackedVector2Array([a - n, b - n, b + n, a + n])
+	var uvs: PackedVector2Array = PackedVector2Array([Vector2(0, 0), Vector2(reps, 0), Vector2(reps, 1), Vector2(0, 1)])
+	draw_colored_polygon(pts, modulate_col, uvs, tex)
+
+
+func _pixel_thick() -> float:
+	return cell_px * 0.25
+
+
 func _draw_outline(poly: PackedVector2Array, col: Color, width: float) -> void:
 	var closed: PackedVector2Array = poly.duplicate()
 	closed.append(poly[0])
@@ -393,7 +469,10 @@ func _draw_outlines(g: GridGeometry, lvl: MapLevel) -> void:
 				continue
 			var seg: PackedVector2Array = g.edge_segment(c, dir, cell_px)
 			if seg.size() >= 2:
-				draw_line(seg[0], seg[1], COL_OUTLINE, w)
+				if pixel_art and not ink_saver:
+					_draw_strip(seg[0], seg[1], PixelTiles.wall_strip(), _pixel_thick())
+				else:
+					draw_line(seg[0], seg[1], COL_OUTLINE, w)
 
 
 func _draw_edges(g: GridGeometry, lvl: MapLevel) -> void:
@@ -405,6 +484,9 @@ func _draw_edges(g: GridGeometry, lvl: MapLevel) -> void:
 			continue
 		var k: int = MapEdge.kind_of(v)
 		var w: float = cell_px * 0.12
+		if pixel_art and not ink_saver:
+			_draw_pixel_edge(seg, v, k)
+			continue
 		match k:
 			MapEdge.KIND_WALL:
 				draw_line(seg[0], seg[1], COL_WALL_EDGE, w)
@@ -422,6 +504,37 @@ func _draw_edges(g: GridGeometry, lvl: MapLevel) -> void:
 				draw_line(b, seg[1], COL_WALL_EDGE, w)
 				draw_line(a, b, COL_WALL_EDGE, w * 0.9)
 				draw_line(a, b, COL_WINDOW, w * 0.45)
+
+
+func _draw_pixel_edge(seg: PackedVector2Array, v: int, k: int) -> void:
+	var th: float = _pixel_thick()
+	var wall: Texture2D = PixelTiles.wall_strip()
+	match k:
+		MapEdge.KIND_WALL:
+			_draw_strip(seg[0], seg[1], wall, th)
+		MapEdge.KIND_ARCH:
+			_draw_strip(seg[0], seg[0].lerp(seg[1], 0.2), wall, th)
+			_draw_strip(seg[1].lerp(seg[0], 0.2), seg[1], wall, th)
+		MapEdge.KIND_WINDOW:
+			_draw_strip(seg[0], seg[1], PixelTiles.window_strip(), th)
+		MapEdge.KIND_DOOR, MapEdge.KIND_SECRET_DOOR:
+			var secret: bool = k == MapEdge.KIND_SECRET_DOOR
+			if secret and not MapEdge.has_flag(v, MapEdge.FLAG_DISCOVERED) and not dm_view:
+				_draw_strip(seg[0], seg[1], wall, th)
+				return
+			var a: Vector2 = seg[0].lerp(seg[1], 0.15)
+			var b: Vector2 = seg[0].lerp(seg[1], 0.85)
+			_draw_strip(seg[0], a, wall, th)
+			_draw_strip(b, seg[1], wall, th)
+			var leaf: Texture2D = PixelTiles.door_strip(COL_SECRET if secret else PixelTiles.BASE_DOOR)
+			if MapEdge.has_flag(v, MapEdge.FLAG_OPEN):
+				var dir: Vector2 = b - a
+				_draw_strip(a, a + Vector2(-dir.y, dir.x), leaf, th * 0.7)
+			else:
+				_draw_strip(a, b, leaf, th * 1.1)
+			if MapEdge.has_flag(v, MapEdge.FLAG_LOCKED):
+				var m: Vector2 = (a + b) * 0.5
+				draw_rect(Rect2(m - Vector2.ONE * th * 0.25, Vector2.ONE * th * 0.5), Color("d9b03c"))
 
 
 func _draw_door(seg: PackedVector2Array, v: int, secret: bool, w: float) -> void:
@@ -448,6 +561,10 @@ func _draw_door(seg: PackedVector2Array, v: int, secret: bool, w: float) -> void
 func _draw_features(g: GridGeometry, lvl: MapLevel) -> void:
 	for s: MapStair in lvl.stairs:
 		var p: Vector2 = g.cell_to_pixel(s.cell, cell_px)
+		if pixel_art and not ink_saver:
+			var st: ImageTexture = PixelTiles.stairs(s.to_level > level_index)
+			draw_texture_rect(st, Rect2(p - Vector2.ONE * cell_px * 0.5, Vector2.ONE * cell_px), false)
+			continue
 		var r: float = cell_px * 0.35
 		# Peldaños a la izquierda y flecha a la derecha. La flecha es un
 		# polígono (no un glifo): el "▼" de la fuente quedaba diminuto y
@@ -478,6 +595,9 @@ func _draw_objects(g: GridGeometry, lvl: MapLevel) -> void:
 	# Con imagen de fondo (UVTT importado) el dibujo ya está en la imagen: de
 	# los objetos (las luces importadas) solo se pinta el círculo de luz.
 	var art: bool = level_index == 0 and _background_texture() != null
+	if pixel_art and not art and not ink_saver:
+		_draw_pixel_objects(g, lvl)
+		return
 	for o: MapObject in lvl.objects:
 		if art:
 			if o.light_bright_cells > 0:
@@ -499,6 +619,37 @@ func _draw_objects(g: GridGeometry, lvl: MapLevel) -> void:
 		if label.begins_with("OBJ_"):
 			label = o.catalog_id
 		_draw_object_label(font, g, cells, label)
+
+
+## Muebles como sprites (PixelObjects) en vista 3/4: de norte a sur, para que
+## lo de delante tape a lo de detrás; sin rótulos (el dibujo ya lo dice).
+func _draw_pixel_objects(g: GridGeometry, lvl: MapLevel) -> void:
+	var order: Array[MapObject] = lvl.objects.duplicate()
+	order.sort_custom(func(a: MapObject, b: MapObject) -> bool:
+		if a.cell.y != b.cell.y:
+			return a.cell.y < b.cell.y
+		return a.id < b.id)
+	var scale_px: float = cell_px / float(PixelObjects.PX_PER_CELL)
+	for o: MapObject in order:
+		var cells: Array[Vector2i] = lvl.object_cells(o)
+		if cells.is_empty():
+			continue
+		var lo: Vector2 = Vector2(INF, INF)
+		var hi: Vector2 = Vector2(-INF, -INF)
+		for c: Vector2i in cells:
+			var q: Vector2 = g.cell_to_pixel(c, cell_px)
+			lo = lo.min(q)
+			hi = hi.max(q)
+		var size_cells: Vector2i = Vector2i(roundi((hi.x - lo.x) / cell_px) + 1, roundi((hi.y - lo.y) / cell_px) + 1)
+		var angle: float = -float(o.facing) * TAU / float(g.edge_direction_count())
+		var tex: ImageTexture = PixelObjects.texture(o.catalog_id, size_cells, angle)
+		var foot: Vector2 = Vector2(size_cells) * cell_px
+		var pad: float = float(tex.get_height() - size_cells.y * PixelObjects.PX_PER_CELL) * scale_px
+		var center: Vector2 = (lo + hi) * 0.5
+		var top_left: Vector2 = center - foot * 0.5 - Vector2(0.0, pad)
+		draw_texture_rect(tex, Rect2(top_left, Vector2(tex.get_width(), tex.get_height()) * scale_px), false)
+		if o.light_bright_cells > 0:
+			draw_arc(g.cell_to_pixel(o.cell, cell_px), o.light_bright_cells * cell_px, 0.0, TAU, 48, Color(0.97, 0.86, 0.56, 0.5), 2.0)
 
 
 ## Nombre completo centrado sobre la huella del objeto: se reduce la letra
@@ -758,7 +909,10 @@ func _draw_tokens(g: GridGeometry) -> void:
 		if t.id == _drag_token:
 			col = Color(col, 0.5)
 		if t.sheet != null:
-			_draw_character_token(t, center, radius, col)
+			if pixel_art and t.sheet.portrait_png.is_empty():
+				_draw_pixel_token(t, center, radius, col)
+			else:
+				_draw_character_token(t, center, radius, col)
 			continue
 		draw_circle(center, radius, col)
 		draw_arc(center, radius, 0.0, TAU, 32, Color("f7dc8e"), 2.0)
@@ -774,6 +928,26 @@ func _draw_tokens(g: GridGeometry) -> void:
 ## color del bando.
 func _draw_character_token(t: MapToken, center: Vector2, radius: float, side_col: Color) -> void:
 	TokenPainter.draw(self, t.sheet, center, radius, side_col, _portrait_texture(t))
+
+
+## Ficha en pixel art: el sprite de su aspecto de pie sobre una peana
+## elíptica del color del bando (y su marca, por accesibilidad).
+func _draw_pixel_token(t: MapToken, center: Vector2, radius: float, side_col: Color) -> void:
+	var tex: ImageTexture = PixelCharacter.texture(t.sheet.look)
+	var side: float = radius * 2.3
+	var feet: Vector2 = center + Vector2(0.0, radius * 0.75)
+	var base: PackedVector2Array = PackedVector2Array()
+	for k: int in 20:
+		base.append(feet + Vector2.from_angle(TAU * k / 20.0) * Vector2(radius * 0.85, radius * 0.32))
+	draw_colored_polygon(base, Color(side_col, 0.85 * side_col.a))
+	_draw_outline(base, Color(0.08, 0.05, 0.05, side_col.a), -1.0)
+	var rect: Rect2 = Rect2(feet - Vector2(side * 0.5, side * 0.94), Vector2(side, side))
+	draw_texture_rect(tex, rect, false, Color(1, 1, 1, side_col.a))
+	var mark: String = SIDE_MARKS.get(t.side, "")
+	if not mark.is_empty():
+		var fs: int = maxi(8, int(radius * 0.4))
+		draw_string(ThemeDB.fallback_font, feet + Vector2(radius * 0.55, fs * 0.4), mark,
+			HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(side_col.lightened(0.5), side_col.a))
 
 
 ## Textura del retrato de la ficha (en caché mientras no cambie).

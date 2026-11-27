@@ -23,6 +23,10 @@ uniform int pattern = 0;
 uniform float cell_m = 1.5;
 // 0 = sin texturas (colores lisos, como antes).
 uniform float texture_strength = 1.0;
+// Pixel art (ADR 047): téxeles por casilla (0 = continuo). Las texturas se
+// evalúan en el centro de cada téxel y con pocos tonos; el oscurecimiento por
+// distancia va en bandas.
+uniform float pixel_texels = 0.0;
 
 varying float view_dist;
 varying vec3 world_pos;
@@ -77,6 +81,11 @@ void fragment() {
 	// Los colores de vértice se escriben en sRGB: se pasan a lineal.
 	vec3 base = COLOR.rgb;
 	float k_tex = 1.0;
+	vec3 wp = world_pos;
+	if (pixel_texels > 0.0) {
+		float t = cell_m / pixel_texels;
+		wp = (floor(world_pos / t + vec3(0.001)) + 0.5) * t;
+	}
 	bool green = base.g > base.r * 1.08 && base.g > base.b * 1.08;
 	bool blue = base.b > base.r * 1.15 && base.b > base.g * 1.02;
 	// Pardo marcado (madera: puertas y muebles, r/g ≈ 1,45). La piedra de las
@@ -84,26 +93,32 @@ void fragment() {
 	bool brown = base.r > base.g * 1.3 && base.g > base.b * 1.15;
 	if (pattern == 1 && world_normal.y > 0.5) {
 		if (blue) {
-			k_tex = 0.92 + 0.1 * sin(world_pos.x * 3.1 + vnoise(world_pos.xz * 1.7) * 6.0);
+			k_tex = 0.92 + 0.1 * sin(wp.x * 3.1 + vnoise(wp.xz * 1.7) * 6.0);
 		} else if (green) {
-			k_tex = 0.85 + 0.25 * vnoise(world_pos.xz * 6.0) * vnoise(world_pos.xz * 1.3);
+			k_tex = 0.85 + 0.25 * vnoise(wp.xz * 6.0) * vnoise(wp.xz * 1.3);
 		} else {
-			k_tex = flagstone(world_pos.xz);
+			k_tex = flagstone(wp.xz);
 		}
 	} else if (pattern == 2 && abs(world_normal.y) < 0.5 && !brown && !blue) {
 		k_tex = bricks(world_pos, world_normal);
 	} else if (pattern == 2 && brown) {
-		k_tex = 0.94 + 0.06 * sin(world_pos.y * 40.0 + vnoise(world_pos.xz * 5.0) * 5.0);
+		k_tex = 0.94 + 0.06 * sin(wp.y * 40.0 + vnoise(wp.xz * 5.0) * 5.0);
 	} else if (pattern == 3) {
 		if (brown) {
-			float ring = sin((world_pos.x + world_pos.z) * 18.0 + vnoise(world_pos.xz * 4.0 + world_pos.y) * 7.0);
+			float ring = sin((wp.x + wp.z) * 18.0 + vnoise(wp.xz * 4.0 + wp.y) * 7.0);
 			k_tex = 0.93 + 0.07 * ring;
 		}
+	}
+	if (pixel_texels > 0.0) {
+		k_tex = floor(k_tex * 7.0 + 0.5) / 7.0;
 	}
 	base *= mix(1.0, k_tex, texture_strength);
 	vec3 c = pow(base, vec3(2.2));
 	if (fade_end > fade_start) {
 		float k = clamp((view_dist - fade_start) / (fade_end - fade_start), 0.0, 1.0);
+		if (pixel_texels > 0.0) {
+			k = floor(k * 5.0 + 0.5) / 5.0;
+		}
 		c = mix(c, fade_color, k);
 	}
 	ALBEDO = c;

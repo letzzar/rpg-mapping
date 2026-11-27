@@ -163,6 +163,13 @@ static func set_textures(on: bool) -> void:
 		m.set_shader_parameter("texture_strength", 1.0 if on else 0.0)
 
 
+## Pixel art (ADR 047): las texturas procedurales se calculan por téxel
+## (`texels` por casilla, 0 = continuo) y con pocos tonos.
+static func set_pixel_texels(texels: int) -> void:
+	for m: ShaderMaterial in _all_materials():
+		m.set_shader_parameter("pixel_texels", float(texels))
+
+
 ## Punto 3D (x, y, z) desde un punto 2D de la rejilla en metros.
 static func v3(p: Vector2, y: float) -> Vector3:
 	return Vector3(p.x, y, p.y)

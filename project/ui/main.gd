@@ -33,6 +33,11 @@ var _view_opt: OptionButton
 var _audience_opt: OptionButton
 var _ambient_chk: CheckBox
 var _torch_chk: CheckBox
+var _pixel_chk: CheckBox
+## Preferencias de vista del usuario (pixel art; ADR 047).
+const VIEW_CFG: String = "user://view.cfg"
+## Fracción de resolución de la vista 3D en pixel art.
+const PIXEL_SHRINK: int = 3
 var _vision_dirty: bool = false
 var _carried_bright: int = 0
 var _carried_dim: int = 0
@@ -263,6 +268,14 @@ func _build_ui() -> void:
 		_view_opt.add_item(tr(k))
 	_view_opt.item_selected.connect(func(_i: int) -> void: _apply_view())
 	bar.add_child(_view_opt)
+	# Pixel art (ADR 047): también para los jugadores (es solo su pantalla).
+	_pixel_chk = CheckBox.new()
+	_pixel_chk.text = tr("UI_PIXEL_ART")
+	_pixel_chk.tooltip_text = tr("UI_PIXEL_ART_TIP")
+	_pixel_chk.toggled.connect(func(on: bool) -> void:
+		set_pixel_art(on)
+		_save_view_prefs())
+	bar.add_child(_pixel_chk)
 	_audience_opt = OptionButton.new()
 	_audience_opt.add_item(tr("UI_AUDIENCE_DM"))
 	_audience_opt.add_item(tr("UI_AUDIENCE_PLAYERS"))
@@ -282,6 +295,7 @@ func _build_ui() -> void:
 	bar.add_child(_torch_chk)
 	_dm_only.append_array([_audience_opt, _ambient_chk, _torch_chk])
 	_load_carried_light()
+	_load_view_prefs.call_deferred()
 
 	var middle: HBoxContainer = HBoxContainer.new()
 	middle.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -939,10 +953,54 @@ func _apply_view() -> int:
 	return Time.get_ticks_msec() - t0
 
 
+## Activa o quita el pixel art en las dos vistas (la 3D, además, a menos
+## resolución, sin suavizado y con pocos tonos).
+func set_pixel_art(on: bool) -> void:
+	if _pixel_chk != null and _pixel_chk.button_pressed != on:
+		_pixel_chk.set_pressed_no_signal(on)
+	_view.pixel_art = on
+	_view3d.pixel_art = on
+	_view3d_box.stretch_shrink = PIXEL_SHRINK if on else 1
+	_view3d_box.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST if on else CanvasItem.TEXTURE_FILTER_PARENT_NODE
+	if on:
+		var sm: ShaderMaterial = ShaderMaterial.new()
+		sm.shader = load("res://views/pixel/posterize.gdshader")
+		_view3d_box.material = sm
+	else:
+		_view3d_box.material = null
+
+
+func is_pixel_art() -> bool:
+	return _view.pixel_art
+
+
+func _load_view_prefs() -> void:
+	var cf: ConfigFile = ConfigFile.new()
+	if cf.load(VIEW_CFG) != OK:
+		return
+	var on: bool = cf.get_value("view", "pixel_art", false)
+	if on:
+		set_pixel_art(true)
+
+
+func _save_view_prefs() -> void:
+	var cf: ConfigFile = ConfigFile.new()
+	cf.load(VIEW_CFG)
+	cf.set_value("view", "pixel_art", _view.pixel_art)
+	cf.save(VIEW_CFG)
+
+
 func _on_view3d_input(event: InputEvent) -> void:
 	var mb: InputEventMouseButton = event as InputEventMouseButton
 	if mb != null and mb.pressed:
 		_release_text_focus()
+	# Con menos resolución (pixel art), el ratón va en píxeles del SubViewport.
+	var shrink: int = _view3d_box.stretch_shrink
+	var me: InputEventMouse = event as InputEventMouse
+	if shrink > 1 and me != null:
+		var scaled: InputEventMouse = me.duplicate() as InputEventMouse
+		scaled.position = me.position / float(shrink)
+		event = scaled
 	_view3d.process_input(event)
 	_view3d_box.accept_event()
 

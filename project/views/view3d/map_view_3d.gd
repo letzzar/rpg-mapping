@@ -102,6 +102,16 @@ var animate: bool = true
 ## Velocidad al andar, en casillas por segundo (las pruebas la bajan para no
 ## depender de lo rápido que dibuje el equipo).
 var walk_cells_per_s: float = 5.0
+## Pixel art (ADR 047): texturas por téxeles y personajes como sprites que
+## miran a cámara. La baja resolución la pone quien muestra la vista (el
+## SubViewportContainer de la pantalla principal).
+var pixel_art: bool = false:
+	set(v):
+		pixel_art = v
+		MapMeshBuilder.set_pixel_texels(PIXEL_TEXELS if v else 0)
+		mark_dirty()
+## Téxeles por casilla de las texturas en pixel art.
+const PIXEL_TEXELS: int = 16
 var _cur_holder: Node3D = null
 ## Id de ficha → contenedor de sus nodos (se rehace en cada reconstrucción).
 var _holders: Dictionary[int, Node3D] = {}
@@ -372,7 +382,7 @@ func _process(_delta: float) -> void:
 		h.position = p - final_pos + Vector3(0.0, bob, 0.0)
 	# Respiración: la figura sube y baja un 1,5 % de su altura.
 	for b: Array in _breathing:
-		var fig: MeshInstance3D = b[0]
+		var fig: Node3D = b[0]
 		if not is_instance_valid(fig):
 			continue
 		var s: float = b[1]
@@ -406,6 +416,9 @@ func _build_figure(t: MapToken, center: Vector2, radius: float) -> void:
 	base.mesh = cyl
 	base.position = MapMeshBuilder.v3(center, base_h * 0.5)
 	_cur_holder.add_child(base)
+	if pixel_art:
+		_build_pixel_figure(t, center, base_h)
+		return
 	# Modelo con esqueleto (KayKit, ADR 045): anda y respira con sus propias
 	# animaciones.
 	var body: LookCatalog.Body = LookCatalog.load_default().body(t.sheet.look.body)
@@ -435,6 +448,25 @@ func _build_figure(t: MapToken, center: Vector2, radius: float) -> void:
 	_cur_holder.add_child(fig)
 	_breathing.append([fig, s, float(t.id % 7) * 0.9])
 	_add_token_label(t, center, base_h + aabb.end.y * s)
+
+
+## Pixel art: el sprite del personaje (PixelCharacter) de pie sobre la peana,
+## girando solo en vertical hacia la cámara, como en los juegos clásicos.
+func _build_pixel_figure(t: MapToken, center: Vector2, base_h: float) -> void:
+	var spr: Sprite3D = Sprite3D.new()
+	spr.name = "PixelFigure"
+	spr.texture = PixelCharacter.texture(t.sheet.look)
+	spr.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
+	spr.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	spr.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
+	spr.shaded = false
+	var height: float = _eye_height(t.size_id) / 0.65
+	spr.pixel_size = height / float(PixelCharacter.SIZE)
+	# Los pies del sprite están en la fila 29 de 32.
+	spr.position = MapMeshBuilder.v3(center, base_h + height * 0.5 - height * 2.0 / 32.0)
+	_cur_holder.add_child(spr)
+	_breathing.append([spr, 1.0, float(t.id % 7) * 0.9])
+	_add_token_label(t, center, base_h + height)
 
 
 func _add_token_label(t: MapToken, center: Vector2, height: float) -> void:

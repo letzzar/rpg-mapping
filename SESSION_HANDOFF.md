@@ -1,5 +1,17 @@
 # SESSION_HANDOFF — RPG Mapping
 
+## Última sesión: 2026-11-27 (14.ª, undécima parte) — Modo pixel art
+Tests: **358/358 en escritorio y en el navegador** (5 nuevos en `test_pixel_art.gd`).
+
+### Hecho (ADR 047)
+- Víctor eligió tiles de **32×32** y **todo generado por código**.
+- Casilla **"Pixel art"** en la barra (también jugadores; se recuerda): vista 2D con losas, tablones, hierba, tejado, agua, roca, escombros y foso, muros de ladrillo, puertas, ventanas y escaleras en píxeles; muebles en vista 3/4 rasterizados de sus modelos 3D (los 32 del catálogo, en ~1 s la primera vez, luego en caché); personajes como sprites por capas sobre una peana del color del bando (con retrato, se sigue viendo el retrato).
+- 3D y 1.ª persona: ⅓ de resolución sin suavizado + pocos tonos, texturas por téxeles y figuras sprite que miran a cámara.
+- Catálogo de aspectos: `pixel_parts` en las complexiones KayKit; el esquema ahora también admite `model` (faltaba).
+
+### Siguiente paso
+1. Que Víctor lo pruebe y diga qué ajustar (paleta, tamaño de las figuras, más detalle en algún mueble).
+2. Pendiente posible: el pixel art también en la ventana del proyector y en la impresión; niebla con tramado de píxeles.
 ## Última sesión: 2026-11-27 (14.ª, décima parte) — Docker y distribuible de Windows
 Tests: **353/353 en escritorio y en el navegador** (1 nuevo: dirección pública en `test_net_protocol.gd`).
 

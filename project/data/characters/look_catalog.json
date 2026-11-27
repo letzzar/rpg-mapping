@@ -56,16 +56,16 @@
 			"slots": [],
 			"defaults": {}
 		},
-		{ "id": "kk_knight", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Knight.glb", "slots": [], "defaults": {} },
-		{ "id": "kk_barbarian", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Barbarian.glb", "slots": [], "defaults": {} },
-		{ "id": "kk_mage", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Mage.glb", "slots": [], "defaults": {} },
-		{ "id": "kk_ranger", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Ranger.glb", "slots": [], "defaults": {} },
-		{ "id": "kk_rogue", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Rogue.glb", "slots": [], "defaults": {} },
-		{ "id": "kk_rogue_hooded", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Rogue_Hooded.glb", "slots": [], "defaults": {} },
-		{ "id": "kk_skeleton_warrior", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Skeleton_Warrior.glb", "slots": [], "defaults": {} },
-		{ "id": "kk_skeleton_rogue", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Skeleton_Rogue.glb", "slots": [], "defaults": {} },
-		{ "id": "kk_skeleton_mage", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Skeleton_Mage.glb", "slots": [], "defaults": {} },
-		{ "id": "kk_skeleton_minion", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Skeleton_Minion.glb", "slots": [], "defaults": {} }
+		{ "id": "kk_knight", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Knight.glb", "slots": [], "defaults": {}, "pixel_parts": { "head": "helmet", "torso": "plate_armor", "legs": "greaves", "main_hand": "sword", "off_hand": "shield_round", "cloak": "cloak" } },
+		{ "id": "kk_barbarian", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Barbarian.glb", "slots": [], "defaults": {}, "pixel_parts": { "head": "hair_long", "torso": "leather_armor", "legs": "trousers", "main_hand": "axe" } },
+		{ "id": "kk_mage", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Mage.glb", "slots": [], "defaults": {}, "pixel_parts": { "head": "wizard_hat", "torso": "robe", "main_hand": "staff", "off_hand": "book" } },
+		{ "id": "kk_ranger", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Ranger.glb", "slots": [], "defaults": {}, "pixel_parts": { "head": "hood", "torso": "leather_armor", "legs": "trousers", "main_hand": "dagger", "off_hand": "bow", "accessory": "quiver" } },
+		{ "id": "kk_rogue", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Rogue.glb", "slots": [], "defaults": {}, "pixel_parts": { "head": "hair_short", "torso": "leather_armor", "legs": "trousers", "main_hand": "dagger", "accessory": "pouch" } },
+		{ "id": "kk_rogue_hooded", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Rogue_Hooded.glb", "slots": [], "defaults": {}, "pixel_parts": { "head": "hood", "torso": "leather_armor", "legs": "trousers", "main_hand": "dagger", "cloak": "cloak" } },
+		{ "id": "kk_skeleton_warrior", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Skeleton_Warrior.glb", "slots": [], "defaults": {}, "pixel_parts": { "head": "helmet", "torso": "ribs", "main_hand": "sword", "off_hand": "shield_round" } },
+		{ "id": "kk_skeleton_rogue", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Skeleton_Rogue.glb", "slots": [], "defaults": {}, "pixel_parts": { "head": "hood", "torso": "ribs", "main_hand": "dagger" } },
+		{ "id": "kk_skeleton_mage", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Skeleton_Mage.glb", "slots": [], "defaults": {}, "pixel_parts": { "head": "wizard_hat", "torso": "ribs", "main_hand": "staff" } },
+		{ "id": "kk_skeleton_minion", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Skeleton_Minion.glb", "slots": [], "defaults": {}, "pixel_parts": { "torso": "ribs", "main_hand": "club" } }
 	],
 	"base": {
 		"humanoid": [

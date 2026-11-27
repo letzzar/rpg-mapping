@@ -38,7 +38,9 @@
 					"family": { "type": "string" },
 					"width": { "type": "number", "exclusiveMinimum": 0 },
 					"slots": { "type": "array", "items": { "type": "string" } },
-					"defaults": { "$ref": "#/$defs/slot_map" }
+					"defaults": { "$ref": "#/$defs/slot_map" },
+					"model": { "type": "string", "description": "Modelo con esqueleto (res://…glb, ADR 045); sustituye a las primitivas." },
+					"pixel_parts": { "$ref": "#/$defs/slot_map", "description": "Piezas con que se dibuja en pixel art una complexión con modelo (ADR 047)." }
 				}
 			}
 		},

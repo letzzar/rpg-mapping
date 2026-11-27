@@ -40,6 +40,8 @@ class Body:
 	var defaults: Dictionary[String, String] = {}
 	## Modelo con esqueleto (res://…glb, ADR 045); "" = figura de primitivas.
 	var model: String = ""
+	## Con modelo: piezas con que se dibuja en pixel art (ADR 047).
+	var pixel_parts: Dictionary[String, String] = {}
 
 
 class Part:
@@ -202,6 +204,10 @@ func _read(path: String) -> void:
 		b.width = _num(r, d, "width")
 		if d.has("model"):
 			b.model = r.get_str(d, "model")
+		if d.has("pixel_parts"):
+			var pp: Dictionary = r.get_dict(d, "pixel_parts")
+			for k: Variant in pp:
+				b.pixel_parts[r.to_str(k, "pixel_parts")] = r.to_str(pp[k], "pixel_parts")
 		for v: Variant in r.get_array(d, "slots"):
 			var s: String = r.to_str(v, "slots")
 			if not slots.has(s):
