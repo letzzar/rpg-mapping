@@ -182,6 +182,86 @@ func test_panel_adds_merges_gives_and_reveals() -> void:
 	assert_false(p.remove_item(0))
 
 
+## Tipos e iconos (ADR 049): se adivinan por el nombre, cada uno tiene icono
+## y nombre traducido, y el tipo se guarda solo si lo hay.
+func test_kinds_guess_names_and_have_icons() -> void:
+	var kinds: LootKinds = LootKinds.load_default()
+	assert_true(kinds.is_valid(), kinds.error)
+	var cases: Dictionary[String, String] = {
+		"Espada corta": "sword",
+		"Espadón de hielo": "greatsword",
+		"120 monedas de oro": "coins",
+		"Gold coins": "coins",
+		"Poción de curación": "potion",
+		"Rubí": "gem",
+		"Anillo de oro": "ring",
+		"Espada de plata": "sword",
+		"Dagas arrojadizas": "dagger",
+		"Flechas +1": "arrows",
+		"Ballesta ligera": "crossbow",
+		"Arcón de roble": "",
+		"Cuerda de cáñamo": "",
+	}
+	for n: String in cases:
+		assert_eq(kinds.guess(n), cases[n], n)
+	for k: LootKinds.Kind in kinds.kinds:
+		var key: String = "LOOT_KIND_" + k.id.to_upper()
+		assert_ne(tr(key), key, "con nombre: " + k.id)
+		assert_not_null(LootIcons.texture(k.id, kinds), "con icono: " + k.id)
+		if not k.model.is_empty():
+			assert_true(ResourceLoader.exists("res://models/kaykit/items/%s.gltf" % k.model), k.model)
+	assert_null(LootIcons.texture(""))
+	assert_null(LootIcons.texture("no_existe"))
+	# El tipo viaja con la línea y no se guarda si no lo hay.
+	var it: LootItem = LootItem.make("Daga", 1, "", "", "dagger")
+	var r: JsonReader = JsonReader.new()
+	assert_eq(LootItem.from_dict(r, it.to_dict()).kind, "dagger")
+	assert_false(LootItem.make("Daga").to_dict().has("kind"))
+	assert_false(it.equals(LootItem.make("Daga")), "el tipo cuenta al comparar")
+
+
+func test_panel_guesses_and_changes_kinds() -> void:
+	var st: Array = _setup()
+	var d: MapDocument = st[0]
+	var s: CommandStack = st[1]
+	var chest: int = st[2]
+	var p: LootPanel = LootPanel.new()
+	p.execute = func(cmd: MapCommand) -> bool: return s.execute(cmd)
+	add_child_autofree(p)
+	p.set_document(d)
+	p.show_object(0, chest)
+	p._name_edit.text = "Espada corta"
+	assert_true(p.add_item_from_fields())
+	p.pick_kind("gem")
+	p._name_edit.text = "Ojo del dragón"
+	assert_true(p.add_item_from_fields())
+	p.pick_kind("-")
+	p._name_edit.text = "Monedas raras"
+	assert_true(p.add_item_from_fields())
+	var c: Array[LootItem] = d.level(0).object(chest).contents
+	assert_eq(c[0].kind, "sword", "adivinado por el nombre")
+	assert_eq(c[1].kind, "gem", "elegido a mano")
+	assert_eq(c[2].kind, "", "sin icono a propósito")
+	assert_eq(p._kind_pick, "", "tras añadir vuelve a adivinar")
+	assert_true(p.set_item_kind(2, "coins"))
+	assert_eq(d.level(0).object(chest).contents[2].kind, "coins")
+	s.undo()
+	assert_eq(d.level(0).object(chest).contents[2].kind, "")
+	# Al darlo, el icono va con él.
+	var hero: int = st[3]
+	p.select_give_target(hero)
+	assert_true(p.give_item(0))
+	assert_eq(d.token(hero).loot[0].kind, "sword")
+	# Solo lectura: icono y texto.
+	p.show_object(0, chest)
+	s.execute(SetLootCommand.for_object(0, chest, d.level(0).object(chest).contents, true))
+	p.read_only = true
+	var row: HBoxContainer = p._rows.get_child(0) as HBoxContainer
+	assert_not_null(row)
+	var ic: TextureRect = row.get_child(0) as TextureRect
+	assert_not_null(ic.texture, "con su icono")
+
+
 func test_new_chests_in_catalog_and_double_click_opens_panel() -> void:
 	var cat: ObjectCatalog = ObjectCatalog.load_default()
 	var models: ObjectModels = ObjectModels.load_default()

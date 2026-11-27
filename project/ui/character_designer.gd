@@ -371,6 +371,7 @@ func _refresh_previews() -> void:
 	if body != null and not body.model.is_empty():
 		_rig = RiggedFigure.create(body.model)
 		if _rig != null:
+			RiggedFigure.equip(_rig, _sheet.look, _cat)
 			var k: float = 1.0 / maxf(RiggedFigure.height_of(body.model), 0.01)
 			_rig.scale = Vector3(k, k, k)
 			_pivot.add_child(_rig)

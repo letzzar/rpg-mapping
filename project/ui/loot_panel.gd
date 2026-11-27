@@ -6,8 +6,16 @@ extends PanelContainer
 ## lo ven; cada cambio es un SetLootCommand (con deshacer) que ejecuta
 ## `execute`. Los jugadores lo ven en solo lectura, y solo lo enseñado.
 
+## Cada línea lleva el icono de su tipo (LootKinds, ADR 049): se adivina por
+## el nombre al añadirla y se cambia pulsando el icono.
+
 ## Interacciones del catálogo que guardan cosas (doble clic = su contenido).
 const LOOTABLE: PackedStringArray = ["chest", "container", "search", "altar"]
+const ICON_SIZE: int = 26
+## Menú de tipos: estos ids fijos y luego un id por tipo (KIND_BASE + índice).
+const MENU_AUTO: int = 0
+const MENU_NONE: int = 1
+const KIND_BASE: int = 10
 
 ## Ejecuta un comando en el historial del mapa; devuelve si se aplicó.
 var execute: Callable = func(_cmd: MapCommand) -> bool: return false
@@ -30,10 +38,15 @@ var _value_edit: LineEdit
 var _reveal_chk: CheckBox
 var _give_opt: OptionButton
 var _give_all_btn: Button
+var _kind_btn: MenuButton
+## Tipo elegido para el próximo objeto: "" = adivinarlo por el nombre,
+## "-" = sin icono, o el id de un tipo.
+var _kind_pick: String = ""
+var _kinds: LootKinds = LootKinds.load_default()
 
 
 func _init() -> void:
-	custom_minimum_size = Vector2(320, 0)
+	custom_minimum_size = Vector2(350, 0)
 	var box: VBoxContainer = VBoxContainer.new()
 	add_child(box)
 	_title = Label.new()
@@ -55,6 +68,8 @@ func _init() -> void:
 	box.add_child(_dm_box)
 	var add_row: HBoxContainer = HBoxContainer.new()
 	_dm_box.add_child(add_row)
+	_kind_btn = _kind_menu(true, func(k: String) -> void: pick_kind(k))
+	add_row.add_child(_kind_btn)
 	_qty_spin = _qty(1)
 	add_row.add_child(_qty_spin)
 	_name_edit = LineEdit.new()
@@ -183,15 +198,37 @@ func _commit(new_items: Array[LootItem], show: bool) -> bool:
 
 ## Añade lo escrito en la fila de abajo (si ya hay uno igual, suma cantidad).
 func add_item_from_fields() -> bool:
-	var it: LootItem = LootItem.make(_name_edit.text, int(_qty_spin.value), _value_edit.text)
+	var k: String = _kind_pick
+	if k.is_empty():
+		k = _kinds.guess(_name_edit.text)
+	elif k == "-":
+		k = ""
+	var it: LootItem = LootItem.make(_name_edit.text, int(_qty_spin.value), _value_edit.text, "", k)
 	if it.name.is_empty():
 		return false
 	if _commit(merge_into(items(), it), revealed()):
 		_name_edit.clear()
 		_value_edit.clear()
 		_qty_spin.value = 1
+		pick_kind("")
 		return true
 	return false
+
+
+## Tipo del próximo objeto que se añada ("" = adivinarlo por el nombre,
+## "-" = sin icono).
+func pick_kind(kind_id: String) -> void:
+	_kind_pick = kind_id
+	_set_kind_icon(_kind_btn, kind_id)
+
+
+## Cambia el tipo (icono) de la línea `index` ("" = sin icono).
+func set_item_kind(index: int, kind_id: String) -> bool:
+	var list: Array[LootItem] = items()
+	if index < 0 or index >= list.size():
+		return false
+	var it: LootItem = list[index]
+	return set_item(index, LootItem.make(it.name, it.qty, it.value, it.note, kind_id))
 
 
 ## `list` con `it` añadido: si hay uno con el mismo nombre y valor, se suman.
@@ -200,6 +237,8 @@ static func merge_into(list: Array[LootItem], it: LootItem) -> Array[LootItem]:
 	for o: LootItem in out:
 		if o.name == it.name and o.value == it.value:
 			o.qty = mini(LootItem.MAX_QTY, o.qty + it.qty)
+			if o.kind.is_empty():
+				o.kind = it.kind
 			return out
 	if out.size() < LootItem.MAX_ITEMS:
 		out.append(it.copy())
@@ -314,31 +353,43 @@ func refresh() -> void:
 
 func _row(index: int, it: LootItem) -> Control:
 	if read_only:
+		var ro: HBoxContainer = HBoxContainer.new()
+		var ic: TextureRect = TextureRect.new()
+		ic.custom_minimum_size = Vector2(ICON_SIZE, ICON_SIZE)
+		ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		ic.texture = LootIcons.texture(it.kind, _kinds)
+		ro.add_child(ic)
 		var l: Label = Label.new()
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		l.text = _line_text(it)
-		return l
+		ro.add_child(l)
+		return ro
 	var row: HBoxContainer = HBoxContainer.new()
+	var kb: MenuButton = _kind_menu(false, func(k: String) -> void: set_item_kind(index, k))
+	_set_kind_icon(kb, it.kind if not it.kind.is_empty() else "-")
+	row.add_child(kb)
 	var q: SpinBox = _qty(it.qty)
 	q.value_changed.connect(func(v: float) -> void:
-		set_item(index, LootItem.make(it.name, int(v), it.value, it.note)))
+		set_item(index, LootItem.make(it.name, int(v), it.value, it.note, it.kind)))
 	row.add_child(q)
 	var n: LineEdit = LineEdit.new()
 	n.text = it.name
 	n.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	n.max_length = LootItem.MAX_NAME
 	n.text_submitted.connect(func(s: String) -> void:
-		set_item(index, LootItem.make(s, it.qty, it.value, it.note)))
+		set_item(index, LootItem.make(s, it.qty, it.value, it.note, it.kind)))
 	n.focus_exited.connect(func() -> void:
 		if n.text.strip_edges() != it.name:
-			set_item.call_deferred(index, LootItem.make(n.text, it.qty, it.value, it.note)))
+			set_item.call_deferred(index, LootItem.make(n.text, it.qty, it.value, it.note, it.kind)))
 	row.add_child(n)
 	var v: LineEdit = LineEdit.new()
 	v.text = it.value
 	v.placeholder_text = tr("UI_LOOT_VALUE")
 	v.custom_minimum_size = Vector2(70, 0)
 	v.text_submitted.connect(func(s: String) -> void:
-		set_item(index, LootItem.make(it.name, it.qty, s, it.note)))
+		set_item(index, LootItem.make(it.name, it.qty, s, it.note, it.kind)))
 	row.add_child(v)
 	var give: Button = Button.new()
 	give.text = "→"
@@ -361,6 +412,50 @@ static func _line_text(it: LootItem) -> String:
 	if not it.note.is_empty():
 		s += " — " + it.note
 	return s
+
+
+## Botón con el icono del tipo y un menú para elegirlo. `with_auto`: con la
+## opción "adivinar por el nombre" (fila de añadir). `on_pick` recibe el id
+## elegido: "" = sin icono (en la fila de añadir, "" = adivinar y "-" = sin
+## icono).
+func _kind_menu(with_auto: bool, on_pick: Callable) -> MenuButton:
+	var b: MenuButton = MenuButton.new()
+	b.custom_minimum_size = Vector2(ICON_SIZE + 6, ICON_SIZE + 4)
+	b.expand_icon = true
+	b.flat = false
+	b.tooltip_text = tr("UI_LOOT_KIND_TIP")
+	var pm: PopupMenu = b.get_popup()
+	pm.add_theme_constant_override("icon_max_width", 24)
+	if with_auto:
+		pm.add_item(tr("UI_LOOT_KIND_AUTO"), MENU_AUTO)
+	pm.add_item(tr("UI_LOOT_KIND_NONE"), MENU_NONE)
+	for i: int in _kinds.kinds.size():
+		var k: LootKinds.Kind = _kinds.kinds[i]
+		var tex: Texture2D = LootIcons.texture(k.id, _kinds)
+		if tex != null:
+			pm.add_icon_item(tex, tr("LOOT_KIND_" + k.id.to_upper()), KIND_BASE + i)
+		else:
+			pm.add_item(tr("LOOT_KIND_" + k.id.to_upper()), KIND_BASE + i)
+	pm.id_pressed.connect(func(id: int) -> void:
+		var picked: String = ""
+		if id == MENU_NONE:
+			picked = "-" if with_auto else ""
+		elif id >= KIND_BASE and id - KIND_BASE < _kinds.kinds.size():
+			picked = _kinds.kinds[id - KIND_BASE].id
+		on_pick.call(picked))
+	if with_auto:
+		_set_kind_icon(b, "")
+	return b
+
+
+## Pone en el botón el icono del tipo: "" = adivinar ("?"), "-" o sin icono
+## conocido = "·".
+func _set_kind_icon(b: MenuButton, kind_id: String) -> void:
+	if b == null:
+		return
+	var tex: Texture2D = LootIcons.texture(kind_id, _kinds) if kind_id != "-" else null
+	b.icon = tex
+	b.text = "" if tex != null else ("?" if kind_id.is_empty() else "·")
 
 
 func _qty(v: int) -> SpinBox:

@@ -8,6 +8,7 @@ extends RefCounted
 const MAX_NAME: int = 120
 const MAX_TEXT: int = 200
 const MAX_QTY: int = 999999
+const MAX_KIND: int = 32
 ## Máximo de líneas por contenedor o ficha (tamaño de los mensajes de red).
 const MAX_ITEMS: int = 200
 
@@ -16,23 +17,27 @@ var qty: int = 1
 ## Valor como texto ("50 po", "3 gp"): cada sistema y mesa lo cuenta a su modo.
 var value: String = ""
 var note: String = ""
+## Tipo de objeto (LootKinds: "sword", "coins"…) para su icono; "" = sin
+## icono. Solo se guarda si lo hay (ADR 049).
+var kind: String = ""
 
 
-static func make(p_name: String, p_qty: int = 1, p_value: String = "", p_note: String = "") -> LootItem:
+static func make(p_name: String, p_qty: int = 1, p_value: String = "", p_note: String = "", p_kind: String = "") -> LootItem:
 	var it: LootItem = LootItem.new()
 	it.name = p_name.strip_edges().left(MAX_NAME)
 	it.qty = clampi(p_qty, 1, MAX_QTY)
 	it.value = p_value.strip_edges().left(MAX_TEXT)
 	it.note = p_note.strip_edges().left(MAX_TEXT)
+	it.kind = p_kind.strip_edges().left(MAX_KIND)
 	return it
 
 
 func copy() -> LootItem:
-	return make(name, qty, value, note)
+	return make(name, qty, value, note, kind)
 
 
 func equals(o: LootItem) -> bool:
-	return o != null and o.name == name and o.qty == qty and o.value == value and o.note == note
+	return o != null and o.name == name and o.qty == qty and o.value == value and o.note == note and o.kind == kind
 
 
 func to_dict() -> Dictionary:
@@ -41,12 +46,14 @@ func to_dict() -> Dictionary:
 		d["value"] = value
 	if not note.is_empty():
 		d["note"] = note
+	if not kind.is_empty():
+		d["kind"] = kind
 	return d
 
 
 static func from_dict(r: JsonReader, d: Dictionary) -> LootItem:
 	var it: LootItem = make(r.get_str(d, "name"), r.get_int(d, "qty"),
-		str(d.get("value", "")), str(d.get("note", "")))
+		str(d.get("value", "")), str(d.get("note", "")), str(d.get("kind", "")))
 	if it.name.is_empty():
 		r.fail("objeto del botín sin nombre")
 	return it

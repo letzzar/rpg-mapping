@@ -14,6 +14,8 @@ const ANIM_FILES: PackedStringArray = [
 ]
 const IDLE: String = "Idle_A"
 const WALK: String = "Walking_A"
+## Ranura del aspecto → hueso del que se cuelga su objeto.
+const HAND_BONES: Dictionary[String, String] = {"main_hand": "handslot.r", "off_hand": "handslot.l"}
 
 static var _library: AnimationLibrary = null
 static var _heights: Dictionary[String, float] = {}
@@ -59,6 +61,37 @@ static func create(path: String) -> Node3D:
 	if ap.has_animation(IDLE):
 		ap.play(IDLE)
 	return root
+
+
+## Cuelga de las manos las piezas de `look` que tengan modelo (armas y
+## escudos KayKit, ADR 049). El esqueleto Rig_Medium trae los huesos
+## `handslot.r` / `handslot.l` justo para esto: los objetos del pack se
+## colocan en ellos sin moverlos. Devuelve cuántas colgó.
+static func equip(figure: Node3D, look: CharacterLook, cat: LookCatalog = null) -> int:
+	if figure == null or look == null:
+		return 0
+	if cat == null:
+		cat = LookCatalog.load_default()
+	var sk: Skeleton3D = figure.find_child("Skeleton3D", true, false) as Skeleton3D
+	if sk == null:
+		return 0
+	var n: int = 0
+	for slot: String in HAND_BONES:
+		if not look.parts.has(slot):
+			continue
+		var p: LookCatalog.Part = cat.part(look.parts[slot])
+		if p == null or p.model.is_empty() or sk.find_bone(HAND_BONES[slot]) < 0:
+			continue
+		var ps: PackedScene = load(p.model) as PackedScene
+		if ps == null:
+			continue
+		var att: BoneAttachment3D = BoneAttachment3D.new()
+		att.name = "Hand_" + slot
+		att.bone_name = HAND_BONES[slot]
+		sk.add_child(att)
+		att.add_child(ps.instantiate())
+		n += 1
+	return n
 
 
 ## Pone la animación `anim_name` si no es ya la actual.

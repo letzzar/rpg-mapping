@@ -29,6 +29,39 @@ func test_every_model_loads_with_animations() -> void:
 	assert_eq(models, 10)
 
 
+## Armas y escudos KayKit en las manos (ADR 049): cada modelo tipo cuelga sus
+## piezas del hueso de su mano, y las figuras con esqueleto solo ofrecen
+## piezas con modelo.
+func test_presets_hold_their_weapons() -> void:
+	var cat: LookCatalog = LookCatalog.load_default()
+	var held: int = 0
+	for pr: LookCatalog.Preset in cat.presets:
+		var b: LookCatalog.Body = cat.body(pr.body)
+		if b.model.is_empty():
+			continue
+		var look: CharacterLook = cat.look_from_preset(pr)
+		assert_false(look.parts.is_empty(), pr.id + " lleva algo en la mano")
+		var n: Node3D = RiggedFigure.create(b.model)
+		add_child_autofree(n)
+		assert_eq(RiggedFigure.equip(n, look, cat), look.parts.size(), pr.id)
+		var att: BoneAttachment3D = n.find_child("Hand_main_hand", true, false) as BoneAttachment3D
+		assert_not_null(att, pr.id)
+		if att != null:
+			assert_eq(att.bone_name, "handslot.r")
+			assert_eq(att.get_child_count(), 1, "el modelo del arma")
+		held += 1
+		for slot: String in b.slots:
+			for p: LookCatalog.Part in cat.parts_for(b.id, slot):
+				assert_false(p.model.is_empty(), "%s: %s sin modelo" % [b.id, p.id])
+				assert_true(ResourceLoader.exists(p.model), p.model)
+	assert_eq(held, 10)
+	# Las figuras de primitivas siguen ofreciendo también las piezas sin modelo.
+	var ids: Array[String] = []
+	for p: LookCatalog.Part in cat.parts_for("humanoid_medium", "main_hand"):
+		ids.append(p.id)
+	assert_true(ids.has("spear") and ids.has("greatsword"))
+
+
 func test_view_uses_model_and_walk_animation() -> void:
 	var d: MapDocument = MapDocument.create("square", 8, 4)
 	d.level(0).fill_terrain(Terrain.FLOOR)

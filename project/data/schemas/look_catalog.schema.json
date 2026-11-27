@@ -59,6 +59,7 @@
 					"id": { "type": "string" },
 					"slot": { "type": "string" },
 					"family": { "type": "string" },
+					"model": { "type": "string", "pattern": "^res://.+\\.(gltf|glb)$", "description": "Modelo KayKit que se cuelga de la mano de las figuras con esqueleto (ADR 049)" },
 					"shapes": { "type": "array", "items": { "$ref": "#/$defs/shape" } }
 				}
 			}

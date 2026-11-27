@@ -50,6 +50,9 @@ class Part:
 	var slot: String = ""
 	var family: String = ""
 	var shapes: Array[Shape] = []
+	## Modelo KayKit (res://…gltf) que se cuelga de la mano de las figuras con
+	## esqueleto; "" = solo primitivas (las figuras con modelo no la ofrecen).
+	var model: String = ""
 
 
 class Preset:
@@ -129,9 +132,15 @@ func parts_for(body_id: String, slot: String) -> Array[Part]:
 	if b == null or not b.slots.has(slot):
 		return out
 	for p: Part in _part_order:
-		if p.slot == slot and p.family == b.family:
+		if fits(b, p) and p.slot == slot:
 			out.append(p)
 	return out
+
+
+## ¿Puede llevar la complexión  la pieza p? Misma familia y, si la
+## figura tiene esqueleto (KayKit), que la pieza tenga modelo que colgarle.
+static func fits(b: Body, p: Part) -> bool:
+	return b != null and p != null and p.family == b.family and (b.model.is_empty() or not p.model.is_empty())
 
 
 ## Color de `mat` en `look` (o el fijo "#rrggbb", o el del catálogo).
@@ -175,7 +184,7 @@ func sanitize(look: CharacterLook) -> bool:
 		changed = true
 	for slot: String in look.parts.keys():
 		var p: Part = part(look.parts[slot])
-		if b == null or not b.slots.has(slot) or p == null or p.slot != slot or p.family != b.family:
+		if b == null or not b.slots.has(slot) or p == null or p.slot != slot or not fits(b, p):
 			look.parts.erase(slot)
 			changed = true
 	for m: String in look.colors.keys():
@@ -233,6 +242,8 @@ func _read(path: String) -> void:
 		p.slot = r.get_str(d, "slot")
 		p.family = r.get_str(d, "family")
 		p.shapes = _shapes(r, r.get_array(d, "shapes"))
+		if d.has("model"):
+			p.model = r.get_str(d, "model")
 		if p.id.is_empty() or _parts.has(p.id):
 			r.fail("pieza vacía o repetida: '%s'" % p.id)
 		elif not slots.has(p.slot):
@@ -244,7 +255,7 @@ func _read(path: String) -> void:
 	for b: Body in bodies:
 		for s: String in b.defaults:
 			var p: Part = part(b.defaults[s])
-			if p == null or p.slot != s or p.family != b.family:
+			if p == null or p.slot != s or not fits(b, p):
 				r.fail("%s: pieza por defecto no válida en '%s'" % [b.id, s])
 	for d: Dictionary in r.get_dicts(root, "presets"):
 		var pr: Preset = Preset.new()

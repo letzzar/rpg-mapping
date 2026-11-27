@@ -1,0 +1,27 @@
+{
+	"schema_version": 1,
+	"_comment": "Tipos de objeto del botín (ADR 049): icono (modelo KayKit renderizado o dibujado por código) y palabras con que se adivina por el nombre. Orden = prioridad: el primero que encaja gana (los concretos antes que los genéricos). Nombres visibles: LOOT_KIND_<ID>.",
+	"kinds": [
+		{ "id": "greatsword", "model": "sword_2handed", "words": ["espadon", "mandoble", "montante", "espada larga", "espada a dos manos", "greatsword", "longsword", "two-handed sword", "claymore"] },
+		{ "id": "greataxe", "model": "axe_2handed", "words": ["gran hacha", "hacha a dos manos", "hacha de guerra", "greataxe", "battleaxe", "battle axe"] },
+		{ "id": "crossbow", "model": "crossbow_1handed", "words": ["ballesta", "crossbow"] },
+		{ "id": "quiver", "model": "quiver", "words": ["carcaj", "aljaba", "quiver"] },
+		{ "id": "arrows", "model": "arrow_bow_bundle", "words": ["flecha", "saeta", "virote", "dardo", "arrow", "bolt", "dart"] },
+		{ "id": "spellbook", "model": "spellbook_closed", "words": ["grimorio", "libro", "tomo", "spellbook", "book", "tome", "grimoire"] },
+		{ "id": "smokebomb", "model": "smokebomb", "words": ["bomba", "granada", "humo", "bomb", "grenade", "smoke"] },
+		{ "id": "sword", "model": "sword_1handed", "words": ["espada", "sable", "cimitarra", "estoque", "sword", "scimitar", "rapier", "sabre", "saber", "shortsword"] },
+		{ "id": "axe", "model": "axe_1handed", "words": ["hacha", "hachuela", "axe", "handaxe", "hatchet"] },
+		{ "id": "dagger", "model": "dagger", "words": ["daga", "puñal", "cuchillo", "estilete", "dagger", "knife", "stiletto"] },
+		{ "id": "bow", "model": "bow_withString", "words": ["arco", "longbow", "shortbow", "bow"] },
+		{ "id": "shield", "model": "shield_round", "words": ["escudo", "rodela", "broquel", "shield", "buckler"] },
+		{ "id": "staff", "model": "staff", "words": ["baston", "baculo", "cayado", "staff", "quarterstaff"] },
+		{ "id": "wand", "model": "wand", "words": ["varita", "vara", "wand", "rod"] },
+		{ "id": "mug", "model": "mug_full", "words": ["jarra", "cerveza", "hidromiel", "vino", "mug", "tankard", "ale", "beer", "mead", "wine"] },
+		{ "id": "potion", "words": ["pocion", "elixir", "frasco", "vial", "antidoto", "brebaje", "potion", "flask", "antidote", "philter"] },
+		{ "id": "scroll", "words": ["pergamino", "rollo", "mapa", "carta", "scroll", "map", "letter", "parchment"] },
+		{ "id": "key", "words": ["llave", "ganzua", "key", "lockpick"] },
+		{ "id": "ring", "words": ["anillo", "sortija", "amuleto", "collar", "colgante", "ring", "amulet", "necklace", "pendant"] },
+		{ "id": "gem", "words": ["gema", "joya", "piedra preciosa", "rubi", "zafiro", "esmeralda", "diamante", "perla", "amatista", "gem", "jewel", "gemstone", "ruby", "sapphire", "emerald", "diamond", "pearl", "amethyst"] },
+		{ "id": "coins", "words": ["moneda", "monedas", "oro", "plata", "cobre", "platino", "electro", "po", "pp", "pc", "pe", "ppt", "coin", "gold", "silver", "copper", "platinum", "gp", "sp", "cp", "ep", "pp"] }
+	]
+}

@@ -56,16 +56,16 @@
 			"slots": [],
 			"defaults": {}
 		},
-		{ "id": "kk_knight", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Knight.glb", "slots": [], "defaults": {}, "pixel_parts": { "head": "helmet", "torso": "plate_armor", "legs": "greaves", "main_hand": "sword", "off_hand": "shield_round", "cloak": "cloak" } },
-		{ "id": "kk_barbarian", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Barbarian.glb", "slots": [], "defaults": {}, "pixel_parts": { "head": "hair_long", "torso": "leather_armor", "legs": "trousers", "main_hand": "axe" } },
-		{ "id": "kk_mage", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Mage.glb", "slots": [], "defaults": {}, "pixel_parts": { "head": "wizard_hat", "torso": "robe", "main_hand": "staff", "off_hand": "book" } },
-		{ "id": "kk_ranger", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Ranger.glb", "slots": [], "defaults": {}, "pixel_parts": { "head": "hood", "torso": "leather_armor", "legs": "trousers", "main_hand": "dagger", "off_hand": "bow", "accessory": "quiver" } },
-		{ "id": "kk_rogue", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Rogue.glb", "slots": [], "defaults": {}, "pixel_parts": { "head": "hair_short", "torso": "leather_armor", "legs": "trousers", "main_hand": "dagger", "accessory": "pouch" } },
-		{ "id": "kk_rogue_hooded", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Rogue_Hooded.glb", "slots": [], "defaults": {}, "pixel_parts": { "head": "hood", "torso": "leather_armor", "legs": "trousers", "main_hand": "dagger", "cloak": "cloak" } },
-		{ "id": "kk_skeleton_warrior", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Skeleton_Warrior.glb", "slots": [], "defaults": {}, "pixel_parts": { "head": "helmet", "torso": "ribs", "main_hand": "sword", "off_hand": "shield_round" } },
-		{ "id": "kk_skeleton_rogue", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Skeleton_Rogue.glb", "slots": [], "defaults": {}, "pixel_parts": { "head": "hood", "torso": "ribs", "main_hand": "dagger" } },
-		{ "id": "kk_skeleton_mage", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Skeleton_Mage.glb", "slots": [], "defaults": {}, "pixel_parts": { "head": "wizard_hat", "torso": "ribs", "main_hand": "staff" } },
-		{ "id": "kk_skeleton_minion", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Skeleton_Minion.glb", "slots": [], "defaults": {}, "pixel_parts": { "torso": "ribs", "main_hand": "club" } }
+		{ "id": "kk_knight", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Knight.glb", "slots": ["main_hand", "off_hand"], "defaults": { "main_hand": "sword", "off_hand": "shield_kite" }, "pixel_parts": { "head": "helmet", "torso": "plate_armor", "legs": "greaves", "cloak": "cloak" } },
+		{ "id": "kk_barbarian", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Barbarian.glb", "slots": ["main_hand", "off_hand"], "defaults": { "main_hand": "greataxe" }, "pixel_parts": { "head": "hair_long", "torso": "leather_armor", "legs": "trousers" } },
+		{ "id": "kk_mage", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Mage.glb", "slots": ["main_hand", "off_hand"], "defaults": { "main_hand": "staff", "off_hand": "book" }, "pixel_parts": { "head": "wizard_hat", "torso": "robe" } },
+		{ "id": "kk_ranger", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Ranger.glb", "slots": ["main_hand", "off_hand"], "defaults": { "main_hand": "dagger", "off_hand": "bow" }, "pixel_parts": { "head": "hood", "torso": "leather_armor", "legs": "trousers", "accessory": "quiver" } },
+		{ "id": "kk_rogue", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Rogue.glb", "slots": ["main_hand", "off_hand"], "defaults": { "main_hand": "dagger" }, "pixel_parts": { "head": "hair_short", "torso": "leather_armor", "legs": "trousers", "accessory": "pouch" } },
+		{ "id": "kk_rogue_hooded", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Rogue_Hooded.glb", "slots": ["main_hand", "off_hand"], "defaults": { "main_hand": "dagger" }, "pixel_parts": { "head": "hood", "torso": "leather_armor", "legs": "trousers", "cloak": "cloak" } },
+		{ "id": "kk_skeleton_warrior", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Skeleton_Warrior.glb", "slots": ["main_hand", "off_hand"], "defaults": { "main_hand": "sword", "off_hand": "shield_round" }, "pixel_parts": { "head": "helmet", "torso": "ribs" } },
+		{ "id": "kk_skeleton_rogue", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Skeleton_Rogue.glb", "slots": ["main_hand", "off_hand"], "defaults": { "main_hand": "dagger" }, "pixel_parts": { "head": "hood", "torso": "ribs" } },
+		{ "id": "kk_skeleton_mage", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Skeleton_Mage.glb", "slots": ["main_hand", "off_hand"], "defaults": { "main_hand": "staff" }, "pixel_parts": { "head": "wizard_hat", "torso": "ribs" } },
+		{ "id": "kk_skeleton_minion", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Skeleton_Minion.glb", "slots": ["main_hand", "off_hand"], "defaults": { "main_hand": "axe" }, "pixel_parts": { "torso": "ribs" } }
 	],
 	"base": {
 		"humanoid": [
@@ -223,12 +223,12 @@
 			{ "shape": "box", "mat": "metal", "pos": [0.07, 0.05, 0.02], "size": [0.13, 0.1, 0.18] },
 			{ "shape": "box", "mat": "metal", "pos": [-0.07, 0.05, 0.02], "size": [0.13, 0.1, 0.18] }
 		] },
-		{ "id": "sword", "slot": "main_hand", "family": "humanoid", "shapes": [
+		{ "id": "sword", "slot": "main_hand", "family": "humanoid", "model": "res://models/kaykit/items/sword_1handed.gltf", "shapes": [
 			{ "shape": "box", "mat": "metal", "pos": [0.215, 0.66, 0.04], "size": [0.04, 0.42, 0.012] },
 			{ "shape": "box", "mat": "metal", "pos": [0.215, 0.445, 0.04], "size": [0.13, 0.025, 0.035] },
 			{ "shape": "box", "mat": "leather", "pos": [0.215, 0.4, 0.04], "size": [0.03, 0.08, 0.03] }
 		] },
-		{ "id": "axe", "slot": "main_hand", "family": "humanoid", "shapes": [
+		{ "id": "axe", "slot": "main_hand", "family": "humanoid", "model": "res://models/kaykit/items/axe_1handed.gltf", "shapes": [
 			{ "shape": "cylinder", "mat": "wood", "pos": [0.215, 0.55, 0.04], "size": [0.03, 0.55, 0.03] },
 			{ "shape": "box", "mat": "metal", "pos": [0.27, 0.78, 0.04], "size": [0.14, 0.12, 0.02] }
 		] },
@@ -240,19 +240,19 @@
 			{ "shape": "cylinder", "mat": "wood", "pos": [0.215, 0.55, 0.04], "size": [0.03, 1.15, 0.03] },
 			{ "shape": "cone", "mat": "metal", "pos": [0.215, 1.19, 0.04], "size": [0.06, 0.14, 0.06] }
 		] },
-		{ "id": "staff", "slot": "main_hand", "family": "humanoid", "shapes": [
+		{ "id": "staff", "slot": "main_hand", "family": "humanoid", "model": "res://models/kaykit/items/staff.gltf", "shapes": [
 			{ "shape": "cylinder", "mat": "wood", "pos": [0.215, 0.5, 0.04], "size": [0.035, 1.05, 0.035] },
 			{ "shape": "sphere", "mat": "trim", "pos": [0.215, 1.05, 0.04], "size": [0.08, 0.08, 0.08] }
 		] },
-		{ "id": "dagger", "slot": "main_hand", "family": "humanoid", "shapes": [
+		{ "id": "dagger", "slot": "main_hand", "family": "humanoid", "model": "res://models/kaykit/items/dagger.gltf", "shapes": [
 			{ "shape": "box", "mat": "metal", "pos": [0.215, 0.52, 0.05], "size": [0.03, 0.17, 0.01] },
 			{ "shape": "box", "mat": "leather", "pos": [0.215, 0.41, 0.05], "size": [0.025, 0.06, 0.025] }
 		] },
-		{ "id": "shield_round", "slot": "off_hand", "family": "humanoid", "shapes": [
+		{ "id": "shield_round", "slot": "off_hand", "family": "humanoid", "model": "res://models/kaykit/items/shield_round.gltf", "shapes": [
 			{ "shape": "cylinder", "mat": "wood", "pos": [-0.25, 0.5, 0.06], "size": [0.3, 0.03, 0.3], "rot": [90, 0, 0] },
 			{ "shape": "sphere", "mat": "metal", "pos": [-0.25, 0.5, 0.08], "size": [0.07, 0.07, 0.04] }
 		] },
-		{ "id": "shield_kite", "slot": "off_hand", "family": "humanoid", "shapes": [
+		{ "id": "shield_kite", "slot": "off_hand", "family": "humanoid", "model": "res://models/kaykit/items/shield_badge.gltf", "shapes": [
 			{ "shape": "box", "mat": "metal", "pos": [-0.25, 0.5, 0.06], "size": [0.22, 0.34, 0.03] },
 			{ "shape": "box", "mat": "trim", "pos": [-0.25, 0.5, 0.078], "size": [0.05, 0.3, 0.008] }
 		] },
@@ -260,10 +260,10 @@
 			{ "shape": "cylinder", "mat": "wood", "pos": [-0.215, 0.5, 0.04], "size": [0.03, 0.3, 0.03] },
 			{ "shape": "sphere", "mat": "#ffb030", "pos": [-0.215, 0.68, 0.04], "size": [0.08, 0.12, 0.08] }
 		] },
-		{ "id": "book", "slot": "off_hand", "family": "humanoid", "shapes": [
+		{ "id": "book", "slot": "off_hand", "family": "humanoid", "model": "res://models/kaykit/items/spellbook_closed.gltf", "shapes": [
 			{ "shape": "box", "mat": "leather", "pos": [-0.215, 0.47, 0.07], "size": [0.13, 0.17, 0.05] }
 		] },
-		{ "id": "bow", "slot": "off_hand", "family": "humanoid", "shapes": [
+		{ "id": "bow", "slot": "off_hand", "family": "humanoid", "model": "res://models/kaykit/items/bow_withString.gltf", "shapes": [
 			{ "shape": "box", "mat": "wood", "pos": [-0.23, 0.55, 0.05], "size": [0.025, 0.75, 0.025] },
 			{ "shape": "box", "mat": "#e8e0d0", "pos": [-0.2, 0.55, 0.05], "size": [0.006, 0.72, 0.006] }
 		] },
@@ -337,6 +337,36 @@
 			{ "shape": "box", "mat": "metal", "pos": [0.24, 0.64, 0.04], "size": [0.05, 0.38, 0.012], "rot": [0, 0, -12] },
 			{ "shape": "box", "mat": "trim", "pos": [0.215, 0.445, 0.04], "size": [0.1, 0.025, 0.035] }
 		] },
+		{ "id": "greatsword", "slot": "main_hand", "family": "humanoid", "model": "res://models/kaykit/items/sword_2handed.gltf", "shapes": [
+			{ "shape": "box", "mat": "metal", "pos": [0.215, 0.74, 0.04], "size": [0.055, 0.6, 0.014] },
+			{ "shape": "box", "mat": "metal", "pos": [0.215, 0.43, 0.04], "size": [0.17, 0.03, 0.04] },
+			{ "shape": "box", "mat": "leather", "pos": [0.215, 0.37, 0.04], "size": [0.035, 0.11, 0.035] }
+		] },
+		{ "id": "greataxe", "slot": "main_hand", "family": "humanoid", "model": "res://models/kaykit/items/axe_2handed.gltf", "shapes": [
+			{ "shape": "cylinder", "mat": "wood", "pos": [0.215, 0.62, 0.04], "size": [0.035, 0.8, 0.035] },
+			{ "shape": "box", "mat": "metal", "pos": [0.29, 0.94, 0.04], "size": [0.17, 0.18, 0.02] },
+			{ "shape": "box", "mat": "metal", "pos": [0.14, 0.94, 0.04], "size": [0.13, 0.15, 0.02] }
+		] },
+		{ "id": "crossbow", "slot": "main_hand", "family": "humanoid", "model": "res://models/kaykit/items/crossbow_1handed.gltf", "shapes": [
+			{ "shape": "box", "mat": "wood", "pos": [0.215, 0.47, 0.12], "size": [0.04, 0.04, 0.3] },
+			{ "shape": "box", "mat": "metal", "pos": [0.215, 0.47, 0.25], "size": [0.3, 0.025, 0.025] }
+		] },
+		{ "id": "wand", "slot": "main_hand", "family": "humanoid", "model": "res://models/kaykit/items/wand.gltf", "shapes": [
+			{ "shape": "cylinder", "mat": "wood", "pos": [0.215, 0.5, 0.04], "size": [0.02, 0.22, 0.02] },
+			{ "shape": "sphere", "mat": "trim", "pos": [0.215, 0.62, 0.04], "size": [0.04, 0.04, 0.04] }
+		] },
+		{ "id": "shield_spiked", "slot": "off_hand", "family": "humanoid", "model": "res://models/kaykit/items/shield_spikes.gltf", "shapes": [
+			{ "shape": "cylinder", "mat": "metal", "pos": [-0.25, 0.5, 0.06], "size": [0.32, 0.03, 0.32], "rot": [90, 0, 0] },
+			{ "shape": "cone", "mat": "metal", "pos": [-0.25, 0.5, 0.1], "size": [0.06, 0.08, 0.06], "rot": [90, 0, 0] }
+		] },
+		{ "id": "shield_square", "slot": "off_hand", "family": "humanoid", "model": "res://models/kaykit/items/shield_square.gltf", "shapes": [
+			{ "shape": "box", "mat": "wood", "pos": [-0.25, 0.5, 0.06], "size": [0.26, 0.3, 0.03] },
+			{ "shape": "box", "mat": "metal", "pos": [-0.25, 0.5, 0.078], "size": [0.27, 0.04, 0.008] }
+		] },
+		{ "id": "mug", "slot": "off_hand", "family": "humanoid", "model": "res://models/kaykit/items/mug_full.gltf", "shapes": [
+			{ "shape": "cylinder", "mat": "wood", "pos": [-0.215, 0.47, 0.07], "size": [0.07, 0.09, 0.07] },
+			{ "shape": "cylinder", "mat": "#f2e6c0", "pos": [-0.215, 0.52, 0.07], "size": [0.06, 0.02, 0.06] }
+		] },
 		{ "id": "dragon_horns", "slot": "head", "family": "dragon", "shapes": [
 			{ "shape": "cone", "mat": "#e8dcc0", "pos": [0.07, 1.05, 0.52], "size": [0.05, 0.16, 0.05], "rot": [-45, 0, 0] },
 			{ "shape": "cone", "mat": "#e8dcc0", "pos": [-0.07, 1.05, 0.52], "size": [0.05, 0.16, 0.05], "rot": [-45, 0, 0] }
@@ -350,7 +380,7 @@
 	],
 	"presets": [
 		{ "id": "warrior", "body": "humanoid_medium", "size_id": "medium",
-			"parts": { "head": "helmet", "torso": "plate_armor", "legs": "greaves", "main_hand": "sword", "off_hand": "shield_kite", "cloak": "cloak" },
+			"parts": { "head": "helmet", "torso": "plate_armor", "legs": "greaves", "main_hand": "sword", "off_hand": "shield_round", "cloak": "cloak" },
 			"colors": {} },
 		{ "id": "wizard", "body": "humanoid_medium", "size_id": "medium",
 			"parts": { "head": "wizard_hat", "torso": "robe", "main_hand": "staff", "off_hand": "book" },
@@ -427,15 +457,15 @@
 		{ "id": "giant_snake", "body": "serpent", "size_id": "large",
 			"parts": {},
 			"colors": { "skin": "#5a7a3a", "hair": "#3a5a2a" } },
-		{ "id": "kk_knight", "body": "kk_knight", "size_id": "medium", "parts": {}, "colors": { "cloth": "#4a6ea8", "metal": "#b9bec7" } },
-		{ "id": "kk_barbarian", "body": "kk_barbarian", "size_id": "medium", "parts": {}, "colors": { "cloth": "#8a5a3a", "skin": "#d9a07a" } },
-		{ "id": "kk_mage", "body": "kk_mage", "size_id": "medium", "parts": {}, "colors": { "cloth": "#4b3a8c" } },
-		{ "id": "kk_ranger", "body": "kk_ranger", "size_id": "medium", "parts": {}, "colors": { "cloth": "#4d6b34" } },
-		{ "id": "kk_rogue", "body": "kk_rogue", "size_id": "medium", "parts": {}, "colors": { "cloth": "#3a3a3a" } },
-		{ "id": "kk_rogue_hooded", "body": "kk_rogue_hooded", "size_id": "medium", "parts": {}, "colors": { "cloth": "#2f3a2f" } },
-		{ "id": "kk_skeleton_warrior", "body": "kk_skeleton_warrior", "size_id": "medium", "parts": {}, "colors": { "skin": "#e8dcc0", "cloth": "#5a4a3a" } },
-		{ "id": "kk_skeleton_rogue", "body": "kk_skeleton_rogue", "size_id": "medium", "parts": {}, "colors": { "skin": "#e8dcc0", "cloth": "#3a3028" } },
-		{ "id": "kk_skeleton_mage", "body": "kk_skeleton_mage", "size_id": "medium", "parts": {}, "colors": { "skin": "#e8dcc0", "cloth": "#4b3a8c" } },
-		{ "id": "kk_skeleton_minion", "body": "kk_skeleton_minion", "size_id": "medium", "parts": {}, "colors": { "skin": "#e8dcc0", "cloth": "#4a4038" } }
+		{ "id": "kk_knight", "body": "kk_knight", "size_id": "medium", "parts": { "main_hand": "sword", "off_hand": "shield_kite" }, "colors": { "cloth": "#4a6ea8", "metal": "#b9bec7" } },
+		{ "id": "kk_barbarian", "body": "kk_barbarian", "size_id": "medium", "parts": { "main_hand": "greataxe" }, "colors": { "cloth": "#8a5a3a", "skin": "#d9a07a" } },
+		{ "id": "kk_mage", "body": "kk_mage", "size_id": "medium", "parts": { "main_hand": "staff", "off_hand": "book" }, "colors": { "cloth": "#4b3a8c" } },
+		{ "id": "kk_ranger", "body": "kk_ranger", "size_id": "medium", "parts": { "main_hand": "dagger", "off_hand": "bow" }, "colors": { "cloth": "#4d6b34" } },
+		{ "id": "kk_rogue", "body": "kk_rogue", "size_id": "medium", "parts": { "main_hand": "dagger" }, "colors": { "cloth": "#3a3a3a" } },
+		{ "id": "kk_rogue_hooded", "body": "kk_rogue_hooded", "size_id": "medium", "parts": { "main_hand": "dagger" }, "colors": { "cloth": "#2f3a2f" } },
+		{ "id": "kk_skeleton_warrior", "body": "kk_skeleton_warrior", "size_id": "medium", "parts": { "main_hand": "sword", "off_hand": "shield_round" }, "colors": { "skin": "#e8dcc0", "cloth": "#5a4a3a" } },
+		{ "id": "kk_skeleton_rogue", "body": "kk_skeleton_rogue", "size_id": "medium", "parts": { "main_hand": "dagger" }, "colors": { "skin": "#e8dcc0", "cloth": "#3a3028" } },
+		{ "id": "kk_skeleton_mage", "body": "kk_skeleton_mage", "size_id": "medium", "parts": { "main_hand": "staff" }, "colors": { "skin": "#e8dcc0", "cloth": "#4b3a8c" } },
+		{ "id": "kk_skeleton_minion", "body": "kk_skeleton_minion", "size_id": "medium", "parts": { "main_hand": "axe" }, "colors": { "skin": "#e8dcc0", "cloth": "#4a4038" } }
 	]
 }

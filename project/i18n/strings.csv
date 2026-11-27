@@ -153,6 +153,30 @@ UI_LOOT_GIVE_TIP,Pasa el objeto a la ficha elegida (se deshace de una vez),Moves
 UI_LOOT_GIVE_ALL,Darlo todo,Give all
 UI_LOOT_REVEALED,Lo ven los jugadores,Players can see it
 UI_LOOT_REVEALED_TIP,"Si no está marcado, el servidor no manda el contenido a los jugadores.","If unchecked, the server does not send the contents to players."
+UI_LOOT_KIND_TIP,Tipo de objeto (su icono),Item type (its icon)
+UI_LOOT_KIND_AUTO,Según el nombre,From the name
+UI_LOOT_KIND_NONE,Sin icono,No icon
+LOOT_KIND_GREATSWORD,Espadón,Greatsword
+LOOT_KIND_GREATAXE,Gran hacha,Greataxe
+LOOT_KIND_CROSSBOW,Ballesta,Crossbow
+LOOT_KIND_QUIVER,Carcaj,Quiver
+LOOT_KIND_ARROWS,Flechas,Arrows
+LOOT_KIND_SPELLBOOK,Libro,Book
+LOOT_KIND_SMOKEBOMB,Bomba,Bomb
+LOOT_KIND_SWORD,Espada,Sword
+LOOT_KIND_AXE,Hacha,Axe
+LOOT_KIND_DAGGER,Daga,Dagger
+LOOT_KIND_BOW,Arco,Bow
+LOOT_KIND_SHIELD,Escudo,Shield
+LOOT_KIND_STAFF,Bastón,Staff
+LOOT_KIND_WAND,Varita,Wand
+LOOT_KIND_MUG,Jarra,Mug
+LOOT_KIND_POTION,Poción,Potion
+LOOT_KIND_SCROLL,Pergamino,Scroll
+LOOT_KIND_KEY,Llave,Key
+LOOT_KIND_RING,Anillo o amuleto,Ring or amulet
+LOOT_KIND_GEM,Gema,Gem
+LOOT_KIND_COINS,Monedas,Coins
 UI_LOOT_NOT_SHOWN,El DM no ha enseñado lo que hay.,The DM has not shown what is inside.
 UI_AUDIENCE_DM,Ve: DM,Shows: GM
 UI_AUDIENCE_PLAYERS,Ve: jugadores,Shows: players
@@ -351,6 +375,13 @@ CHAR_PART_SHIELD_KITE,Escudo de lágrima,Kite shield
 CHAR_PART_TORCH,Antorcha,Torch
 CHAR_PART_BOOK,Libro,Book
 CHAR_PART_BOW,Arco,Bow
+CHAR_PART_GREATSWORD,Espadón,Greatsword
+CHAR_PART_GREATAXE,Gran hacha,Greataxe
+CHAR_PART_CROSSBOW,Ballesta,Crossbow
+CHAR_PART_WAND,Varita,Wand
+CHAR_PART_SHIELD_SPIKED,Escudo con pinchos,Spiked shield
+CHAR_PART_SHIELD_SQUARE,Escudo cuadrado,Square shield
+CHAR_PART_MUG,Jarra,Mug
 CHAR_PART_CLOAK,Capa,Cloak
 CHAR_PART_BACKPACK,Mochila,Backpack
 CHAR_PART_QUIVER,Carcaj,Quiver

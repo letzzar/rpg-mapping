@@ -425,6 +425,7 @@ func _build_figure(t: MapToken, center: Vector2, radius: float) -> void:
 	if body != null and not body.model.is_empty():
 		var node: Node3D = RiggedFigure.create(body.model)
 		if node != null:
+			RiggedFigure.equip(node, t.sheet.look)
 			var h: float = RiggedFigure.height_of(body.model)
 			var sc: float = (_eye_height(t.size_id) / 0.87) / maxf(h, 0.01)
 			node.scale = Vector3(sc, sc, sc)

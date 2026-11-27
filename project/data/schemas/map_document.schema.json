@@ -62,7 +62,8 @@
 				"name": { "type": "string", "minLength": 1, "maxLength": 120 },
 				"qty": { "type": "integer", "minimum": 1, "maximum": 999999 },
 				"value": { "type": "string", "maxLength": 200 },
-				"note": { "type": "string", "maxLength": 200 }
+				"note": { "type": "string", "maxLength": 200 },
+				"kind": { "type": "string", "maxLength": 32, "description": "Tipo de objeto para su icono (data/loot/item_kinds.json; ADR 049)" }
 			}
 		},
 		"cell": { "type": "array", "items": { "type": "integer" }, "minItems": 2, "maxItems": 2, "description": "[x, y] = [columna, fila] (offset en hex)" },

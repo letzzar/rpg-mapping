@@ -5,7 +5,8 @@ extends RefCounted
 ## LookCatalog: complexión, piernas, torso, cabeza, capa, armas y accesorios,
 ## cada pieza con los colores del personaje y su rampa (PixelCanvas.ramp).
 ## Los humanoides se ven de frente; los cuadrúpedos, de perfil. Las
-## complexiones con modelo KayKit se dibujan con sus `pixel_parts`.
+## complexiones con modelo KayKit se dibujan con sus `pixel_parts` y, en las
+## manos, con lo que lleven (ADR 049).
 ## Se guardan en caché por aspecto.
 
 const SIZE: int = 32
@@ -40,7 +41,12 @@ static func render(look: CharacterLook, cat: LookCatalog) -> PixelCanvas:
 	var family: String = b.family if b != null else "humanoid"
 	var parts: Dictionary[String, String] = {}
 	if b != null and not b.model.is_empty():
+		# El cuerpo, de sus pixel_parts; las manos, de lo que lleve (ADR 049).
 		parts = b.pixel_parts.duplicate()
+		for slot: String in b.slots:
+			parts.erase(slot)
+			if look.parts.has(slot):
+				parts[slot] = look.parts[slot]
 	else:
 		parts = look.parts.duplicate()
 	var pal: Palette = Palette.new(cat, look)
@@ -451,6 +457,30 @@ static func _main_hand(cv: PixelCanvas, p: Palette, x: int, hy: int, item: Strin
 			for k: int in 9:
 				var wdt: int = 1 + k / 4
 				cv.hline(x + 1 - wdt / 2, x + 1 + wdt / 2, hy + 2 - k, p.wood[2] if k % 3 != 0 else p.wood[1])
+		"greatsword":
+			cv.rect(x, 1, 2, hy - 3, p.metal[3])
+			cv.vline(x + 1, 1, hy - 3, p.metal[1])
+			cv.px(x, 0, p.metal[4])
+			cv.hline(x - 2, x + 3, hy - 2, p.gold[2])
+			cv.vline(x, hy - 1, hy + 3, p.leather[2])
+			cv.px(x, hy + 4, p.gold[3])
+		"greataxe":
+			cv.vline(x + 1, 2, hy + 5, p.wood[2])
+			_box(cv, x - 4, 2, 5, 7, p.metal)
+			_box(cv, x + 2, 3, 3, 5, p.metal)
+			cv.vline(x - 4, 1, 9, p.metal[4])
+		"crossbow":
+			cv.rect(x - 1, hy - 3, 3, 6, p.wood[2])
+			cv.hline(x - 4, x + 4, hy - 3, p.wood[1])
+			cv.px(x - 4, hy - 2, p.wood[1])
+			cv.px(x + 4, hy - 2, p.wood[1])
+			cv.hline(x - 3, x + 3, hy - 2, Color(0.9, 0.88, 0.8, 0.9))
+			cv.px(x, hy - 4, p.metal[3])
+		"wand":
+			cv.vline(x + 1, hy - 6, hy + 1, p.wood[1])
+			cv.px(x + 1, hy - 7, p.trim[4])
+			cv.px(x, hy - 7, p.trim[2])
+			cv.px(x + 2, hy - 7, p.trim[2])
 		_:
 			pass
 
@@ -484,6 +514,21 @@ static func _off_hand(cv: PixelCanvas, p: Palette, x: int, hy: int, item: String
 				var dx: int = 2 - absi(k - 8) / 3
 				cv.px(x + dx, hy - 10 + k, p.wood[2])
 			cv.vline(x - 1, hy - 9, hy + 5, Color(0.9, 0.88, 0.8, 0.9))
+		"shield_spiked":
+			cv.circle(float(x) + 0.5, float(hy) - 2.5, 5.0, p.metal[1])
+			cv.circle(float(x) + 0.5, float(hy) - 2.5, 4.0, p.metal[2])
+			cv.rect(x, hy - 3, 2, 2, p.metal[4])
+			for d: Vector2i in [Vector2i(0, -6), Vector2i(0, 5), Vector2i(-5, 0), Vector2i(6, 0)]:
+				cv.px(x + d.x, hy - 3 + d.y, p.metal[4])
+		"shield_square":
+			_box(cv, x - 4, hy - 7, 9, 10, p.wood)
+			cv.hline(x - 4, x + 4, hy - 7, p.metal[3])
+			cv.hline(x - 4, x + 4, hy + 2, p.metal[1])
+			cv.hline(x - 4, x + 4, hy - 3, p.metal[2])
+		"mug":
+			_box(cv, x - 2, hy - 3, 4, 5, p.wood)
+			cv.hline(x - 2, x + 1, hy - 4, Color("f2e6c0"))
+			cv.vline(x + 2, hy - 2, hy, p.wood[1])
 		_:
 			pass
 

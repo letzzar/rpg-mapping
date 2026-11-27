@@ -6,3 +6,6 @@ build/
 project/i18n/*.translation
 # Descargas originales de packs de assets (pesan; lo usado va en project/models)
 assets/models/*/*.zip
+
+# Descargas que Víctor deja en la raíz (los modelos usados ya están en project/models)
+/KayKit_*.zip
