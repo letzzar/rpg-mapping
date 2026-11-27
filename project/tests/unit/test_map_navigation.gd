@@ -457,3 +457,106 @@ func test_places_panel_and_add_creature() -> void:
 	var cb: MenuButton = main.get("_creature_btn")
 	var pm: PopupMenu = cb.get_popup()
 	assert_gt(pm.item_count, LookCatalog.load_default().presets.size(), "todas en el menú")
+
+# --- Entorno y salida de edificios (ADR 052) ------------------------------------
+
+## El entorno se deduce del mapa de arriba: una mazmorra, roca; un edificio,
+## lo que rodea su huella en la aldea; una región, su bioma.
+func test_surroundings_from_parent() -> void:
+	var doc: MapDocument = _settlement(CODE_VILLAGE)
+	assert_eq(Surroundings.default_for(doc), Surroundings.GRASS)
+	var maz: MapDocument = GeneratorRegistry.generate("RPGM1-DND5-MAZ-G1-0-HWX23H6N-W").doc
+	assert_eq(Surroundings.default_for(maz), Surroundings.ROCK)
+	assert_false(Surroundings.is_open(Surroundings.ROCK))
+	var nav: MapNavigator = MapNavigator.new()
+	var root: MapNavigator.Frame = nav.open_root(doc)
+	assert_eq(root.surroundings, Surroundings.GRASS)
+	var prof: SystemProfile = _profile(SeedCode.parse(CODE_VILLAGE).system)
+	for ch: MapChild in doc.level(0).children.slice(0, 4):
+		var f: MapNavigator.Frame = nav.enter(ch, 0, prof)
+		assert_true(Surroundings.KINDS.has(f.surroundings), "%s: %s" % [ch.kind, f.surroundings])
+		nav.back(prof)
+	assert_eq(Surroundings.of_biome(Biome.DESERT), Surroundings.SAND)
+	assert_eq(Surroundings.of_biome(Biome.TUNDRA), Surroundings.SNOW)
+	assert_eq(Surroundings.of_biome(Biome.LAKE), Surroundings.WATER)
+	assert_eq(Surroundings.of_biome(Biome.TEMPERATE_FOREST), Surroundings.GRASS)
+	# Las capas de textura de cada entorno existen.
+	for k: String in Surroundings.KINDS:
+		assert_gt(SurfaceTiles.kind_of_surroundings(k), -1, k)
+
+
+## Edificio: muros exteriores (entre dentro y fuera) más gruesos que los
+## tabiques; al aire libre el borde del mapa no es muro; doble clic en la
+## puerta exterior o fuera saca al grupo, y en la calle de la aldea no.
+func test_building_walls_and_leaving() -> void:
+	var vp: SubViewport = SubViewport.new()
+	vp.size = Vector2i(1280, 800)
+	add_child_autofree(vp)
+	var main: Control = (load("res://ui/main.tscn") as PackedScene).instantiate()
+	vp.add_child(main)
+	await wait_process_frames(2)
+	var edit: LineEdit = main.get("_code_edit")
+	edit.text = CODE_VILLAGE
+	main.call("_generate_from_text")
+	await wait_process_frames(2)
+	var doc: MapDocument = main.get("_doc")
+	var street: Vector2i = Vector2i(-1, -1)
+	for i: int in doc.grid.cell_count():
+		var c: Vector2i = doc.grid.cell_at(i)
+		if MapMeshBuilder.outdoor_mask(doc.level(0))[i] != 0 and doc.level(0).child_at(c) == null:
+			street = c
+			break
+	var on_street: bool = main.call("is_building_outside", 0, street)
+	assert_false(on_street, "la calle no saca de la aldea")
+	var ch: MapChild = doc.level(0).children[0]
+	main.call("_add_token")
+	var stack: CommandStack = main.get("_stack")
+	stack.execute(MoveTokenCommand.new(doc.tokens[0].id, ch.entrance, 0))
+	main.call("_on_cell_activated", ch.rect.position + ch.rect.size / 2)
+	await wait_process_frames(1)
+	var nav: MapNavigator = main.get("_nav")
+	assert_eq(nav.depth(), 2)
+	var inner: MapDocument = main.get("_doc")
+	var view: MapView2D = main.get("_view")
+	assert_eq(view.surroundings, nav.current().surroundings)
+	var lvl: MapLevel = inner.level(view.level_index)
+	var outdoor: PackedByteArray = MapMeshBuilder.outdoor_mask(lvl)
+	var ext_door: int = -1
+	var exterior: int = 0
+	var interior: int = 0
+	for id: int in lvl.edge_ids():
+		if MapMeshBuilder.is_exterior_edge(inner.grid, outdoor, id):
+			exterior += 1
+			if MapEdge.is_door(lvl.get_edge_by_id(id)):
+				ext_door = id
+		else:
+			interior += 1
+	assert_gt(exterior, 0, "hay fachada")
+	assert_gt(ext_door, -1, "con puerta a la calle")
+	# En 3D, al aire libre no hay muro en el borde del mapa: los muros de roca
+	# (caras de casilla) no existen en un edificio rodeado de exterior.
+	var opts: MapMeshBuilder.Options = MapMeshBuilder.Options.new()
+	opts.surroundings = Surroundings.GRASS
+	var built: Node3D = MapMeshBuilder.build_level(inner, view.level_index, opts)
+	var floor_mi: MeshInstance3D = built.get_node("Floor") as MeshInstance3D
+	var aabb: AABB = floor_mi.mesh.get_aabb()
+	assert_lt(aabb.position.x, -opts.cell_m * 10.0, "el suelo del entorno sigue fuera del mapa")
+	built.free()
+	# Doble clic en la puerta exterior: fuera, con el grupo.
+	main.call("_on_door_activated", ext_door)
+	await wait_process_frames(1)
+	assert_eq(nav.depth(), 1, "la puerta exterior saca del edificio")
+	assert_eq(_party(doc).size(), 1)
+	# Y otra vez dentro, doble clic en el exterior del edificio.
+	main.call("_on_cell_activated", ch.rect.position + ch.rect.size / 2)
+	await wait_process_frames(1)
+	assert_eq(nav.depth(), 2)
+	inner = main.get("_doc")
+	lvl = inner.level(view.level_index)
+	outdoor = MapMeshBuilder.outdoor_mask(lvl)
+	var out_cell: Vector2i = inner.grid.cell_at(outdoor.find(1))
+	var outside: bool = main.call("is_building_outside", view.level_index, out_cell)
+	assert_true(outside)
+	main.call("_on_cell_activated", out_cell)
+	await wait_process_frames(1)
+	assert_eq(nav.depth(), 1, "fuera del edificio se sale")

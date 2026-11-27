@@ -41,6 +41,8 @@ class Frame:
 	## MapDocument.child_overrides; "" = el hijo generado). Si en el padre
 	## cambia, el mapa guardado en `visited` ya no vale (ADR 040).
 	var override_key: String = ""
+	## Entorno de alrededor (Surroundings, ADR 052): qué se ve fuera del mapa.
+	var surroundings: String = ""
 
 
 var frames: Array[Frame] = []
@@ -54,6 +56,7 @@ func open_root(doc: MapDocument) -> Frame:
 	var f: Frame = Frame.new()
 	f.doc = doc
 	f.stack = CommandStack.new(doc)
+	f.surroundings = Surroundings.default_for(doc)
 	frames.append(f)
 	return f
 
@@ -116,6 +119,7 @@ func enter(child: MapChild, from_level: int, profile: SystemProfile, keep_positi
 		f.child = child
 		f.level_index = child_level
 		f.override_key = ov_key
+		f.surroundings = Surroundings.of_child(here.doc, here.surroundings, from_level, child)
 		here.visited[child.id] = f
 	here.level_index = from_level
 	f.keep_positions = keep_positions

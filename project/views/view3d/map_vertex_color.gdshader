@@ -30,7 +30,7 @@ uniform float pixel_texels = 0.0;
 // Vista 2.5D (ADR 051): texturas de SurfaceTiles en lugar de los patrones.
 // 0 = no; 1 = normales (suavizadas); 2 = pixel art (sin suavizar). Capas:
 // tipo * 4 + variante, tipos 0 losa, 1 madera, 2 hierba, 3 agua, 4 tierra,
-// 5 ladrillo, 6 puerta. Cada téxel va dividido por el color medio de su capa
+// 5 ladrillo, 6 puerta, 7 roca, 8 arena, 9 nieve, 10 empedrado (SurfaceTiles). Cada téxel va dividido por el color medio de su capa
 // y por 2: se multiplica por el color del vértice (zona, niebla y luz).
 uniform int tile_mode = 0;
 uniform sampler2DArray tiles_smooth : filter_linear_mipmap, repeat_enable;
@@ -108,6 +108,10 @@ void fragment() {
 		if (pattern == 1 && world_normal.y > 0.5) {
 			vec2 c = world_pos.xz / cell_m;
 			float kind = b_ ? 3.0 : (g_ ? 2.0 : (w_ ? 1.0 : (d_ ? 4.0 : 0.0)));
+			// Entorno (ADR 052): la capa viene marcada en el alfa del vértice.
+			if (COLOR.a < 0.97) {
+				kind = floor((1.0 - COLOR.a) * 16.0 + 0.5) - 1.0;
+			}
 			tex = tile_sample(fract(c), kind, floor(c));
 			use = true;
 		} else if (pattern == 2 && abs(world_normal.y) < 0.5 && !b_) {

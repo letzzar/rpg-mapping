@@ -32,6 +32,8 @@ signal stairs_taken(token_id: int, level: int)
 signal token_activated(token_id: int)
 ## Se abrió o cerró una puerta con el ratón (ya ejecutado el comando).
 signal door_toggled(edge_id: int, opened: bool)
+## Doble clic en una puerta (ADR 052: la exterior de un edificio saca de él).
+signal door_activated(edge_id: int)
 
 const ZOOM_MIN: float = 0.2
 const ZOOM_MAX: float = 4.0
@@ -93,6 +95,15 @@ var cell_px: float = 48.0
 var show_grid: bool = true
 ## Color de fondo y de lo no explorado (negro en el proyector, ADR 039).
 var background: Color = COL_BG
+## Entorno de alrededor (Surroundings, ADR 052): se pinta fuera del mapa, en
+## sus casillas vacías y en sus zonas al aire libre; al aire libre, el borde
+## del mapa no se dibuja como muro.
+var surroundings: String = "":
+	set(v):
+		surroundings = v
+		texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
+		queue_redraw()
+static var _env_tex: Dictionary[String, Texture2D] = {}
 ## Velo de lo explorado que no se ve ahora (0 = nada; en el proyector, poco:
 ## con miniaturas físicas, lo ya recorrido tiene que leerse bien).
 var explored_veil: float = 0.65
@@ -109,7 +120,9 @@ var pixel_art: bool = false:
 	set(v):
 		pixel_art = v
 		texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST if v else CanvasItem.TEXTURE_FILTER_PARENT_NODE
-		texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED if v else CanvasItem.TEXTURE_REPEAT_PARENT_NODE
+		# Siempre con repetición: las tiras de muro y el fondo del entorno
+		# (ADR 052) repiten su textura por casilla.
+		texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
 		queue_redraw()
 ## Vista del DM: muestra puertas secretas y trampas ocultas.
 var dm_view: bool = true
@@ -235,7 +248,11 @@ func _draw() -> void:
 		return
 	var g: GridGeometry = document.grid
 	var lvl: MapLevel = document.level(level_index)
-	draw_rect(Rect2(Vector2.ZERO, g.map_pixel_size(cell_px)), background)
+	var env: bool = surroundings != Surroundings.NONE and not lvl.has_geo_layers() and not ink_saver
+	if env:
+		_draw_surroundings(g)
+	else:
+		draw_rect(Rect2(Vector2.ZERO, g.map_pixel_size(cell_px)), background)
 	# Mundo o región (F6, ADR 044): biomas, relieve, ríos, caminos, reinos y
 	# marcadores; sin muros, objetos ni niebla por casilla (un mundo tiene
 	# dos millones de casillas).
@@ -263,14 +280,18 @@ func _draw() -> void:
 		var t: int = lvl.get_terrain(c)
 		var poly: PackedVector2Array = g.cell_polygon(c, cell_px)
 		var fill: Color = TERRAIN_COLORS[t] if t >= 0 and t < TERRAIN_COLORS.size() else background
+		if env and t == Terrain.VOID:
+			continue  # Se ve el entorno (la roca de una mazmorra).
 		if outdoor[i] != 0 and t == Terrain.FLOOR:
-			fill = MapMeshBuilder.COL_OUTDOOR
+			fill = Surroundings.color(surroundings) if env and Surroundings.is_open(surroundings) else MapMeshBuilder.COL_OUTDOOR
 		if t == Terrain.FLOOR and zone_cols.has(lvl.room_ids[i]):
 			fill = zone_cols[lvl.room_ids[i]]
 		if ink_saver and Terrain.is_solid(t):
 			fill = Color("e6e2da")
 		if pixel_art and not ink_saver and (bg == null or t != Terrain.FLOOR):
 			_draw_pixel_cell(c, poly, t, fill, outdoor[i] != 0, lvl.rooms.size() > 0 and fill == COL_ROOF)
+		elif env and outdoor[i] != 0 and fill == Surroundings.color(surroundings):
+			pass  # Se ve la textura del entorno, sin cortes entre casillas.
 		elif bg == null or t != Terrain.FLOOR:
 			draw_colored_polygon(poly, fill)
 		if show_grid and Terrain.is_passable(t):
@@ -397,6 +418,8 @@ func _draw_pixel_cell(c: Vector2i, poly: PackedVector2Array, t: int, fill: Color
 			if outdoor and not roof and fill == MapMeshBuilder.COL_OUTDOOR:
 				kind = PixelTiles.GRASS
 				base = COL_PIXEL_GRASS
+			elif outdoor and not roof and Surroundings.is_open(surroundings) and fill == Surroundings.color(surroundings):
+				kind = _pixel_kind(surroundings)
 			else:
 				kind = PixelTiles.floor_kind(fill, roof)
 		Terrain.WALL:
@@ -419,6 +442,60 @@ func _draw_pixel_cell(c: Vector2i, poly: PackedVector2Array, t: int, fill: Color
 			return
 	var tex: ImageTexture = PixelTiles.tile(kind, base, PixelCanvas.hash_int(c.x, c.y, 17))
 	draw_colored_polygon(poly, Color.WHITE, _cell_uvs(c, poly), tex)
+
+
+## Tile de pixel art de un entorno.
+static func _pixel_kind(env: String) -> String:
+	match env:
+		Surroundings.GRASS:
+			return PixelTiles.GRASS
+		Surroundings.WATER:
+			return PixelTiles.WATER
+		Surroundings.ROCK:
+			return PixelTiles.ROCK
+		Surroundings.COBBLE:
+			return PixelTiles.STONE
+		_:
+			return PixelTiles.DIRT
+
+
+## Fondo del entorno: SURROUND_CELLS casillas alrededor del mapa y debajo de
+## él (las casillas lo tapan; las vacías lo dejan ver). Con textura: la de
+## pixel art o la normal de SurfaceTiles, una por casilla.
+func _draw_surroundings(g: GridGeometry) -> void:
+	var size: Vector2 = g.map_pixel_size(cell_px)
+	var m: float = cell_px * float(MapMeshBuilder.SURROUND_CELLS)
+	var r: Rect2 = Rect2(-m, -m, size.x + 2.0 * m, size.y + 2.0 * m)
+	var tex: Texture2D = _surroundings_texture(surroundings, pixel_art)
+	if tex == null:
+		draw_rect(r, Surroundings.color(surroundings))
+		return
+	var pts: PackedVector2Array = PackedVector2Array([r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y)])
+	var uvs: PackedVector2Array = PackedVector2Array()
+	for p: Vector2 in pts:
+		uvs.append(p / cell_px)
+	draw_colored_polygon(pts, Color.WHITE, uvs, tex)
+
+
+## Textura de un entorno (en caché): pixel art (32 px) o normal (64 px).
+static func _surroundings_texture(env: String, pixel: bool) -> Texture2D:
+	var key: String = env + ("|px" if pixel else "|hd")
+	if _env_tex.has(key):
+		return _env_tex[key]
+	var tex: Texture2D = null
+	if pixel:
+		var base: Color = Surroundings.color(env)
+		if env == Surroundings.ROCK:
+			base = PixelTiles.BASE_ROCK
+		tex = PixelTiles.tile(_pixel_kind(env), base, 0)
+	else:
+		var layer: int = SurfaceTiles.kind_of_surroundings(env)
+		if layer >= 0:
+			var img: Image = SurfaceTiles.smooth_image(SurfaceTiles.KINDS[layer], 0)
+			tex = ImageTexture.create_from_image(img)
+	if tex != null:
+		_env_tex[key] = tex
+	return tex
 
 
 ## UV de la casilla: su recuadro de cell_px a 0..1 (cuadradas exactas; en
@@ -459,6 +536,8 @@ func _draw_outline(poly: PackedVector2Array, col: Color, width: float) -> void:
 ## del mapa (solo visual: los muros del modelo se dibujan en _draw_edges).
 func _draw_outlines(g: GridGeometry, lvl: MapLevel) -> void:
 	var w: float = maxf(2.0, cell_px * 0.16)
+	var open_border: bool = Surroundings.is_open(surroundings) and not ink_saver
+	var outdoor: PackedByteArray = MapMeshBuilder.outdoor_mask(lvl)
 	for i: int in g.cell_count():
 		var c: Vector2i = g.cell_at(i)
 		if not Terrain.is_passable(lvl.get_terrain(c)):
@@ -467,6 +546,8 @@ func _draw_outlines(g: GridGeometry, lvl: MapLevel) -> void:
 			var n: Vector2i = g.neighbor(c, dir)
 			if g.in_bounds(n) and Terrain.is_passable(lvl.get_terrain(n)):
 				continue
+			if not g.in_bounds(n) and open_border and outdoor[i] != 0:
+				continue  # Al aire libre el borde del mapa no es un muro.
 			var seg: PackedVector2Array = g.edge_segment(c, dir, cell_px)
 			if seg.size() >= 2:
 				if pixel_art and not ink_saver:
@@ -476,6 +557,7 @@ func _draw_outlines(g: GridGeometry, lvl: MapLevel) -> void:
 
 
 func _draw_edges(g: GridGeometry, lvl: MapLevel) -> void:
+	var outdoor: PackedByteArray = MapMeshBuilder.outdoor_mask(lvl)
 	for id: int in lvl.edge_ids():
 		var v: int = lvl.get_edge_by_id(id)
 		var ce: Vector3i = g.edge_from_id(id)
@@ -483,9 +565,11 @@ func _draw_edges(g: GridGeometry, lvl: MapLevel) -> void:
 		if seg.size() < 2:
 			continue
 		var k: int = MapEdge.kind_of(v)
-		var w: float = cell_px * 0.12
+		# Muros exteriores más gruesos que los tabiques (ADR 052).
+		var ext: bool = MapMeshBuilder.is_exterior_edge(g, outdoor, id)
+		var w: float = cell_px * (0.26 if ext else 0.12)
 		if pixel_art and not ink_saver:
-			_draw_pixel_edge(seg, v, k)
+			_draw_pixel_edge(seg, v, k, ext)
 			continue
 		match k:
 			MapEdge.KIND_WALL:
@@ -506,8 +590,8 @@ func _draw_edges(g: GridGeometry, lvl: MapLevel) -> void:
 				draw_line(a, b, COL_WINDOW, w * 0.45)
 
 
-func _draw_pixel_edge(seg: PackedVector2Array, v: int, k: int) -> void:
-	var th: float = _pixel_thick()
+func _draw_pixel_edge(seg: PackedVector2Array, v: int, k: int, exterior: bool = false) -> void:
+	var th: float = _pixel_thick() * (1.6 if exterior else 1.0)
 	var wall: Texture2D = PixelTiles.wall_strip()
 	match k:
 		MapEdge.KIND_WALL:
@@ -1101,8 +1185,12 @@ func _handle_button(mb: InputEventMouseButton) -> void:
 				_template_button(mb.pressed, cell)
 				get_viewport().set_input_as_handled()
 				return
-			if mb.pressed and mb.double_click and _token_at(cell) == null:
-				if document.grid.in_bounds(cell):
+			if mb.pressed and mb.double_click and _door_edge_near(_pointer_local, DOOR_OVER_TOKEN_FRAC) >= 0:
+				door_activated.emit(_door_edge_near(_pointer_local, DOOR_OVER_TOKEN_FRAC))
+			elif mb.pressed and mb.double_click and _token_at(cell) == null:
+				if _door_edge_near(_pointer_local) >= 0:
+					door_activated.emit(_door_edge_near(_pointer_local))
+				elif document.grid.in_bounds(cell):
 					cell_activated.emit(cell)
 			elif mb.pressed and mb.double_click:
 				var tk: MapToken = _token_at(cell)

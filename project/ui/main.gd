@@ -410,6 +410,7 @@ func _build_ui() -> void:
 	_view.stairs_taken.connect(_on_stairs_taken)
 	_view.token_activated.connect(_on_token_activated)
 	_view.door_toggled.connect(_on_door_toggled)
+	_view.door_activated.connect(_on_door_activated)
 
 	# Vista 3D en su propio SubViewport (mundo 3D propio). El contenedor
 	# recoge ratón y teclado y se los pasa a la vista, como en 2D.
@@ -435,6 +436,7 @@ func _build_ui() -> void:
 	_view3d.user_command_done.connect(_on_user_command)
 	_view3d.cell_activated.connect(_on_cell_activated)
 	_view3d.token_activated.connect(_on_token_activated)
+	_view3d.door_activated.connect(_on_door_activated)
 	_view3d.token_selected.connect(func(id: int) -> void:
 		_selected_token = id
 		_show_token_loot(id)
@@ -612,6 +614,8 @@ func _frame_name(f: MapNavigator.Frame) -> String:
 ## escala, sistema y rejilla como los del mapa.
 func _show_frame(f: MapNavigator.Frame, level: int) -> void:
 	_set_document(f.doc, f.stack, level)
+	_view.surroundings = f.surroundings
+	_view3d.surroundings = f.surroundings
 	var parsed: SeedCode = SeedCode.parse(f.doc.seed_code)
 	for i: int in _profiles.size():
 		if _profiles[i].seed_code == parsed.system:
@@ -647,6 +651,10 @@ func _set_document(doc: MapDocument, stack: CommandStack, level: int) -> void:
 	_view3d.command_stack = _stack
 	_view3d.profile = _current_profile()
 	_view3d.document = doc
+	# Entorno (ADR 052): el del mapa por defecto; _show_frame pone el que
+	# viene del mapa de arriba.
+	_view.surroundings = Surroundings.default_for(doc)
+	_view3d.surroundings = _view.surroundings
 	# Con nombre (no lambda) para no conectarlo dos veces al volver a un mapa.
 	if not doc.changed.is_connected(_on_doc_changed):
 		doc.changed.connect(_on_doc_changed)
@@ -741,6 +749,10 @@ func _on_cell_activated(cell: Vector2i) -> void:
 		# Modo jugador: doble clic = señalar la casilla a todos.
 		_client.send_ping(_view.level_index, cell)
 		return
+	# Fuera de un edificio (su zona exterior): se sale al mapa de arriba.
+	if is_building_outside(_view.level_index, cell):
+		_go_back()
+		return
 	var child: MapChild = _doc.level(_view.level_index).child_at(cell)
 	# Punto de interés sin mapa (ruinas, torre…): solo se dice qué es.
 	if child != null and child.seed_code.is_empty():
@@ -773,6 +785,41 @@ func _on_cell_activated(cell: Vector2i) -> void:
 	_explore_after_navigation()
 	var key: String = "UI_NAV_ENTERED_ROOM" if room else "UI_NAV_ENTERED"
 	_status.text = tr(key).replace("{name}", _frame_name(f)).replace("{code}", f.doc.seed_code)
+
+
+## ¿Es la casilla la zona exterior de un edificio del que se puede salir? (el
+## mapa tiene zonas al aire libre y otras de dentro, y hay mapa de arriba).
+func is_building_outside(level: int, cell: Vector2i) -> bool:
+	if _doc == null or _nav == null or not _nav.can_go_back() or _client != null:
+		return false
+	var lvl: MapLevel = _doc.level(level)
+	if lvl == null or lvl.has_geo_layers() or not _doc.grid.in_bounds(cell):
+		return false
+	if not _has_inside_and_outside(lvl):
+		return false
+	return MapMeshBuilder.outdoor_mask(lvl)[_doc.grid.index_of(cell)] != 0
+
+
+## Un edificio tiene su zona "outside" (el exterior junto a sus muros); un
+## asentamiento no (todo él está al aire libre: doble clic en la calle no
+## saca de la ciudad).
+static func _has_inside_and_outside(lvl: MapLevel) -> bool:
+	for r: MapRoom in lvl.rooms:
+		if r.kind == MapRoom.KIND_OUTSIDE:
+			return true
+	return false
+
+
+## Doble clic en una puerta: la exterior de un edificio saca al grupo al mapa
+## de arriba (ADR 052); las demás solo se abren o cierran con un clic.
+func _on_door_activated(edge: int) -> void:
+	if _doc == null or _client != null or _nav == null or not _nav.can_go_back():
+		return
+	var lvl: MapLevel = _doc.level(_view.level_index)
+	if lvl == null or not _has_inside_and_outside(lvl):
+		return
+	if MapMeshBuilder.is_exterior_edge(_doc.grid, MapMeshBuilder.outdoor_mask(lvl), edge):
+		_go_back()
 
 
 ## Abre el panel de botín con el contenedor de la casilla (el DM, cualquiera
@@ -1203,6 +1250,10 @@ func _hint_stairs() -> void:
 		return
 	var s: MapStair = _view.stairs_under(t)
 	if s == null:
+		if PartyVision.SIDES_IN_PARTY.has(t.side) and is_building_outside(t.level, t.cell):
+			var out_hint: String = tr("UI_LEAVE_HINT")
+			if not _status.text.contains(out_hint):
+				_status.text = (_status.text + "  " if not _status.text.is_empty() else "") + out_hint
 		return
 	var hint: String = tr("UI_STAIRS_HINT").replace("{level}", str(s.to_level + 1))
 	if not _status.text.contains(hint):

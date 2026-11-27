@@ -29,6 +29,8 @@ signal cell_activated(cell: Vector2i)
 ## Doble clic en una ficha (la UI centra las vistas en ella o la lleva por
 ## la escalera en la que esté).
 signal token_activated(token_id: int)
+## Doble clic en una puerta (ADR 052: la exterior de un edificio saca de él).
+signal door_activated(edge_id: int)
 
 enum Mode { TOP, FIRST_PERSON }
 
@@ -124,6 +126,11 @@ var style_25d: bool = false:
 ## muros en casillas.
 const TILT_25D: float = 38.0
 const WALL_25D: float = 1.5
+## Entorno de alrededor (Surroundings, ADR 052).
+var surroundings: String = "":
+	set(v):
+		surroundings = v
+		mark_dirty()
 ## Altura de las puertas de lo último construido (para pinchar en ellas).
 var _door_h: float = 2.2
 
@@ -246,6 +253,7 @@ func rebuild() -> void:
 	opts.visible = fog_visible
 	opts.explored = fog_explored
 	opts.ceiling = mode == Mode.FIRST_PERSON
+	opts.surroundings = surroundings
 	var flat: bool = is_25d()
 	if flat:
 		# 2.5D: muros de una casilla y media, como en los juegos de granja en
@@ -777,7 +785,9 @@ func _handle_button(mb: InputEventMouseButton) -> void:
 				return
 			var cell: Vector2i = cell_at_screen(mb.position)
 			var hit: MapToken = token_at_screen(mb.position)
-			if mb.pressed and mb.double_click and hit == null:
+			if mb.pressed and mb.double_click and hit == null and door_at_screen(mb.position) >= 0:
+				door_activated.emit(door_at_screen(mb.position))
+			elif mb.pressed and mb.double_click and hit == null:
 				if document.grid.in_bounds(cell):
 					cell_activated.emit(cell)
 			elif mb.pressed and mb.double_click:

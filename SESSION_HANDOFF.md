@@ -1,5 +1,17 @@
 # SESSION_HANDOFF — RPG Mapping
 
+## Última sesión: 2026-11-27 (14.ª, decimoquinta parte) — Entorno, muros exteriores y salir de edificios
+Tests: **372/372 en escritorio y en el navegador** (2 nuevos en `test_map_navigation.gd`).
+
+### Hecho (ADR 052)
+- **Entorno** (`core/model/surroundings.gd`): fuera de cada mapa se ve hierba, empedrado, tierra, arena, nieve, roca o agua según de dónde se viene (huella del edificio en la aldea, bioma de la región; mazmorra = roca). En 2D, 3D y 2.5D, normal y pixel art. Al aire libre el borde del mapa ya no se dibuja como muro (el «muro doble»).
+- **Muros**: exteriores gruesos, tabiques finos (2D y 3D); en 2.5D la fachada sur baja para no tapar la última fila.
+- **Salir**: doble clic en la puerta exterior o en el exterior del edificio saca al grupo; la barra lo recuerda al pisar fuera.
+- Texturas nuevas: roca, arena, nieve y empedrado.
+
+### Siguiente paso
+1. Que Víctor pruebe la build nueva.
+2. Posible: dar varios entornos por lado (una casa junto al río con agua a un lado y calle al otro); ahora gana el que más rodea la huella.
 ## Última sesión: 2026-11-27 (14.ª, decimocuarta parte) — Mejoras tras probar la build: 3D, lugares, criaturas y 2.5D
 Tests: **370/370 en escritorio y en el navegador** (4 nuevos).
 

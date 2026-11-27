@@ -12,7 +12,7 @@ extends RefCounted
 ## color de cada zona, la niebla y la luz horneadas.
 ## Capa = KIND * VARIANTS + variante (el orden de KINDS lo usa el sombreador).
 
-const KINDS: PackedStringArray = ["stone", "wood", "grass", "water", "dirt", "brick", "door"]
+const KINDS: PackedStringArray = ["stone", "wood", "grass", "water", "dirt", "brick", "door", "rock", "sand", "snow", "cobble"]
 const VARIANTS: int = 4
 const PIXEL_SIZE: int = 32
 const SMOOTH_SIZE: int = 64
@@ -26,7 +26,22 @@ const BASES: Dictionary[String, Color] = {
 	"dirt": Color("8a6a48"),
 	"brick": Color("8f7b62"),
 	"door": Color("9a6a32"),
+	"rock": Color("5a4636"),
+	"sand": Color("d6c08a"),
+	"snow": Color("e8eef2"),
+	"cobble": Color("a39a8c"),
 }
+
+
+## Capa (tipo de SurfaceTiles) de un entorno de Surroundings, o -1.
+static func kind_of_surroundings(s: String) -> int:
+	match s:
+		Surroundings.COBBLE:
+			return KINDS.find("cobble")
+		Surroundings.ROCK:
+			return KINDS.find("rock")
+		_:
+			return KINDS.find(s)
 
 static var _arrays: Dictionary[bool, Texture2DArray] = {}
 
@@ -68,6 +83,12 @@ static func pixel_image(kind: String, variant: int) -> Image:
 			return PixelTiles.build(PixelTiles.DIRT, base, variant).image
 		"brick":
 			return _pixel_brick(base, variant).image
+		"rock":
+			return PixelTiles.build(PixelTiles.ROCK, base, variant).image
+		"sand", "snow":
+			return PixelTiles.build(PixelTiles.DIRT, base, variant).image
+		"cobble":
+			return _pixel_cobble(base, variant).image
 		_:
 			return _pixel_door(base, variant).image
 
@@ -90,6 +111,30 @@ static func _pixel_brick(base: Color, variant: int) -> PixelCanvas:
 					cv.px(posmod(xx, PIXEL_SIZE), yy, face)
 			for xx: int in range(x0, x0 + 6):
 				cv.px(posmod(xx, PIXEL_SIZE), row * 4, r[3])
+	return cv
+
+
+## Empedrado: cantos redondeados de 6-8 px con juntas oscuras.
+static func _pixel_cobble(base: Color, variant: int) -> PixelCanvas:
+	var cv: PixelCanvas = PixelCanvas.new(PIXEL_SIZE, PIXEL_SIZE)
+	var r: Array[Color] = PixelCanvas.ramp(base)
+	cv.fill(r[0])
+	for gy: int in 4:
+		for gx: int in 4:
+			var h: int = PixelCanvas.hash_int(gx, gy, 211 + variant)
+			var cx: float = float(gx * 8) + 4.0 + float(h % 3) - 1.0 + (4.0 if gy % 2 == 1 else 0.0)
+			var cy: float = float(gy * 8) + 4.0 + float((h >> 3) % 3) - 1.0
+			var face: Color = r[2] if h % 4 != 0 else r[1].lerp(r[2], 0.5)
+			for dy: int in range(-4, 5):
+				for dx: int in range(-4, 5):
+					var d: float = Vector2(float(dx), float(dy)).length()
+					if d <= 3.2:
+						var col: Color = face
+						if dx + dy < -2:
+							col = r[3]
+						elif dx + dy > 3:
+							col = r[1]
+						cv.px(posmod(int(cx) + dx, PIXEL_SIZE), posmod(int(cy) + dy, PIXEL_SIZE), col)
 	return cv
 
 
@@ -138,6 +183,14 @@ static func smooth_image(kind: String, variant: int) -> Image:
 					k = 0.82 + 0.3 * _fbm(u, v, 5, 5, salt) + (0.08 if _hash(int(u * 24.0), int(v * 24.0), salt) % 13 == 0 else 0.0)
 				"brick":
 					k = _brick(u, v, salt)
+				"rock":
+					k = 0.75 + 0.45 * _fbm(u, v, 4, 4, salt) * _fbm(u, v, 9, 9, salt + 2) + (0.15 if _fbm(u, v, 12, 12, salt + 4) > 0.72 else 0.0)
+				"sand":
+					k = 0.9 + 0.08 * sin((v * 6.0 + _fbm(u, v, 3, 3, salt) * 2.0) * TAU) + 0.08 * _fbm(u, v, 16, 16, salt + 1)
+				"snow":
+					k = 0.93 + 0.1 * _fbm(u, v, 5, 5, salt) - (0.06 if _hash(int(u * 40.0), int(v * 40.0), salt) % 17 == 0 else 0.0)
+				"cobble":
+					k = _cobble(u, v, salt)
 				_:
 					k = _planks(v, u, salt, false)
 			var c: Color = Color(tint.r * k, tint.g * k, tint.b * k, 1.0)
@@ -191,6 +244,22 @@ static func _grass(u: float, v: float, salt: int) -> float:
 	elif h % 11 == 0:
 		k -= 0.15
 	return k
+
+
+## Empedrado: cantos redondeados (4×4 por casilla) con juntas y bisel.
+static func _cobble(u: float, v: float, salt: int) -> float:
+	var pu: float = u * 4.0
+	var pv: float = v * 4.0
+	var row: int = floori(pv)
+	pu += 0.5 * float(row % 2)
+	var col: int = floori(pu)
+	var fu: float = pu - floorf(pu) - 0.5
+	var fv: float = pv - floorf(pv) - 0.5
+	var d: float = Vector2(fu, fv).length()
+	var stone: float = smoothstep(0.5, 0.36, d)
+	var light: float = 1.0 + 0.25 * (-fu - fv) * stone
+	var tone: float = 0.85 + 0.25 * float(_hash(posmod(col, 4), row, salt) % 100) / 100.0
+	return lerpf(0.45, tone * light, stone) * (0.94 + 0.1 * _fbm(u, v, 10, 10, salt))
 
 
 ## Hiladas de sillares con mortero y bisel.
