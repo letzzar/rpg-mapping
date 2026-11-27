@@ -72,6 +72,7 @@
 				"additionalProperties": false,
 				"properties": {
 					"id": { "type": "string" },
+					"category": { "enum": ["npc", "creature", "monster"], "description": "Grupo en el menú Añadir criatura y bando por defecto (ADR 050)" },
 					"body": { "type": "string" },
 					"size_id": { "type": "string" },
 					"parts": { "$ref": "#/$defs/slot_map" },

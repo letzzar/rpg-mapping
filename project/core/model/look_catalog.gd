@@ -13,6 +13,7 @@ extends RefCounted
 const PATH: String = "res://data/characters/look_catalog.json"
 const SCHEMA_VERSION: int = 1
 const SHAPES: PackedStringArray = ["box", "sphere", "cylinder", "cone"]
+const CATEGORIES: PackedStringArray = ["npc", "creature", "monster"]
 
 
 ## Una primitiva de una pieza.
@@ -58,6 +59,8 @@ class Part:
 class Preset:
 	extends RefCounted
 	var id: String = ""
+	## Grupo del menú Añadir criatura (ADR 050): npc, creature o monster.
+	var category: String = "npc"
 	var body: String = ""
 	var size_id: String = "medium"
 	var parts: Dictionary[String, String] = {}
@@ -260,6 +263,10 @@ func _read(path: String) -> void:
 	for d: Dictionary in r.get_dicts(root, "presets"):
 		var pr: Preset = Preset.new()
 		pr.id = r.get_str(d, "id")
+		if d.has("category"):
+			pr.category = r.get_str(d, "category")
+			if not CATEGORIES.has(pr.category):
+				r.fail("%s: categoría desconocida '%s'" % [pr.id, pr.category])
 		pr.body = r.get_str(d, "body")
 		pr.size_id = r.get_str(d, "size_id")
 		var pp: Dictionary = r.get_dict(d, "parts")

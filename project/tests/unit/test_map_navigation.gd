@@ -345,3 +345,115 @@ func test_settlement_building_room_chain_in_ui() -> void:
 	await wait_process_frames(2)
 	assert_eq(nav.depth(), 1)
 	assert_eq(edit.text, CODE_VILLAGE)
+
+
+# --- Saltos y panel Lugares (ADR 050) -------------------------------------------
+
+## Saltar entre hermanos sin llevar fichas: se mira el otro edificio y el
+## grupo se queda; con "llevar", el grupo pasa por la puerta del destino; y
+## subir a la aldea lo deja delante de la puerta por la que salió.
+func test_jump_looks_or_carries_the_party() -> void:
+	var prof: SystemProfile = _profile(SeedCode.parse(CODE_VILLAGE).system)
+	var doc: MapDocument = _settlement(CODE_VILLAGE)
+	var a: MapChild = doc.level(0).children[0]
+	var b: MapChild = doc.level(0).children[1]
+	var nav: MapNavigator = MapNavigator.new()
+	nav.open_root(doc)
+	_token(doc, 0, a.entrance, MapToken.SIDE_PLAYER, "P1")
+	var fa: MapNavigator.Frame = nav.enter(a, 0, prof)
+	assert_eq(_party(fa.doc).size(), 1)
+	# Solo mirar el edificio B: la ficha sigue en A.
+	var to_b: Array[MapChild] = [b]
+	var fb: MapNavigator.Frame = nav.jump(to_b, 0, false, prof)
+	assert_not_null(fb, nav.error)
+	assert_eq(fb.doc.seed_code, b.seed_code)
+	assert_eq(nav.depth(), 2)
+	assert_eq(_party(fb.doc).size(), 0, "mirar no mueve fichas")
+	assert_eq(_party(fa.doc).size(), 1)
+	# Volver a A (ya visitado) llevándose a nadie y después saltar a B con el grupo.
+	var to_a: Array[MapChild] = [a]
+	assert_eq(nav.jump(to_a, 0, false, prof), fa, "A se reabre como se dejó")
+	fb = nav.jump(to_b, 0, true, prof)
+	assert_eq(_party(fa.doc).size(), 0)
+	assert_eq(_party(fb.doc).size(), 1, "con llevar, el grupo llega")
+	var t: MapToken = _party(fb.doc)[0]
+	assert_eq(t.level, b.child_level)
+	assert_true(Terrain.is_passable(fb.doc.level(t.level).get_terrain(t.cell)))
+	# Subir a la aldea con el grupo: delante de la puerta de B.
+	var root_path: Array[MapChild] = []
+	var fr: MapNavigator.Frame = nav.jump(root_path, 0, true, prof)
+	assert_eq(fr.doc, doc)
+	assert_eq(nav.depth(), 1)
+	var out: Array[MapToken] = _party(doc)
+	assert_eq(out.size(), 1)
+	assert_lte(absi(out[0].cell.x - b.entrance.x) + absi(out[0].cell.y - b.entrance.y), 3, "sale por la puerta de B")
+	# Un hijo que no existe no rompe la ruta.
+	var bad: MapChild = b.copy()
+	bad.id = 999999
+	bad.seed_code = "RPGM1-XXXX"
+	var bad_path: Array[MapChild] = [bad]
+	assert_null(nav.jump(bad_path, 0, false, prof))
+	assert_eq(nav.depth(), 1)
+
+
+## El panel Lugares lista los mapas visitados en árbol y los sitios del mapa
+## actual (filtrables), y pide el salto; en la pantalla principal mueve la
+## vista. "Añadir criatura" pone un goblin enemigo junto a la ficha elegida.
+func test_places_panel_and_add_creature() -> void:
+	var vp: SubViewport = SubViewport.new()
+	vp.size = Vector2i(1280, 800)
+	add_child_autofree(vp)
+	var main: Control = (load("res://ui/main.tscn") as PackedScene).instantiate()
+	vp.add_child(main)
+	await wait_process_frames(2)
+	var edit: LineEdit = main.get("_code_edit")
+	edit.text = CODE_VILLAGE
+	main.call("_generate_from_text")
+	await wait_process_frames(2)
+	var doc: MapDocument = main.get("_doc")
+	var panel: PlacesPanel = main.get("_places_panel")
+	var btn: Button = main.get("_places_btn")
+	btn.button_pressed = true
+	btn.pressed.emit()
+	await wait_process_frames(1)
+	assert_true(panel.visible)
+	assert_eq(panel.tree_count(), 1, "solo la aldea")
+	var n: int = panel.here_count()
+	assert_gt(n, 3, "sus edificios")
+	var filt: LineEdit = panel.get("_filter")
+	filt.text = panel.here_name(0).substr(0, 4)
+	filt.text_changed.emit(filt.text)
+	assert_between(panel.here_count(), 1, n)
+	filt.text = ""
+	filt.text_changed.emit("")
+	# Ir al primer sitio solo a mirar.
+	panel.go_here(0)
+	await wait_process_frames(2)
+	var nav: MapNavigator = main.get("_nav")
+	assert_eq(nav.depth(), 2)
+	var now_doc: MapDocument = main.get("_doc")
+	assert_ne(now_doc, doc)
+	assert_eq(panel.tree_count(), 2, "aldea y el edificio visitado")
+	# Volver a la raíz desde el árbol.
+	panel.go_tree(0)
+	await wait_process_frames(2)
+	now_doc = main.get("_doc")
+	assert_eq(now_doc, doc)
+	# Criatura: junto a la ficha elegida, enemiga por ser un monstruo.
+	main.call("_add_token")
+	var hero: MapToken = doc.tokens[-1]
+	main.set("_selected_token", hero.id)
+	var gob: MapToken = main.call("add_creature", "goblin")
+	assert_not_null(gob)
+	assert_eq(gob.side, MapToken.SIDE_ENEMY)
+	assert_not_null(gob.sheet)
+	assert_eq(gob.sheet.look.body, "humanoid_small")
+	assert_lte(absi(gob.cell.x - hero.cell.x) + absi(gob.cell.y - hero.cell.y), 4, "junto a la ficha elegida")
+	main.set("_selected_token", hero.id)
+	var gob2: MapToken = main.call("add_creature", "goblin")
+	assert_eq(gob2.name, gob.name + " 2", "nombres sin repetir")
+	var npc: MapToken = main.call("add_creature", "bandit", MapToken.SIDE_ALLY)
+	assert_eq(npc.side, MapToken.SIDE_ALLY, "bando elegido")
+	var cb: MenuButton = main.get("_creature_btn")
+	var pm: PopupMenu = cb.get_popup()
+	assert_gt(pm.item_count, LookCatalog.load_default().presets.size(), "todas en el menú")

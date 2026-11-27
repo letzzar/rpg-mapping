@@ -740,12 +740,13 @@ func _handle_button(mb: InputEventMouseButton) -> void:
 			if mode != Mode.TOP:
 				return
 			var cell: Vector2i = cell_at_screen(mb.position)
-			if mb.pressed and mb.double_click and _token_at(cell) == null:
+			var hit: MapToken = token_at_screen(mb.position)
+			if mb.pressed and mb.double_click and hit == null:
 				if document.grid.in_bounds(cell):
 					cell_activated.emit(cell)
 			elif mb.pressed and mb.double_click:
 				_drag_token = -1
-				token_activated.emit(_token_at(cell).id)
+				token_activated.emit(hit.id)
 			elif mb.pressed:
 				_on_left_press(cell, mb.position)
 			else:
@@ -798,7 +799,9 @@ func handle_key(k: InputEventKey) -> void:
 		KEY_D, KEY_RIGHT:
 			turn_first_person(1)
 		KEY_SPACE, KEY_E:
-			toggle_door_ahead()
+			# Puerta delante o, si no hay, la escalera en la que se está.
+			if not toggle_door_ahead() and selected_token >= 0:
+				token_activated.emit(selected_token)
 
 
 ## Dirección de arista más cercana a donde mira la cámara: tras mirar con el
@@ -901,6 +904,13 @@ func ground_at_screen(pos: Vector2) -> Vector2:
 	return Vector2(hit.x, hit.z)
 
 
+## Casilla del centro de lo que mira la cámara cenital.
+func center_cell() -> Vector2i:
+	if document == null:
+		return Vector2i.ZERO
+	return document.grid.pixel_to_cell(Vector2(_target.x, _target.z), cell_m)
+
+
 ## Pantalla de un punto del suelo (para tests y depuración).
 func screen_of_cell(cell: Vector2i) -> Vector2:
 	var p: Vector2 = document.grid.cell_to_pixel(cell, cell_m)
@@ -908,15 +918,15 @@ func screen_of_cell(cell: Vector2i) -> Vector2:
 
 
 func _on_left_press(cell: Vector2i, pos: Vector2) -> void:
-	var t: MapToken = _token_at(cell)
+	var t: MapToken = token_at_screen(pos)
 	if t != null:
 		_drag_token = t.id
 		selected_token = t.id
-		_drag_cell = cell
+		_drag_cell = t.cell
 		token_selected.emit(t.id)
 		mark_dirty()
 		return
-	var edge: int = _door_edge_near(ground_at_screen(pos))
+	var edge: int = door_at_screen(pos)
 	if edge >= 0 and command_stack != null:
 		if command_stack.execute(SetEdgeCommand.toggle_flag(document, level_index, edge, MapEdge.FLAG_OPEN)):
 			user_command_done.emit()
@@ -963,6 +973,122 @@ func _token_at(cell: Vector2i) -> MapToken:
 				continue
 			return t
 	return null
+
+
+## Ficha bajo el punto de pantalla: la primera figura que corta el rayo de la
+## cámara (un cilindro de su huella y su altura), o la de la casilla del
+## suelo. Con la cámara inclinada, pinchar en el cuerpo de una figura daba en
+## el suelo de detrás y no la cogía.
+func token_at_screen(pos: Vector2) -> MapToken:
+	if document == null or _camera == null:
+		return null
+	var from: Vector3 = _camera.project_ray_origin(pos)
+	var dir: Vector3 = _camera.project_ray_normal(pos)
+	var best: MapToken = null
+	var best_t: float = INF
+	var g: GridGeometry = document.grid
+	for tk: MapToken in document.tokens:
+		if tk.level != level_index or (tk.hidden and not dm_view):
+			continue
+		if fog and not PartyVision.SIDES_IN_PARTY.has(tk.side) and not _cell_visible(tk.cell):
+			continue
+		var cells: Array[Vector2i] = document.token_cells(tk, profile) if profile != null else [tk.cell]
+		var center: Vector2 = Vector2.ZERO
+		for c: Vector2i in cells:
+			center += g.cell_to_pixel(c, cell_m)
+		center /= float(cells.size())
+		var radius: float = cell_m * 0.42 * sqrt(float(cells.size()))
+		var height: float = _eye_height(tk.size_id) * 1.1
+		var t_hit: float = _ray_cylinder(from, dir, center, radius, height)
+		if t_hit < best_t:
+			best_t = t_hit
+			best = tk
+	if best != null:
+		return best
+	return _token_at(cell_at_screen(pos))
+
+
+## Distancia por el rayo hasta el cilindro vertical (centro en el suelo,
+## radio y altura), o INF si no lo corta.
+static func _ray_cylinder(from: Vector3, dir: Vector3, center: Vector2, radius: float, height: float) -> float:
+	var o: Vector2 = Vector2(from.x - center.x, from.z - center.y)
+	var d: Vector2 = Vector2(dir.x, dir.z)
+	var a: float = d.dot(d)
+	var best: float = INF
+	if a > 0.000001:
+		var b: float = 2.0 * o.dot(d)
+		var c: float = o.dot(o) - radius * radius
+		var disc: float = b * b - 4.0 * a * c
+		if disc >= 0.0:
+			var s: float = sqrt(disc)
+			for t: float in [(-b - s) / (2.0 * a), (-b + s) / (2.0 * a)]:
+				var y: float = from.y + dir.y * t
+				if t > 0.0 and y >= 0.0 and y <= height and t < best:
+					best = t
+	# Tapa de arriba (mirando desde encima).
+	if absf(dir.y) > 0.000001:
+		var tt: float = (height - from.y) / dir.y
+		if tt > 0.0:
+			var p: Vector2 = o + d * tt
+			if p.length() <= radius and tt < best:
+				best = tt
+	return best
+
+
+## Puerta bajo el punto de pantalla: la primera hoja de puerta que corta el
+## rayo de la cámara (entre el suelo y el dintel); si no, la más cercana al
+## punto del suelo. -1 si no hay.
+func door_at_screen(pos: Vector2) -> int:
+	if document == null or _camera == null:
+		return -1
+	var from: Vector3 = _camera.project_ray_origin(pos)
+	var dir: Vector3 = _camera.project_ray_normal(pos)
+	var g: GridGeometry = document.grid
+	var lvl: MapLevel = document.level(level_index)
+	var door_h: float = MapMeshBuilder.Options.new().door_h
+	# Tramo del rayo entre el dintel y el suelo, proyectado sobre el plano.
+	if absf(dir.y) < 0.000001:
+		return _door_edge_near(ground_at_screen(pos))
+	var t_top: float = maxf(0.0, (door_h - from.y) / dir.y)
+	var t_floor: float = (0.0 - from.y) / dir.y
+	if t_floor <= 0.0:
+		return -1
+	var a2: Vector2 = Vector2(from.x + dir.x * t_top, from.z + dir.z * t_top)
+	var b2: Vector2 = Vector2(from.x + dir.x * t_floor, from.z + dir.z * t_floor)
+	var seen: Dictionary[int, bool] = {}
+	var best: int = -1
+	var best_t: float = INF
+	var steps: int = clampi(int(a2.distance_to(b2) / (cell_m * 0.25)) + 1, 1, 400)
+	for i: int in steps + 1:
+		var c: Vector2i = g.pixel_to_cell(a2.lerp(b2, float(i) / float(steps)), cell_m)
+		if not g.in_bounds(c):
+			continue
+		for d: int in g.edge_direction_count():
+			var v: int = lvl.get_edge(c, d)
+			if not MapEdge.is_door(v):
+				continue
+			var secret_hidden: bool = MapEdge.kind_of(v) == MapEdge.KIND_SECRET_DOOR and not MapEdge.has_flag(v, MapEdge.FLAG_DISCOVERED)
+			if secret_hidden and (fog or not dm_view):
+				continue
+			var id: int = g.edge_id(c, d)
+			if seen.has(id):
+				continue
+			seen[id] = true
+			var seg: PackedVector2Array = g.edge_segment(c, d, cell_m)
+			var x: Variant = Geometry2D.segment_intersects_segment(a2, b2, seg[0], seg[1])
+			if x == null:
+				continue
+			var xp: Vector2 = x
+			# Parámetro del rayo en el cruce (por la componente más larga).
+			var span: Vector2 = b2 - a2
+			var f: float = (xp - a2).x / span.x if absf(span.x) > absf(span.y) else ((xp - a2).y / span.y if absf(span.y) > 0.000001 else 0.0)
+			var tr_: float = lerpf(t_top, t_floor, f)
+			if tr_ < best_t:
+				best_t = tr_
+				best = id
+	if best >= 0:
+		return best
+	return _door_edge_near(ground_at_screen(pos))
 
 
 ## Puerta cuya arista está más cerca del punto del suelo (metros), a menos de

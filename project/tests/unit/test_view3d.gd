@@ -286,3 +286,70 @@ func test_first_person_opens_door_ahead() -> void:
 	assert_true(MapEdge.has_flag(d.level(0).get_edge_by_id(door), MapEdge.FLAG_OPEN), "Espacio abre la puerta de delante")
 	assert_true(v.step_first_person(1))
 	assert_eq(t.cell, Vector2i(3, 1), "y ya se puede pasar")
+
+
+## Pinchar en 3D (ADR 050): la puerta y la figura se cogen por donde se ven
+## (a media altura), no solo por el suelo de debajo; y con la ficha en una
+## escalera, el doble clic en ella la toma también en 3D.
+func test_click_hits_doors_and_figures_where_they_are_seen() -> void:
+	await _generate("RPGM1-DND5-MAZ-G1-WKA0G0-W7HE7S75-0")
+	_select_view(1)
+	await wait_process_frames(2)
+	var v: MapView3D = _v3()
+	var d: MapDocument = _doc()
+	var g: GridGeometry = d.grid
+	var lvl: MapLevel = d.level(v.level_index)
+	# Una puerta cualquiera: su centro a 1,2 m de alto.
+	var door_id: int = -1
+	var door_mid: Vector2 = Vector2.ZERO
+	for i: int in g.cell_count():
+		var c: Vector2i = g.cell_at(i)
+		for dir: int in g.edge_direction_count():
+			var val: int = lvl.get_edge(c, dir)
+			if MapEdge.is_door(val) and MapEdge.kind_of(val) != MapEdge.KIND_SECRET_DOOR:
+				door_id = g.edge_id(c, dir)
+				var seg: PackedVector2Array = g.edge_segment(c, dir, v.cell_m)
+				door_mid = (seg[0] + seg[1]) * 0.5
+				break
+		if door_id >= 0:
+			break
+	assert_gt(door_id, -1, "hay puertas")
+	v.center_on_cell(g.pixel_to_cell(door_mid, v.cell_m))
+	await wait_process_frames(1)
+	var cam: Camera3D = v.camera()
+	var p_door: Vector2 = cam.unproject_position(Vector3(door_mid.x, 1.2, door_mid.y))
+	assert_eq(v.door_at_screen(p_door), door_id, "la hoja de la puerta, a media altura")
+	# Una ficha: se coge por el cuerpo aunque el suelo de detrás sea otra casilla.
+	var stair: MapStair = null
+	for s: MapStair in lvl.stairs:
+		if s.to_level >= 0 and s.to_level != v.level_index:
+			stair = s
+			break
+	assert_not_null(stair)
+	_main.call("_add_token")
+	var t: MapToken = d.tokens[-1]
+	var stack: CommandStack = _main.get("_stack")
+	assert_true(stack.execute(MoveTokenCommand.new(t.id, stair.cell, v.level_index)))
+	v.center_on_cell(t.cell)
+	v.mark_dirty()
+	await wait_process_frames(2)
+	var center: Vector2 = g.cell_to_pixel(t.cell, v.cell_m)
+	var p_body: Vector2 = cam.unproject_position(Vector3(center.x, 1.3, center.y))
+	assert_ne(v.cell_at_screen(p_body), t.cell, "el suelo de detrás es otra casilla")
+	assert_eq(v.token_at_screen(p_body).id, t.id, "pero se coge la figura")
+	# Doble clic en la figura: toma la escalera.
+	_main.call("_on_token_activated", t.id)
+	await wait_process_frames(1)
+	assert_eq(d.token(t.id).level, stair.to_level, "baja (o sube) por la escalera")
+	assert_eq(v.level_index, stair.to_level, "y la vista la sigue")
+	# Y de vuelta, por la escalera de la otra planta.
+	_main.call("_on_token_activated", t.id)
+	await wait_process_frames(1)
+	assert_eq(d.token(t.id).level, lvl_index_of(stair, d), "vuelve")
+
+
+func lvl_index_of(s: MapStair, d: MapDocument) -> int:
+	for li: int in d.level_count():
+		if d.level(li).stairs.has(s):
+			return li
+	return -1

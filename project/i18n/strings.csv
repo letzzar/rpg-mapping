@@ -268,6 +268,7 @@ UI_NET_PUBLIC_TIP,"Opcional: dirección por la que entran los jugadores si hay u
 UI_NET_ADDRESS_TIP,"Dirección de este equipo que va en los enlaces y el QR. La primera suele ser la de la red local; las de máquinas virtuales y VPN van al final (una VPN como Tailscale sirve para jugar a distancia).","This computer's address used in links and the QR. The first is usually the local network one; virtual machine and VPN addresses come last (a VPN like Tailscale works for remote play)."
 UI_NET_QR_HELP,Escanéalo con el móvil o la tableta del jugador (en la misma red).,Scan it with the player's phone or tablet (on the same network).
 UI_STAIRS_TAKEN,{name} toma la escalera al nivel {level}.,{name} takes the stairs to level {level}.
+UI_STAIRS_HINT,"Escalera al nivel {level}: doble clic en la ficha (en 1.ª persona, E) para tomarla.","Stairs to level {level}: double-click the token (E in first person) to take them."
 UI_NET_DM,DM,DM
 NET_MOVE_NO_STAIRS,Para cambiar de nivel tu ficha tiene que estar en esa escalera.,To change level your token must be on those stairs.
 UI_CHARACTER,Personaje…,Character…
@@ -719,3 +720,25 @@ CHAR_BODY_KK_SKELETON_MAGE,Esqueleto mago (modelo animado),Skeleton mage (animat
 CHAR_PRESET_KK_SKELETON_MAGE,Esqueleto mago (modelo animado),Skeleton mage (animated model)
 CHAR_BODY_KK_SKELETON_MINION,Esqueleto esbirro (modelo animado),Skeleton minion (animated model)
 CHAR_PRESET_KK_SKELETON_MINION,Esqueleto esbirro (modelo animado),Skeleton minion (animated model)
+UI_NAV_BACK_TIP,"Vuelve al mapa de arriba con el grupo (Alt+← o Retroceso).","Goes back to the map above with the party (Alt+← or Backspace)."
+UI_PLACES,Lugares,Places
+UI_PLACES_TIP,"Mundo, región, ciudad, edificios…: ir a cualquier sitio ya visitado o del mapa actual.","World, region, city, buildings…: go to any visited place or one on the current map."
+UI_PLACES_HINT,"Doble clic para ir. Arriba, los mapas visitados; abajo, los sitios de este mapa.","Double-click to go. Above, visited maps; below, places on this map."
+UI_PLACES_LOOK,Solo mirar (las fichas se quedan),Just look (tokens stay)
+UI_PLACES_CARRY,Llevar al grupo,Take the party
+UI_PLACES_CARRY_TIP,"Con «Llevar al grupo», las fichas del grupo de este mapa van al destino.","With «Take the party», the party tokens on this map go to the destination."
+UI_PLACES_HERE,Sitios de este mapa,Places on this map
+UI_PLACES_FILTER,Buscar por nombre,Search by name
+UI_PLACES_GO,Ir,Go
+UI_PLACES_WENT,Mirando: {name}. Las fichas siguen donde estaban.,Viewing: {name}. Tokens stay where they were.
+UI_PLACES_CARRIED,El grupo llega a {name}.,The party arrives at {name}.
+UI_ADD_CREATURE,Añadir criatura ▾,Add creature ▾
+UI_ADD_CREATURE_TIP,"PNJ, animales y monstruos: aparecen junto a la ficha elegida o en el centro de la vista.","NPCs, animals and monsters: they appear next to the selected token or in the centre of the view."
+UI_CREATURE_SIDE,Bando,Side
+UI_CREATURE_SIDE_AUTO,Según la criatura,By creature
+UI_CREATURE_SIDE_ALLY,Aliado,Ally
+UI_CREATURE_SIDE_NEUTRAL,Neutral,Neutral
+UI_CREATURE_SIDE_ENEMY,Enemigo,Enemy
+UI_CREATURE_CAT_NPC,PNJ,NPCs
+UI_CREATURE_CAT_CREATURE,Animales y criaturas,Animals and creatures
+UI_CREATURE_CAT_MONSTER,Monstruos,Monsters

@@ -78,7 +78,7 @@ func parent() -> Frame:
 ## Entra en `child` (de `current()`, nivel `from_level`). Genera el hijo desde
 ## su código la primera vez. Devuelve el nuevo mapa actual o null con `error`.
 ## `keep_positions`: ver Frame.keep_positions.
-func enter(child: MapChild, from_level: int, profile: SystemProfile, keep_positions: bool = false) -> Frame:
+func enter(child: MapChild, from_level: int, profile: SystemProfile, keep_positions: bool = false, move_party: bool = true) -> Frame:
 	error = ""
 	var here: Frame = current()
 	if here == null or child == null:
@@ -120,12 +120,13 @@ func enter(child: MapChild, from_level: int, profile: SystemProfile, keep_positi
 	here.level_index = from_level
 	f.keep_positions = keep_positions
 	f.parent_level = from_level
-	var door_cell: Vector2i = RoomContent.entrance_cell(f.doc) if overridden else child.to_child_cell(child.entrance)
-	if not overridden and not keep_positions:
-		door_cell = _usable_door(f.doc, child_level, door_cell)
+	var door_cell: Vector2i = _door_cell(f, child, child_level, overridden, keep_positions)
 	var moving: Array[MapToken] = []
 	var targets: Array[Vector2i] = []
-	for t: MapToken in _party_of(here.doc, from_level):
+	var src_party: Array[MapToken] = []
+	if move_party:
+		src_party = _party_of(here.doc, from_level)
+	for t: MapToken in src_party:
 		if keep_positions and not child.rect.has_point(t.cell):
 			continue
 		moving.append(t)
@@ -134,6 +135,82 @@ func enter(child: MapChild, from_level: int, profile: SystemProfile, keep_positi
 	f.level_index = child_level
 	frames.append(f)
 	return f
+
+
+## Casilla por la que se entra en el hijo (su puerta).
+static func _door_cell(f: Frame, child: MapChild, child_level: int, overridden: bool, keep_positions: bool) -> Vector2i:
+	var door_cell: Vector2i = RoomContent.entrance_cell(f.doc) if overridden else child.to_child_cell(child.entrance)
+	if not overridden and not keep_positions:
+		door_cell = _usable_door(f.doc, child_level, door_cell)
+	return door_cell
+
+
+## Ruta de hijos desde la raíz hasta el mapa actual (vacía en la raíz).
+func current_path() -> Array[MapChild]:
+	var out: Array[MapChild] = []
+	for i: int in range(1, frames.size()):
+		out.append(frames[i].child)
+	return out
+
+
+## Salta a cualquier mapa (ADR 050): `path` son los hijos desde la raíz (los
+## ya visitados se reabren como se dejaron; el último puede ser uno nuevo del
+## mapa actual, que está en su nivel `last_from_level`). Sin `carry` solo
+## cambia lo que se mira: las fichas se quedan donde estaban. Con `carry`, el
+## grupo del mapa de partida va al destino: por la puerta del último hijo si
+## se baja, o delante de la puerta por la que se salió si se sube.
+func jump(path: Array[MapChild], last_from_level: int, carry: bool, profile: SystemProfile) -> Frame:
+	error = ""
+	if frames.is_empty():
+		error = "UI_NAV_NO_CHILD"
+		return null
+	var origin: Frame = current()
+	var old_frames: Array[Frame] = frames.duplicate()
+	var k: int = 0
+	while k < path.size() and k + 1 < frames.size() and frames[k + 1].child != null and path[k] != null \
+			and frames[k + 1].child.id == path[k].id:
+		k += 1
+	# El hijo del destino por el que se había bajado (si se sube a él).
+	var came_from: Frame = frames[k + 1] if k + 1 < frames.size() else null
+	while frames.size() > k + 1:
+		var inner: Frame = frames.pop_back()
+		current().level_index = inner.parent_level
+	for i: int in range(k, path.size()):
+		var here: Frame = current()
+		var c: MapChild = path[i]
+		var known: Frame = null
+		if c != null and here.visited.has(c.id):
+			known = here.visited[c.id]
+		var from_level: int = known.parent_level if known != null else last_from_level
+		var keep: bool = known.keep_positions if known != null else false
+		if enter(c, from_level, profile, keep, false) == null:
+			# Se deja la ruta como estaba: un hijo que no se genera no rompe nada.
+			var err: String = error
+			frames = old_frames
+			error = err
+			return null
+	var dst: Frame = current()
+	if not carry or dst == origin:
+		return dst
+	var party: Array[MapToken] = _party_of(origin.doc, -1)
+	if party.is_empty():
+		return dst
+	var level: int = dst.level_index
+	var cell: Vector2i = Vector2i.ZERO
+	if path.size() > k:
+		var c: MapChild = path[-1]
+		var ov: bool = not dst.override_key.is_empty()
+		level = 0 if ov else c.child_level
+		cell = _door_cell(dst, c, level, ov, false)
+	elif came_from != null:
+		level = came_from.parent_level
+		cell = came_from.child.entrance
+	var targets: Array[Vector2i] = []
+	for t: MapToken in party:
+		targets.append(cell)
+	_transfer(origin, party, dst, level, targets, profile)
+	dst.level_index = level
+	return dst
 
 
 ## Vuelve al mapa padre, sacando al grupo por la puerta del hijo.

@@ -65,6 +65,9 @@ var _turn_panel: TurnPanel
 var _turns_btn: Button
 var _loot_btn: Button
 var _loot_panel: LootPanel
+var _places_btn: Button
+var _places_panel: PlacesPanel
+var _creature_btn: MenuButton
 var _proj_btn: Button = null
 var _proj_panel: ProjectorPanel = null
 var _projector: ProjectorWindow = null
@@ -152,7 +155,17 @@ func _build_ui() -> void:
 	_dm_only.append_array([_scale_opt, rnd_btn])
 	_back_btn = _button("UI_NAV_BACK", _go_back)
 	_back_btn.visible = false
+	_back_btn.tooltip_text = tr("UI_NAV_BACK_TIP")
 	bar.add_child(_back_btn)
+	# Lugares (ADR 050): saltar a cualquier mapa visitado o sitio del actual.
+	_places_btn = _button("UI_PLACES", func() -> void:
+		_places_panel.visible = _places_btn.button_pressed
+		_places_panel.set_navigator(_nav, _view.level_index)
+		_fit.call_deferred())
+	_places_btn.toggle_mode = true
+	_places_btn.tooltip_text = tr("UI_PLACES_TIP")
+	bar.add_child(_places_btn)
+	_dm_only.append(_places_btn)
 
 	_system_opt = OptionButton.new()
 	for p: SystemProfile in _profiles:
@@ -178,6 +191,14 @@ func _build_ui() -> void:
 
 	var add_btn: Button = _button("UI_ADD_TOKEN", _add_token)
 	bar.add_child(add_btn)
+	# PNJ, criaturas y monstruos de los modelos tipo (ADR 050).
+	_creature_btn = MenuButton.new()
+	_creature_btn.text = tr("UI_ADD_CREATURE")
+	_creature_btn.tooltip_text = tr("UI_ADD_CREATURE_TIP")
+	_creature_btn.flat = false
+	bar.add_child(_creature_btn)
+	_dm_only.append(_creature_btn)
+	_fill_creature_menu.call_deferred()
 	_turns_btn = _button("UI_TURNS", func() -> void:
 		_turn_panel.visible = _turns_btn.button_pressed
 		_turn_panel.refresh()
@@ -334,6 +355,11 @@ func _build_ui() -> void:
 		_on_user_command()
 		return true
 	middle.add_child(_loot_panel)
+	_places_panel = PlacesPanel.new()
+	_places_panel.visible = false
+	_places_panel.name_of = _frame_name
+	_places_panel.jump_requested.connect(_jump_to)
+	middle.add_child(_places_panel)
 	_editor_panel = RoomEditorPanel.new()
 	_editor_panel.visible = false
 	_editor_panel.execute = func(cmd: MapCommand) -> bool:
@@ -602,6 +628,8 @@ func _show_frame(f: MapNavigator.Frame, level: int) -> void:
 		_back_btn.text = tr("UI_NAV_BACK").replace("{name}", _frame_name(up))
 	if _view_opt.selected != VIEW_2D:
 		_apply_view()
+	if _places_panel != null and _places_panel.visible:
+		_places_panel.set_navigator(_nav, _view.level_index)
 
 
 func _set_document(doc: MapDocument, stack: CommandStack, level: int) -> void:
@@ -828,6 +856,22 @@ func _go_back() -> void:
 	_status.text = tr(key).replace("{name}", _frame_name(f))
 
 
+## Salta a otro mapa desde el panel Lugares (ADR 050), solo a mirar o
+## llevando al grupo.
+func _jump_to(path: Array[MapChild], from_level: int, carry: bool) -> void:
+	if _doc == null or _client != null:
+		return
+	var f: MapNavigator.Frame = _nav.jump(path, from_level, carry, _current_profile())
+	if f == null:
+		_status.text = tr(_nav.error)
+		return
+	_show_frame(f, f.level_index)
+	if carry:
+		_explore_after_navigation()
+	var key: String = "UI_PLACES_CARRIED" if carry else "UI_PLACES_WENT"
+	_status.text = tr(key).replace("{name}", _frame_name(f))
+
+
 ## Explora lo que ve el grupo al llegar. No se puede deshacer: el paso de un
 ## mapa a otro tampoco (MapNavigator vacía la historia).
 func _explore_after_navigation() -> void:
@@ -908,6 +952,8 @@ func _apply_template() -> void:
 
 
 func _on_level_selected(i: int) -> void:
+	if _places_panel != null and _places_panel.visible:
+		_places_panel.set_navigator(_nav, i)
 	_view.clear_template()
 	_view.level_index = i
 	_view.queue_redraw()
@@ -1137,6 +1183,22 @@ func _refresh_vision() -> void:
 ## ve ahora el grupo, unido al mismo paso de deshacer.
 func _on_user_command() -> void:
 	_explore_level(_view.level_index)
+	_hint_stairs()
+
+
+## Si la ficha elegida quedó en una escalera, dice cómo tomarla (también al
+## llegar, que es como se vuelve: la escalera de vuelta está en la misma
+## casilla).
+func _hint_stairs() -> void:
+	var t: MapToken = _doc.token(_selected_token) if _doc != null and _selected_token >= 0 else null
+	if t == null or t.level != _view.level_index:
+		return
+	var s: MapStair = _view.stairs_under(t)
+	if s == null:
+		return
+	var hint: String = tr("UI_STAIRS_HINT").replace("{level}", str(s.to_level + 1))
+	if not _status.text.contains(hint):
+		_status.text = (_status.text + "  " if not _status.text.is_empty() else "") + hint
 
 
 ## Explora lo que ve el grupo en ese nivel (unido al último paso de
@@ -1166,6 +1228,122 @@ func _add_token() -> void:
 	if _place_token(t):
 		_on_user_command()
 		_status.text = tr("UI_TOKEN_ADDED").replace("{name}", t.name)
+
+
+## Ids del menú de criaturas: bando (0-3) y modelos tipo (CREATURE_BASE + i).
+const CREATURE_SIDES: PackedStringArray = ["", "ally", "neutral", "enemy"]
+const CREATURE_BASE: int = 100
+var _creature_side: int = 0
+
+
+func _fill_creature_menu() -> void:
+	var pm: PopupMenu = _creature_btn.get_popup()
+	pm.clear()
+	pm.hide_on_checkable_item_selection = false
+	pm.add_theme_constant_override("icon_max_width", 32)
+	pm.add_separator(tr("UI_CREATURE_SIDE"))
+	for i: int in CREATURE_SIDES.size():
+		pm.add_radio_check_item(tr("UI_CREATURE_SIDE_" + (CREATURE_SIDES[i].to_upper() if i > 0 else "AUTO")), i)
+		pm.set_item_checked(pm.get_item_index(i), i == _creature_side)
+	var cat: LookCatalog = LookCatalog.load_default()
+	for group: String in LookCatalog.CATEGORIES:
+		pm.add_separator(tr("UI_CREATURE_CAT_" + group.to_upper()))
+		for i: int in cat.presets.size():
+			var pr: LookCatalog.Preset = cat.presets[i]
+			if pr.category != group:
+				continue
+			pm.add_icon_item(PixelCharacter.texture(cat.look_from_preset(pr), cat), tr("CHAR_PRESET_" + pr.id.to_upper()), CREATURE_BASE + i)
+	if not pm.id_pressed.is_connected(_on_creature_menu):
+		pm.id_pressed.connect(_on_creature_menu)
+
+
+func _on_creature_menu(id: int) -> void:
+	if id < CREATURE_BASE:
+		_creature_side = id
+		var pm: PopupMenu = _creature_btn.get_popup()
+		for i: int in CREATURE_SIDES.size():
+			pm.set_item_checked(pm.get_item_index(i), i == id)
+		return
+	var cat: LookCatalog = LookCatalog.load_default()
+	if id - CREATURE_BASE < cat.presets.size():
+		add_creature(cat.presets[id - CREATURE_BASE].id, CREATURE_SIDES[_creature_side])
+
+
+## Añade una ficha de un modelo tipo (goblin, lobo, PNJ…) cerca del centro de
+## lo que se mira (o de la ficha elegida). `side` vacío = el de su
+## categoría: los monstruos, enemigos; PNJ y criaturas, neutrales.
+func add_creature(preset_id: String, side: String = "") -> MapToken:
+	if _doc == null:
+		return null
+	var cat: LookCatalog = LookCatalog.load_default()
+	var pr: LookCatalog.Preset = cat.preset(preset_id)
+	if pr == null:
+		return null
+	var sheet: CharacterSheet = CharacterSheet.new()
+	sheet.look = cat.look_from_preset(pr)
+	sheet.size_id = pr.size_id
+	sheet.name = _unique_token_name(tr("CHAR_PRESET_" + pr.id.to_upper()))
+	var s: String = side
+	if s.is_empty():
+		s = MapToken.SIDE_ENEMY if pr.category == "monster" else MapToken.SIDE_NEUTRAL
+	var t: MapToken = _token_for_sheet(sheet, s)
+	if not _place_token_near(t, _spawn_cell()):
+		_status.text = tr("UI_CHAR_NO_ROOM")
+		return null
+	_on_user_command()
+	_selected_token = t.id
+	_view3d.selected_token = t.id
+	_status.text = tr("UI_TOKEN_ADDED").replace("{name}", t.name)
+	return t
+
+
+## "Goblin", y si ya hay, "Goblin 2", "Goblin 3"…
+func _unique_token_name(base: String) -> String:
+	var used: Dictionary[String, bool] = {}
+	for t: MapToken in _doc.tokens:
+		used[t.name] = true
+	if not used.has(base):
+		return base
+	var n: int = 2
+	while used.has("%s %d" % [base, n]):
+		n += 1
+	return "%s %d" % [base, n]
+
+
+## Casilla junto a la que aparece una ficha nueva: la elegida, o el centro
+## de lo que se ve.
+func _spawn_cell() -> Vector2i:
+	var sel: MapToken = _doc.token(_selected_token) if _selected_token >= 0 else null
+	if sel != null and sel.level == _view.level_index:
+		return sel.cell
+	if _view_opt.selected != VIEW_2D and _view3d != null:
+		return _view3d.center_cell()
+	var local: Vector2 = (_map_area.size * 0.5 - _view.position) / maxf(_view.scale.x, 0.0001)
+	return _doc.grid.pixel_to_cell(local, _view.cell_px)
+
+
+## Coloca `t` en la casilla libre más cercana a `near` donde quepa entera;
+## si no hay ninguna alcanzable, como _place_token (junto a la entrada).
+func _place_token_near(t: MapToken, near: Vector2i) -> bool:
+	var li: int = _view.level_index
+	var g: GridGeometry = _doc.grid
+	var p: SystemProfile = _current_profile()
+	t.level = li
+	if g.in_bounds(near):
+		var mask: PackedByteArray = _doc.level(li).movement_mask()
+		for c: Vector2i in MapNavigator.free_cells_near(_doc, li, near, p, 256):
+			t.cell = c
+			var fits: bool = true
+			var cells: Array[Vector2i] = _doc.token_cells(t, p) if p != null else [c]
+			for fc: Vector2i in cells:
+				var i: int = g.index_of(fc)
+				if i < 0 or (mask[i] & MapLevel.MOVE_PASSABLE) == 0 or (p != null and not _doc.tokens_at(li, fc, p).is_empty()):
+					fits = false
+					break
+			if fits:
+				t.id = _doc.allocate_id()
+				return _stack.execute(AddTokenCommand.new(t))
+	return _place_token(t)
 
 
 ## Añade la ficha `t` (con id nuevo) en el nivel mostrado, en la casilla libre
@@ -1757,6 +1935,12 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	var k: InputEventKey = event as InputEventKey
 	if k == null or not k.pressed:
 		return
+	# Alt + ← (o Retroceso): volver al mapa de arriba (el DM).
+	if (k.alt_pressed and k.keycode == KEY_LEFT) or (k.keycode == KEY_BACKSPACE and not k.ctrl_pressed and not k.alt_pressed):
+		if _client == null and _nav != null and _nav.can_go_back():
+			_go_back()
+			get_viewport().set_input_as_handled()
+			return
 	if not k.ctrl_pressed:
 		# R gira el objeto que se va a colocar en el editor de estancias.
 		if k.keycode == KEY_R and _view.edit_tool.begins_with("object:"):
