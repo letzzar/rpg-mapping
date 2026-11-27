@@ -1,0 +1,33 @@
+RPG Mapping {VERSION} para Windows
+==================================
+
+Uso
+---
+Haz doble clic en RPGMapping.exe. No hace falta instalar nada más.
+(Si usaste el instalador, está en el menú Inicio y en el escritorio.)
+
+Partida en red (jugadores con el móvil o la tableta)
+----------------------------------------------------
+1. En la app: "Partida en red" > "Abrir partida". Si Windows pregunta por el
+   cortafuegos, permite el acceso en redes privadas.
+2. Añade a los jugadores y pásales el enlace o el QR. Abren la página en su
+   navegador, en la misma red (la carpeta "web" de aquí es esa página: no la
+   borres ni la separes del ejecutable).
+3. La primera vez el navegador avisa del certificado (es propio de tu equipo):
+   hay que aceptarlo para entrar.
+
+Windows SmartScreen
+-------------------
+El programa no está firmado: la primera vez Windows puede mostrar "Windows
+protegió su PC". Pulsa "Más información" > "Ejecutar de todas formas".
+
+Tus datos
+---------
+Mapas, estancias y ajustes se guardan en %APPDATA%\Godot\app_userdata\RPG Mapping.
+Desinstalar no los borra.
+
+Licencias
+---------
+RPG Mapping es software libre (GPL-3.0, ver LICENSE.txt). El contenido de
+terceros incluido y sus licencias se listan en LICENCIAS-TERCEROS.md
+(modelos KayKit CC0, reglas SRD 5.2 CC-BY-4.0, Pathfinder ORC).

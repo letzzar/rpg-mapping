@@ -85,6 +85,11 @@ godot --headless --path project --export-release "Linux"           ../build/linu
 godot --headless --path project --export-release "macOS"           ../build/mac/RPGMapping.zip
 godot --headless --path project --export-release "Web"             ../build/web/index.html
 
+# Imagen Docker del cliente web (docker/README.md) y distribuible de Windows
+# (portable + zip + instalador Inno Setup en build/dist/; ADR 046)
+pwsh tools/build_docker.ps1
+pwsh tools/build_dist.ps1
+
 # Tests en navegador (preset "Web Tests"; el título de la página muestra WEB_TESTS_RESULT)
 godot --headless --path project --export-release "Web Tests" ../build/web-tests/index.html
 python -m http.server 8765 --bind 127.0.0.1 --directory build/web-tests

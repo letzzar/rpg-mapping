@@ -1,5 +1,20 @@
 # SESSION_HANDOFF — RPG Mapping
 
+## Última sesión: 2026-11-27 (14.ª, décima parte) — Docker y distribuible de Windows
+Tests: **353/353 en escritorio y en el navegador** (1 nuevo: dirección pública en `test_net_protocol.gd`).
+
+### Hecho (ADR 046)
+- **Imagen Docker** (`docker/`: Dockerfile, Caddyfile, docker-compose.yml, README): Caddy sirve el cliente web y reenvía `/ws` a la app del DM. Construir con `pwsh tools/build_docker.ps1`. Probado de verdad: página y `.wasm` por HTTPS (certificado interno, por nombre e IP), certificado montado (sirve exactamente ese), y partida real: Chrome abrió el enlace del contenedor y el DM vio al jugador conectado a través del proxy.
+- **Dirección pública** en "Partida en red" (`NetHostPanel`): si se rellena (p. ej. `https://nas.local:8443`), enlaces y QR la usan; se recuerda.
+- **Distribuible** (`pwsh tools/build_dist.ps1`) en `build/dist/`:
+  - `RPG Mapping/` y `RPGMapping-<ver>-windows.zip`: portable, doble clic en `RPGMapping.exe` (pck dentro, `web/` al lado, LEEME, licencias de terceros).
+  - `RPGMapping-<ver>-windows-instalador.exe` (Inno Setup 6, ya instalado en este equipo): por usuario, sin administrador, menú Inicio + escritorio opcional, desinstalador que conserva mapas y ajustes.
+  - Probado: instalación silenciosa (ficheros, accesos, entrada de desinstalar), la app instalada arranca sin errores, su paquete abre la partida en red y sirve la página y el `.wasm` desde la `web/` de junto al ejecutable; desinstalación limpia.
+- IExpress se probó y se descartó (extraía el paquete pero no lanzaba el script).
+
+### Siguiente paso
+1. Que Víctor pruebe el instalador con doble clic y la imagen en el NAS (falta probarla en el NAS real; aquí se probó en Docker Desktop).
+2. SmartScreen avisará la primera vez (programa sin firmar). Linux/macOS: sus exportaciones existen, pero sin empaquetar con `web/`.
 ## Última sesión: 2026-11-27 (14.ª, novena parte) — Figuras con esqueleto (KayKit)
 Tests: **352/352 en escritorio y en inglés** (2 nuevos en `test_rigged_figures.gd`).
 
