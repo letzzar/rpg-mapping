@@ -1,0 +1,23 @@
+# Ejemplo para un NAS (ADR 016). Copia este fichero y la imagen al NAS, ajusta
+# DM_ADDR y arranca con: docker compose up -d
+services:
+  rpg-mapping-web:
+    image: rpg-mapping-web:latest
+    restart: unless-stopped
+    ports:
+      # Puerto por el que entran los jugadores (https://<nas>:8443).
+      - "8443:443"
+    environment:
+      # Equipo del DM: su IP en la red local y el puerto de "Partida en red".
+      DM_ADDR: "192.168.1.20:47830"
+      # Opcional: nombre o IP del NAS (si no, vale cualquiera).
+      # SITE_ADDRESS: "nas.local"
+      # Opcional: certificado propio en vez del interno de Caddy.
+      # TLS: "/certs/cert.pem /certs/key.pem"
+    volumes:
+      # Guarda el certificado interno: así no cambia en cada arranque.
+      - rpg-mapping-data:/data
+      # - ./certs:/certs:ro
+
+volumes:
+  rpg-mapping-data:

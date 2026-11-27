@@ -1,0 +1,4 @@
+# La imagen solo necesita la configuración de Caddy y la exportación Web.
+*
+!docker/Caddyfile
+!build/web/

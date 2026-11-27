@@ -215,6 +215,8 @@ NET_DOOR_INVALID,Ahí no hay una puerta que puedas abrir o cerrar.,There is no d
 UI_NET_QR,QR,QR
 UI_NET_QR_TITLE,Enlace de {name},{name}'s link
 UI_NET_ADDRESS,Dirección:,Address:
+UI_NET_PUBLIC,Pública:,Public:
+UI_NET_PUBLIC_TIP,"Opcional: dirección por la que entran los jugadores si hay un proxy delante (la imagen Docker del NAS, un túnel). Si la rellenas, los enlaces y el QR la usan en vez de la de este equipo. Se guarda para la próxima vez.","Optional: the address players use when there is a proxy in front (the NAS Docker image, a tunnel). If set, links and the QR use it instead of this computer's. Remembered for next time."
 UI_NET_ADDRESS_TIP,"Dirección de este equipo que va en los enlaces y el QR. La primera suele ser la de la red local; las de máquinas virtuales y VPN van al final (una VPN como Tailscale sirve para jugar a distancia).","This computer's address used in links and the QR. The first is usually the local network one; virtual machine and VPN addresses come last (a VPN like Tailscale works for remote play)."
 UI_NET_QR_HELP,Escanéalo con el móvil o la tableta del jugador (en la misma red).,Scan it with the player's phone or tablet (on the same network).
 UI_STAIRS_TAKEN,{name} toma la escalera al nivel {level}.,{name} takes the stairs to level {level}.

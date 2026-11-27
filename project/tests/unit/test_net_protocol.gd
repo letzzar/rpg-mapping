@@ -123,3 +123,26 @@ func test_invite_address_prefers_the_real_network() -> void:
 		var ip: String = a["ip"]
 		ips.append(ip)
 	assert_eq(",".join(ips), "10.10.5.19,192.168.1.40,172.26.64.1,192.168.222.1,100.79.235.82")
+
+## Con un proxy delante (la imagen Docker del NAS, ADR 016) los enlaces llevan
+## la dirección pública; siempre HTTPS y sin barra final. Se recuerda.
+func test_invite_link_uses_public_address() -> void:
+	assert_eq(NetHostPanel.normalize_public_url("  nas.local:8443/ "), "https://nas.local:8443")
+	assert_eq(NetHostPanel.normalize_public_url("http://rpg.example.org"), "https://rpg.example.org")
+	assert_eq(NetHostPanel.normalize_public_url("https://rpg.example.org//"), "https://rpg.example.org")
+	assert_eq(NetHostPanel.normalize_public_url("   "), "")
+	var cfg: String = "user://test_net_public.cfg"
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(cfg))
+	var panel: NetHostPanel = NetHostPanel.new()
+	panel.config_path = cfg
+	add_child_autofree(panel)
+	assert_eq(panel.public_url(), "")
+	assert_string_starts_with(panel.base_url(), "https://")
+	panel.set_public_url("nas.local:8443")
+	var p: GameSession.Player = panel.session.add_player("Ana")
+	assert_string_starts_with(panel.invite_link(p), "https://nas.local:8443/?sala=")
+	var again: NetHostPanel = NetHostPanel.new()
+	again.config_path = cfg
+	add_child_autofree(again)
+	assert_eq(again.public_url(), "https://nas.local:8443", "se recuerda")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(cfg))

@@ -1,0 +1,56 @@
+# RPG Mapping: cliente web estático + proxy inverso del WSS del DM (ADR 016).
+#
+# Mismo origen para la página y el WebSocket: el navegador del jugador solo
+# acepta un certificado (el de este contenedor) y no hay contenido mixto.
+#
+# Variables de entorno (ver docker/README.md):
+#   DM_ADDR       dirección:puerto de la app del DM (su servidor HTTPS+WSS).
+#   SITE_ADDRESS  nombre o IP con que los jugadores abren la página.
+#                 Por defecto, cualquiera (certificado interno a demanda).
+#   TLS           "internal" (certificado propio de Caddy, por defecto) o
+#                 "/certs/cert.pem /certs/key.pem" para uno montado.
+
+{
+	admin off
+	# Solo HTTPS en el puerto 443: sin redirección desde el 80.
+	auto_https disable_redirects
+	skip_install_trust
+	# El certificado interno se emite al primer acceso para el nombre o la IP
+	# que use el jugador (la autoridad propia de Caddy, no una pública).
+	on_demand_tls {
+		ask http://127.0.0.1:9999/ok
+	}
+}
+
+# Respuesta del "ask" anterior: siempre sí (la autoridad es la interna, no
+# hay riesgo de pedir certificados públicos en nombre de nadie).
+http://127.0.0.1:9999 {
+	bind 127.0.0.1
+	respond /ok 200
+}
+
+{$SITE_ADDRESS:https://} {
+	tls {$TLS:internal} {
+		on_demand
+	}
+	encode zstd gzip
+
+	# El WebSocket va a la app del DM. Caddy conserva la cabecera Host, así
+	# que la comprobación de origen del DM (Origin == https://Host) se cumple.
+	# El certificado del DM es autofirmado: no se verifica en este salto.
+	handle /ws {
+		reverse_proxy {$DM_ADDR:host.docker.internal:8443} {
+			transport http {
+				tls
+				tls_insecure_skip_verify
+			}
+		}
+	}
+
+	handle {
+		root * /srv
+		header Cache-Control no-cache
+		header X-Content-Type-Options nosniff
+		file_server
+	}
+}

@@ -23,6 +23,9 @@ var _toggle: Button
 var _info: Label
 var _doors_check: CheckBox
 var _addr_opt: OptionButton
+var _public_edit: LineEdit
+## Dónde se recuerda la dirección pública (las pruebas usan otro fichero).
+var config_path: String = "user://net.cfg"
 var _name_edit: LineEdit
 var _players_title: Label
 var _players_box: VBoxContainer
@@ -69,6 +72,18 @@ func _ready() -> void:
 	_addr_opt.tooltip_text = tr("UI_NET_ADDRESS_TIP")
 	addr_row.add_child(_addr_opt)
 	_fill_addresses()
+	var pub_row: HBoxContainer = HBoxContainer.new()
+	box.add_child(pub_row)
+	var publ: Label = Label.new()
+	publ.text = tr("UI_NET_PUBLIC")
+	pub_row.add_child(publ)
+	_public_edit = LineEdit.new()
+	_public_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_public_edit.placeholder_text = "https://nas.local:8443"
+	_public_edit.tooltip_text = tr("UI_NET_PUBLIC_TIP")
+	_public_edit.text = _load_public_url()
+	_public_edit.text_changed.connect(func(_t: String) -> void: _save_public_url())
+	pub_row.add_child(_public_edit)
 	_doors_check = CheckBox.new()
 	_doors_check.text = tr("UI_NET_PLAYERS_DOORS")
 	_doors_check.button_pressed = true
@@ -262,8 +277,51 @@ func _fill_addresses() -> void:
 	_addr_opt.select(0)
 
 
-## https://<dirección elegida>:<puerto> (la de los enlaces y el QR).
+## Dirección pública (proxy delante, p. ej. la imagen Docker del NAS; ADR
+## 016) en forma https://host[:puerto], sin barra final. "" si no hay. Solo
+## HTTPS: el cliente abre wss:// en el mismo origen que la página.
+static func normalize_public_url(s: String) -> String:
+	var u: String = s.strip_edges()
+	if u.is_empty():
+		return ""
+	if u.begins_with("http://"):
+		u = u.trim_prefix("http://")
+	if not u.begins_with("https://"):
+		u = "https://" + u
+	while u.ends_with("/"):
+		u = u.left(u.length() - 1)
+	return u
+
+
+func public_url() -> String:
+	return normalize_public_url(_public_edit.text) if _public_edit != null else ""
+
+
+func set_public_url(s: String) -> void:
+	_public_edit.text = s
+	_save_public_url()
+
+
+func _load_public_url() -> String:
+	var cf: ConfigFile = ConfigFile.new()
+	if cf.load(config_path) != OK:
+		return ""
+	return str(cf.get_value("net", "public_url", ""))
+
+
+func _save_public_url() -> void:
+	var cf: ConfigFile = ConfigFile.new()
+	cf.load(config_path)
+	cf.set_value("net", "public_url", _public_edit.text.strip_edges())
+	cf.save(config_path)
+
+
+## https://<dirección elegida>:<puerto> (la de los enlaces y el QR), o la
+## dirección pública si el DM la ha puesto.
 func base_url() -> String:
+	var pub: String = public_url()
+	if not pub.is_empty():
+		return pub
 	var host: String = "localhost"
 	if _addr_opt.item_count > 0 and _addr_opt.selected >= 0:
 		host = str(_addr_opt.get_item_metadata(_addr_opt.selected))
