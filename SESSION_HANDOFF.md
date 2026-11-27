@@ -1,5 +1,17 @@
 # SESSION_HANDOFF — RPG Mapping
 
+## Última sesión: 2026-11-27 (14.ª, decimotercera parte) — Armas KayKit e iconos del botín
+Tests: **366/366 en escritorio y en el navegador** (3 nuevos: armas en `test_rigged_figures.gd`, tipos e iconos en `test_loot.gd`).
+
+### Hecho (ADR 049)
+- Víctor dejó `KayKit_Adventurers_2.0_FREE.zip` en la raíz (fuera de git, en `.gitignore`); de él se sacaron los 31 objetos sueltos a `project/models/kaykit/items/`.
+- **Armas en las manos**: las figuras KayKit tienen ranuras de mano en el diseñador y arma por defecto (caballero espada y escudo, bárbaro gran hacha, maga bastón y libro, explorador daga y arco…). En 3D se cuelgan del hueso de la mano y se mueven con la animación; en pixel art se dibujan. Piezas nuevas: espadón, gran hacha, ballesta, varita, escudo con pinchos, escudo cuadrado y jarra.
+- **Iconos del botín**: cada línea lleva icono; al añadir se adivina por el nombre ("Espada corta", "120 monedas de oro", "Poción de curación"…) y se cambia pulsando el icono (o se elige antes de añadir). 15 iconos son renders de los objetos KayKit (`tools/render_loot_icons.gd`, con ventana) y 6 se dibujan por código.
+
+### Siguiente paso
+1. Que Víctor lo pruebe (diseñador de personajes con figuras KayKit y panel Botín).
+2. Posibles: ver en el mapa 3D los objetos sueltos del botín; las piezas sin modelo (lanza, maza, antorcha, cimitarra, garrote) no se pueden elegir para las figuras KayKit.
+
 ## Última sesión: 2026-11-27 (14.ª, duodécima parte) — Cofres y botín
 Tests: **363/363 en escritorio y en el navegador** (5 nuevos en `test_loot.gd`).
 
