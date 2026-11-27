@@ -55,7 +55,17 @@
 			"id": "serpent", "family": "serpent", "width": 1.0,
 			"slots": [],
 			"defaults": {}
-		}
+		},
+		{ "id": "kk_knight", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Knight.glb", "slots": [], "defaults": {} },
+		{ "id": "kk_barbarian", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Barbarian.glb", "slots": [], "defaults": {} },
+		{ "id": "kk_mage", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Mage.glb", "slots": [], "defaults": {} },
+		{ "id": "kk_ranger", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Ranger.glb", "slots": [], "defaults": {} },
+		{ "id": "kk_rogue", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Rogue.glb", "slots": [], "defaults": {} },
+		{ "id": "kk_rogue_hooded", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Rogue_Hooded.glb", "slots": [], "defaults": {} },
+		{ "id": "kk_skeleton_warrior", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Skeleton_Warrior.glb", "slots": [], "defaults": {} },
+		{ "id": "kk_skeleton_rogue", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Skeleton_Rogue.glb", "slots": [], "defaults": {} },
+		{ "id": "kk_skeleton_mage", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Skeleton_Mage.glb", "slots": [], "defaults": {} },
+		{ "id": "kk_skeleton_minion", "family": "humanoid", "width": 1.0, "model": "res://models/kaykit/Skeleton_Minion.glb", "slots": [], "defaults": {} }
 	],
 	"base": {
 		"humanoid": [
@@ -416,6 +426,16 @@
 			"colors": { "skin": "#6abf4a", "hair": "#3a7a2a" } },
 		{ "id": "giant_snake", "body": "serpent", "size_id": "large",
 			"parts": {},
-			"colors": { "skin": "#5a7a3a", "hair": "#3a5a2a" } }
+			"colors": { "skin": "#5a7a3a", "hair": "#3a5a2a" } },
+		{ "id": "kk_knight", "body": "kk_knight", "size_id": "medium", "parts": {}, "colors": { "cloth": "#4a6ea8", "metal": "#b9bec7" } },
+		{ "id": "kk_barbarian", "body": "kk_barbarian", "size_id": "medium", "parts": {}, "colors": { "cloth": "#8a5a3a", "skin": "#d9a07a" } },
+		{ "id": "kk_mage", "body": "kk_mage", "size_id": "medium", "parts": {}, "colors": { "cloth": "#4b3a8c" } },
+		{ "id": "kk_ranger", "body": "kk_ranger", "size_id": "medium", "parts": {}, "colors": { "cloth": "#4d6b34" } },
+		{ "id": "kk_rogue", "body": "kk_rogue", "size_id": "medium", "parts": {}, "colors": { "cloth": "#3a3a3a" } },
+		{ "id": "kk_rogue_hooded", "body": "kk_rogue_hooded", "size_id": "medium", "parts": {}, "colors": { "cloth": "#2f3a2f" } },
+		{ "id": "kk_skeleton_warrior", "body": "kk_skeleton_warrior", "size_id": "medium", "parts": {}, "colors": { "skin": "#e8dcc0", "cloth": "#5a4a3a" } },
+		{ "id": "kk_skeleton_rogue", "body": "kk_skeleton_rogue", "size_id": "medium", "parts": {}, "colors": { "skin": "#e8dcc0", "cloth": "#3a3028" } },
+		{ "id": "kk_skeleton_mage", "body": "kk_skeleton_mage", "size_id": "medium", "parts": {}, "colors": { "skin": "#e8dcc0", "cloth": "#4b3a8c" } },
+		{ "id": "kk_skeleton_minion", "body": "kk_skeleton_minion", "size_id": "medium", "parts": {}, "colors": { "skin": "#e8dcc0", "cloth": "#4a4038" } }
 	]
 }

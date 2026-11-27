@@ -641,3 +641,23 @@ ENC_MINERS,Mineros,Miners
 ENC_SEA_RAIDERS,Saqueadores del mar,Sea raiders
 ENC_SHIPWRECK_DEBRIS,Restos de un naufragio,Shipwreck debris
 ENC_SEA_BEAST,Bestia marina,Sea beast
+CHAR_BODY_KK_KNIGHT,Caballero (modelo animado),Knight (animated model)
+CHAR_PRESET_KK_KNIGHT,Caballero (modelo animado),Knight (animated model)
+CHAR_BODY_KK_BARBARIAN,Bárbaro (modelo animado),Barbarian (animated model)
+CHAR_PRESET_KK_BARBARIAN,Bárbaro (modelo animado),Barbarian (animated model)
+CHAR_BODY_KK_MAGE,Mago (modelo animado),Mage (animated model)
+CHAR_PRESET_KK_MAGE,Mago (modelo animado),Mage (animated model)
+CHAR_BODY_KK_RANGER,Explorador (modelo animado),Ranger (animated model)
+CHAR_PRESET_KK_RANGER,Explorador (modelo animado),Ranger (animated model)
+CHAR_BODY_KK_ROGUE,Pícaro (modelo animado),Rogue (animated model)
+CHAR_PRESET_KK_ROGUE,Pícaro (modelo animado),Rogue (animated model)
+CHAR_BODY_KK_ROGUE_HOODED,Pícaro encapuchado (modelo animado),Hooded rogue (animated model)
+CHAR_PRESET_KK_ROGUE_HOODED,Pícaro encapuchado (modelo animado),Hooded rogue (animated model)
+CHAR_BODY_KK_SKELETON_WARRIOR,Esqueleto guerrero (modelo animado),Skeleton warrior (animated model)
+CHAR_PRESET_KK_SKELETON_WARRIOR,Esqueleto guerrero (modelo animado),Skeleton warrior (animated model)
+CHAR_BODY_KK_SKELETON_ROGUE,Esqueleto pícaro (modelo animado),Skeleton rogue (animated model)
+CHAR_PRESET_KK_SKELETON_ROGUE,Esqueleto pícaro (modelo animado),Skeleton rogue (animated model)
+CHAR_BODY_KK_SKELETON_MAGE,Esqueleto mago (modelo animado),Skeleton mage (animated model)
+CHAR_PRESET_KK_SKELETON_MAGE,Esqueleto mago (modelo animado),Skeleton mage (animated model)
+CHAR_BODY_KK_SKELETON_MINION,Esqueleto esbirro (modelo animado),Skeleton minion (animated model)
+CHAR_PRESET_KK_SKELETON_MINION,Esqueleto esbirro (modelo animado),Skeleton minion (animated model)

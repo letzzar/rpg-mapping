@@ -99,8 +99,9 @@ var _drag_cell: Vector2i = Vector2i(-1, -1)
 ## una sola malla), se anima el conjunto. Desactivable (pruebas, y para quien
 ## prefiera sin movimiento).
 var animate: bool = true
-## Velocidad al andar, en casillas por segundo.
-const WALK_CELLS_PER_S: float = 5.0
+## Velocidad al andar, en casillas por segundo (las pruebas la bajan para no
+## depender de lo rápido que dibuje el equipo).
+var walk_cells_per_s: float = 5.0
 var _cur_holder: Node3D = null
 ## Id de ficha → contenedor de sus nodos (se rehace en cada reconstrucción).
 var _holders: Dictionary[int, Node3D] = {}
@@ -111,6 +112,10 @@ var _shown: Dictionary[int, Array] = {}
 var _walks: Dictionary[int, Array] = {}
 ## [figura, escala, fase] de las figuras que respiran.
 var _breathing: Array[Array] = []
+## Id de ficha → modelo con esqueleto (animaciones de reposo y andar).
+var _rigged: Dictionary[int, Node3D] = {}
+## Id de ficha → última posición en el recorrido (para orientar al andar).
+var _last_walk_pos: Dictionary[int, Vector3] = {}
 
 
 func _ready() -> void:
@@ -123,8 +128,18 @@ func _ready() -> void:
 	var e: Environment = Environment.new()
 	e.background_mode = Environment.BG_COLOR
 	e.background_color = Color("2b1d14")
+	# Luz para los modelos con esqueleto (ADR 045): el mapa usa un material
+	# sin luz y no se ve afectado.
+	e.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	e.ambient_light_color = Color(0.75, 0.7, 0.62)
+	e.ambient_light_energy = 0.7
 	_env.environment = e
 	add_child(_env)
+	var sun: DirectionalLight3D = DirectionalLight3D.new()
+	sun.rotation_degrees = Vector3(-55.0, -35.0, 0.0)
+	sun.light_energy = 1.1
+	sun.shadow_enabled = false
+	add_child(sun)
 	_tokens_node = Node3D.new()
 	_tokens_node.name = "Tokens"
 	add_child(_tokens_node)
@@ -226,6 +241,7 @@ func _build_tokens() -> void:
 	var g: GridGeometry = document.grid
 	_holders.clear()
 	_breathing.clear()
+	_rigged.clear()
 	for t: MapToken in document.tokens:
 		if t.level != level_index or (t.hidden and not dm_view):
 			continue
@@ -305,7 +321,7 @@ func _walk_position(token_id: int) -> Vector3:
 	var pts: Array[Vector3] = w[0]
 	var start: float = w[1]
 	var total: float = w[2]
-	var d: float = (Time.get_ticks_msec() / 1000.0 - start) * WALK_CELLS_PER_S * cell_m
+	var d: float = (Time.get_ticks_msec() / 1000.0 - start) * walk_cells_per_s * cell_m
 	if d >= total or total <= 0.0:
 		return pts[pts.size() - 1]
 	for k: int in range(1, pts.size()):
@@ -326,16 +342,31 @@ func _process(_delta: float) -> void:
 		var final_pos: Vector3 = pts[pts.size() - 1]
 		var start: float = w[1]
 		var total: float = w[2]
-		var walked: float = (now - start) * WALK_CELLS_PER_S * cell_m
+		var walked: float = (now - start) * walk_cells_per_s * cell_m
 		var h: Node3D = _holders.get(id, null)
 		if walked >= total:
 			_walks.erase(id)
+			_last_walk_pos.erase(id)
 			if h != null and is_instance_valid(h):
 				h.position = Vector3.ZERO
+			var r2: Node3D = _rigged.get(id, null)
+			if r2 != null and is_instance_valid(r2):
+				RiggedFigure.play(r2, RiggedFigure.IDLE)
 			continue
 		if h == null or not is_instance_valid(h):
 			continue
 		var p: Vector3 = _walk_position(id)
+		var rig: Node3D = _rigged.get(id, null)
+		if rig != null and is_instance_valid(rig):
+			# Con esqueleto: su animación de andar, mirando hacia donde va.
+			RiggedFigure.play(rig, RiggedFigure.WALK)
+			var prev: Vector3 = _last_walk_pos.get(id, p)
+			var dir: Vector3 = p - prev
+			if dir.length() > 0.001:
+				rig.rotation.y = atan2(dir.x, dir.z)
+			_last_walk_pos[id] = p
+			h.position = p - final_pos
+			continue
 		# Un pequeño bote por paso (cada media casilla).
 		var bob: float = absf(sin(walked / cell_m * TAU)) * cell_m * 0.04
 		h.position = p - final_pos + Vector3(0.0, bob, 0.0)
@@ -375,6 +406,20 @@ func _build_figure(t: MapToken, center: Vector2, radius: float) -> void:
 	base.mesh = cyl
 	base.position = MapMeshBuilder.v3(center, base_h * 0.5)
 	_cur_holder.add_child(base)
+	# Modelo con esqueleto (KayKit, ADR 045): anda y respira con sus propias
+	# animaciones.
+	var body: LookCatalog.Body = LookCatalog.load_default().body(t.sheet.look.body)
+	if body != null and not body.model.is_empty():
+		var node: Node3D = RiggedFigure.create(body.model)
+		if node != null:
+			var h: float = RiggedFigure.height_of(body.model)
+			var sc: float = (_eye_height(t.size_id) / 0.87) / maxf(h, 0.01)
+			node.scale = Vector3(sc, sc, sc)
+			node.position = MapMeshBuilder.v3(center, base_h)
+			_cur_holder.add_child(node)
+			_rigged[t.id] = node
+			_add_token_label(t, center, base_h + h * sc)
+			return
 	var mesh: ArrayMesh = CharacterModelBuilder.mesh_for(t.sheet.look)
 	var fig: MeshInstance3D = MeshInstance3D.new()
 	fig.mesh = mesh

@@ -38,6 +38,8 @@ class Body:
 	var width: float = 1.0
 	var slots: PackedStringArray = PackedStringArray()
 	var defaults: Dictionary[String, String] = {}
+	## Modelo con esqueleto (res://…glb, ADR 045); "" = figura de primitivas.
+	var model: String = ""
 
 
 class Part:
@@ -198,6 +200,8 @@ func _read(path: String) -> void:
 		b.id = r.get_str(d, "id")
 		b.family = r.get_str(d, "family")
 		b.width = _num(r, d, "width")
+		if d.has("model"):
+			b.model = r.get_str(d, "model")
 		for v: Variant in r.get_array(d, "slots"):
 			var s: String = r.to_str(v, "slots")
 			if not slots.has(s):

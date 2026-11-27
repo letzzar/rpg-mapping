@@ -4,3 +4,5 @@ build/
 .claude/settings.local.json
 # Generados al importar el CSV de traducciones
 project/i18n/*.translation
+# Descargas originales de packs de assets (pesan; lo usado va en project/models)
+assets/models/*/*.zip

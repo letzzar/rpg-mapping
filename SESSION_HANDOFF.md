@@ -1,6 +1,17 @@
 # SESSION_HANDOFF — RPG Mapping
 
-## Última sesión: 2026-11-27 (14.ª, octava parte) — F5 cerrado y F6 (mundo, región, impresión)
+## Última sesión: 2026-11-27 (14.ª, novena parte) — Figuras con esqueleto (KayKit)
+Tests: **352/352 en escritorio y en inglés** (2 nuevos en `test_rigged_figures.gd`).
+
+### Hecho (ADR 045)
+- Víctor aprobó los esquemas de MUN/REG y autorizó descargar los packs CC0 de KayKit (Adventurers, Skeletons, Character Animations) desde itch.io: licencia CC0 comprobada, registrada en `assets/LICENSES.md`; zips en `assets/models/kaykit/` (fuera de git), modelos usados en `project/models/kaykit/`.
+- 10 figuras animadas (modelos tipo "… (modelo animado)": caballero, bárbaro, mago, explorador, pícaro, pícaro encapuchado y 4 esqueletos) con reposo y andar (`RiggedFigure`), en la vista 3D y en el diseñador; luz solo para ellas.
+- Al descargar, Chrome dejó los tres ficheros como `.tmp` en Descargas (completos; se copiaron con su nombre). Pueden borrarse de Descargas.
+
+### Siguiente paso
+1. Que Víctor pruebe las figuras animadas y el modo proyectado; imagen Docker al final.
+
+## Sesión anterior: 2026-11-27 (14.ª, octava parte) — F5 cerrado y F6 (mundo, región, impresión)
 Tests: **350/350 en escritorio, en inglés y en el navegador** (el de rendimiento del mundo 2048×1024 también pasa en web: < 10 s). 69 seeds doradas (51 de antes sin cambios + 18 de MUN/REG).
 
 ### Hecho

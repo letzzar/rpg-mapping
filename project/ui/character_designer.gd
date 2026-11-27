@@ -41,6 +41,7 @@ var _portrait_clear: Button
 var _preview2d: Control
 var _preview_tex: Texture2D = null
 var _fig: MeshInstance3D
+var _rig: Node3D = null
 var _pivot: Node3D
 var _open_dialog: FileDialog = null
 var _save_dialog: FileDialog = null
@@ -188,8 +189,14 @@ func _build() -> void:
 	var e: Environment = Environment.new()
 	e.background_mode = Environment.BG_COLOR
 	e.background_color = Color("2b1d14")
+	e.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	e.ambient_light_color = Color(0.75, 0.7, 0.62)
+	e.ambient_light_energy = 0.7
 	env.environment = e
 	sv.add_child(env)
+	var sun: DirectionalLight3D = DirectionalLight3D.new()
+	sun.rotation_degrees = Vector3(-40.0, 30.0, 0.0)
+	sv.add_child(sun)
 	var cam: Camera3D = Camera3D.new()
 	var eye: Vector3 = Vector3(0, 0.75, 2.4)
 	cam.transform = Transform3D(Basis.looking_at(Vector3(0, 0.55, 0) - eye), eye)
@@ -356,8 +363,20 @@ func _refresh_previews() -> void:
 	_preview_tex = ImageTexture.create_from_image(img) if img != null else null
 	_portrait_clear.disabled = _sheet.portrait_png.is_empty()
 	_preview2d.queue_redraw()
+	# Modelo con esqueleto (ADR 045): se ve el modelo animado en reposo.
+	if _rig != null:
+		_rig.queue_free()
+		_rig = null
+	var body: LookCatalog.Body = _cat.body(_sheet.look.body)
+	if body != null and not body.model.is_empty():
+		_rig = RiggedFigure.create(body.model)
+		if _rig != null:
+			var k: float = 1.0 / maxf(RiggedFigure.height_of(body.model), 0.01)
+			_rig.scale = Vector3(k, k, k)
+			_pivot.add_child(_rig)
 	var mesh: ArrayMesh = CharacterModelBuilder.mesh_for(_sheet.look, _cat)
 	_fig.mesh = mesh
+	_fig.visible = _rig == null
 	# Tamaño relativo: una figura grande se ve mayor que una mediana.
 	var eye: float = MapView3D.EYE_HEIGHT_M.get(_sheet.size_id, 1.6)
 	var h: float = clampf(eye / 1.6, 0.45, 1.0)

@@ -75,6 +75,10 @@ func test_catalog_is_valid_and_builds_every_body() -> void:
 	assert_eq(cat.error, "")
 	assert_gt(cat.presets.size(), 5)
 	for b: LookCatalog.Body in cat.bodies:
+		# Los modelos con esqueleto se prueban en test_rigged_figures.gd.
+		if not b.model.is_empty():
+			assert_true(ResourceLoader.exists(b.model), b.model)
+			continue
 		var look: CharacterLook = cat.default_look(b.id)
 		assert_false(cat.sanitize(look), b.id)
 		for slot: String in b.slots:
